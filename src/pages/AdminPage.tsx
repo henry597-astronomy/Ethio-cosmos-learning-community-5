@@ -895,26 +895,29 @@ export default function AdminPage() {
                   <label className="block text-sm text-gray-400 mb-1">Mission Text</label>
                   <Textarea value={aboutLocal.missionText} onChange={(e) => updateAboutLocal('missionText', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Mission Image URL</label>
-                  <Input value={aboutLocal.missionImage} onChange={(e) => updateAboutLocal('missionImage', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                </div>
+                <ImageUpload 
+                  currentImage={aboutLocal.missionImage}
+                  onImageUploaded={(url) => updateAboutLocal('missionImage', url)}
+                  label="Mission Image"
+                />
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Who We Are - Text 1</label>
                   <Textarea value={aboutLocal.whoWeAreText1} onChange={(e) => updateAboutLocal('whoWeAreText1', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Image 1 URL</label>
-                  <Input value={aboutLocal.whoWeAreImage1} onChange={(e) => updateAboutLocal('whoWeAreImage1', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                </div>
+                <ImageUpload 
+                  currentImage={aboutLocal.whoWeAreImage1}
+                  onImageUploaded={(url) => updateAboutLocal('whoWeAreImage1', url)}
+                  label="Who We Are - Image 1"
+                />
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Who We Are - Text 2</label>
                   <Textarea value={aboutLocal.whoWeAreText2} onChange={(e) => updateAboutLocal('whoWeAreText2', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Image 2 URL</label>
-                  <Input value={aboutLocal.whoWeAreImage2} onChange={(e) => updateAboutLocal('whoWeAreImage2', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                </div>
+                <ImageUpload 
+                  currentImage={aboutLocal.whoWeAreImage2}
+                  onImageUploaded={(url) => updateAboutLocal('whoWeAreImage2', url)}
+                  label="Who We Are - Image 2"
+                />
               </div>
             </div>
           </TabsContent>
@@ -942,8 +945,11 @@ export default function AdminPage() {
                     <div className="flex-1 space-y-1">
                       <label className="block text-sm text-gray-400">Title</label>
                       <Input value={image.title} onChange={(e) => updateGalleryImageLocal(image.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Image URL</label>
-                      <Input value={image.url} onChange={(e) => updateGalleryImageLocal(image.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <ImageUpload 
+                        currentImage={image.url}
+                        onImageUploaded={(url) => updateGalleryImageLocal(image.id, 'url', url)}
+                        label="Image"
+                      />
                     </div>
                     <Button variant="destructive" size="icon" onClick={() => deleteGalleryImageLocal(image.id)}>
                       <Trash2 size={18} />
@@ -979,8 +985,11 @@ export default function AdminPage() {
                       <Input value={video.title} onChange={(e) => updateVideoLocal(video.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <label className="block text-sm text-gray-400">Video URL</label>
                       <Input value={video.url} onChange={(e) => updateVideoLocal(video.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Thumbnail URL</label>
-                      <Input value={video.thumbnail} onChange={(e) => updateVideoLocal(video.id, 'thumbnail', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <ImageUpload 
+                        currentImage={video.thumbnail}
+                        onImageUploaded={(url) => updateVideoLocal(video.id, 'thumbnail', url)}
+                        label="Thumbnail"
+                      />
                     </div>
                     <Button variant="destructive" size="icon" onClick={() => deleteVideoLocal(video.id)}>
                       <Trash2 size={18} />

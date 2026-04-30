@@ -45,9 +45,9 @@ export function useHomepageHero() {
 
   const saveHero = useCallback(async (newHero: { heroTitle: string; heroSubtitle: string }) => {
     try {
-      setError(null);
       await updateHomepageHero(newHero);
       setHero(newHero);
+      setError(null);
     } catch (err) {
       setError("Failed to save homepage hero.");
       console.error(err);
@@ -85,9 +85,9 @@ export function useHomepageFeatureCards() {
 
   const saveFeatureCards = useCallback(async (newCards: FeatureCard[]) => {
     try {
-      setError(null);
       await updateHomepageFeatureCards(newCards);
       setFeatureCards(newCards);
+      setError(null);
     } catch (err) {
       setError("Failed to save feature cards.");
       console.error(err);
@@ -121,9 +121,9 @@ export function useHomepageFeaturedTopics() {
 
   const saveFeaturedTopics = useCallback(async (newTopics: FeaturedTopic[]) => {
     try {
-      setError(null);
       await updateHomepageFeaturedTopics(newTopics);
       setFeaturedTopics(newTopics);
+      setError(null);
     } catch (err) {
       setError("Failed to save featured topics.");
       console.error(err);
@@ -158,9 +158,9 @@ export function useAboutContent() {
 
   const saveAboutContent = useCallback(async (newContent: AboutContent) => {
     try {
-      setError(null);
       await updateAboutContent(newContent);
       setAboutContent(newContent);
+      setError(null);
     } catch (err) {
       setError("Failed to save about content.");
       console.error(err);
@@ -195,9 +195,9 @@ export function useMaterialsGalleryImages() {
 
   const saveGalleryImages = useCallback(async (newImages: GalleryImage[]) => {
     try {
-      setError(null);
       await updateMaterialsGalleryImages(newImages);
       setGalleryImages(newImages);
+      setError(null);
     } catch (err) {
       setError("Failed to save gallery images.");
       console.error(err);
@@ -231,9 +231,9 @@ export function useMaterialsVideos() {
 
   const saveVideos = useCallback(async (newVideos: VideoItem[]) => {
     try {
-      setError(null);
       await updateMaterialsVideos(newVideos);
       setVideos(newVideos);
+      setError(null);
     } catch (err) {
       setError("Failed to save videos.");
       console.error(err);
@@ -267,9 +267,9 @@ export function useMaterialsPdfs() {
 
   const savePdfs = useCallback(async (newPdfs: PdfItem[]) => {
     try {
-      setError(null);
       await updateMaterialsPdfs(newPdfs);
       setPdfs(newPdfs);
+      setError(null);
     } catch (err) {
       setError("Failed to save PDFs.");
       console.error(err);
@@ -305,9 +305,9 @@ export function useTopics() {
 
   const addTopic = useCallback(async (newTopic: Omit<Topic, "id" | "created_at" | "updated_at">) => {
     try {
-      setError(null);
       const topic = await createTopic(newTopic);
       if (topic) setTopics((prev) => [...prev, topic]);
+      setError(null);
     } catch (err) {
       setError("Failed to add topic.");
       console.error(err);
@@ -317,11 +317,11 @@ export function useTopics() {
 
   const editTopic = useCallback(async (id: string, updatedFields: Partial<Topic>) => {
     try {
-      setError(null);
       const topic = await updateTopic(id, updatedFields);
       if (topic) {
         setTopics((prev) => prev.map((t) => (t.id === id ? topic : t)));
       }
+      setError(null);
     } catch (err) {
       setError("Failed to update topic.");
       console.error(err);
@@ -331,9 +331,9 @@ export function useTopics() {
 
   const removeTopic = useCallback(async (id: string) => {
     try {
-      setError(null);
       await deleteTopic(id);
       setTopics((prev) => prev.filter((t) => t.id !== id));
+      setError(null);
     } catch (err) {
       setError("Failed to delete topic.");
       console.error(err);
@@ -374,9 +374,9 @@ export function useSubtopics(topicId: string | null) {
 
   const addSubtopic = useCallback(async (newSubtopic: Omit<Subtopic, "id" | "created_at" | "updated_at">) => {
     try {
-      setError(null);
       const subtopic = await createSubtopic(newSubtopic);
       if (subtopic) setSubtopics((prev) => [...prev, subtopic]);
+      setError(null);
     } catch (err) {
       setError("Failed to add subtopic.");
       console.error(err);
@@ -386,11 +386,11 @@ export function useSubtopics(topicId: string | null) {
 
   const editSubtopic = useCallback(async (id: string, updatedFields: Partial<Subtopic>) => {
     try {
-      setError(null);
       const subtopic = await updateSubtopic(id, updatedFields);
       if (subtopic) {
         setSubtopics((prev) => prev.map((s) => (s.id === id ? subtopic : s)));
       }
+      setError(null);
     } catch (err) {
       setError("Failed to update subtopic.");
       console.error(err);
@@ -400,9 +400,9 @@ export function useSubtopics(topicId: string | null) {
 
   const removeSubtopic = useCallback(async (id: string) => {
     try {
-      setError(null);
       await deleteSubtopic(id);
       setSubtopics((prev) => prev.filter((s) => s.id !== id));
+      setError(null);
     } catch (err) {
       setError("Failed to delete subtopic.");
       console.error(err);
@@ -443,7 +443,6 @@ export function useLesson(subtopicId: string | null) {
 
   const saveLesson = useCallback(async (newLesson: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string }) => {
     try {
-      setError(null);
       let resultLesson;
       if (lesson?.id) {
         resultLesson = await updateLesson(lesson.id, newLesson);
@@ -451,6 +450,7 @@ export function useLesson(subtopicId: string | null) {
         resultLesson = await createLesson(newLesson);
       }
       if (resultLesson) setLesson(resultLesson);
+      setError(null);
     } catch (err) {
       setError("Failed to save lesson.");
       console.error(err);
@@ -461,9 +461,9 @@ export function useLesson(subtopicId: string | null) {
   const removeLesson = useCallback(async () => {
     if (!lesson?.id) return;
     try {
-      setError(null);
       await deleteLesson(lesson.id);
       setLesson(null);
+      setError(null);
     } catch (err) {
       setError("Failed to delete lesson.");
       console.error(err);
@@ -499,9 +499,9 @@ export function useQuizzes() {
 
   const addQuiz = useCallback(async (newQuiz: Omit<Quiz, "id" | "created_at" | "updated_at">) => {
     try {
-      setError(null);
       const quiz = await createQuiz(newQuiz);
       if (quiz) setQuizzes((prev) => [...prev, quiz]);
+      setError(null);
     } catch (err) {
       setError("Failed to add quiz.");
       console.error(err);
@@ -511,11 +511,11 @@ export function useQuizzes() {
 
   const editQuiz = useCallback(async (id: string, updatedFields: Partial<Quiz>) => {
     try {
-      setError(null);
       const quiz = await updateQuiz(id, updatedFields);
       if (quiz) {
         setQuizzes((prev) => prev.map((q) => (q.id === id ? quiz : q)));
       }
+      setError(null);
     } catch (err) {
       setError("Failed to update quiz.");
       console.error(err);
@@ -525,9 +525,9 @@ export function useQuizzes() {
 
   const removeQuiz = useCallback(async (id: string) => {
     try {
-      setError(null);
       await deleteQuiz(id);
       setQuizzes((prev) => prev.filter((q) => q.id !== id));
+      setError(null);
     } catch (err) {
       setError("Failed to delete quiz.");
       console.error(err);
@@ -568,9 +568,9 @@ export function useQuizQuestions(quizId: string | null) {
 
   const addQuizQuestion = useCallback(async (newQuestion: Omit<QuizQuestion, "id" | "created_at" | "updated_at">) => {
     try {
-      setError(null);
       const question = await createQuizQuestion(newQuestion);
       if (question) setQuizQuestions((prev) => [...prev, question]);
+      setError(null);
     } catch (err) {
       setError("Failed to add quiz question.");
       console.error(err);
@@ -580,11 +580,11 @@ export function useQuizQuestions(quizId: string | null) {
 
   const editQuizQuestion = useCallback(async (id: string, updatedFields: Partial<QuizQuestion>) => {
     try {
-      setError(null);
       const question = await updateQuizQuestion(id, updatedFields);
       if (question) {
         setQuizQuestions((prev) => prev.map((q) => (q.id === id ? question : q)));
       }
+      setError(null);
     } catch (err) {
       setError("Failed to update quiz question.");
       console.error(err);
@@ -594,9 +594,9 @@ export function useQuizQuestions(quizId: string | null) {
 
   const removeQuizQuestion = useCallback(async (id: string) => {
     try {
-      setError(null);
       await deleteQuizQuestion(id);
       setQuizQuestions((prev) => prev.filter((q) => q.id !== id));
+      setError(null);
     } catch (err) {
       setError("Failed to delete quiz question.");
       console.error(err);

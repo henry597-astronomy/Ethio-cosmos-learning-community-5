@@ -144,8 +144,9 @@ export default function AdminPage() {
   // We only need the user here for display.
   if (!user) return null;
 
+  // Only block on initial load errors, not on save errors
   const allLoading = topicsLoading || subtopicsLoading || lessonLoading || quizzesLoading || quizQuestionsLoading || homepageHero.loading || homepageFeatureCards.loading || homepageFeaturedTopics.loading || aboutContent.loading || materialsGalleryImages.loading || materialsVideos.loading || materialsPdfs.loading;
-  const anyError = topicsError || subtopicsError || lessonError || quizzesError || quizQuestionsError || homepageHero.error || homepageFeatureCards.error || homepageFeaturedTopics.error || aboutContent.error || materialsGalleryImages.error || materialsVideos.error || materialsPdfs.error;
+  const initialLoadError = topicsError || subtopicsError || lessonError || quizzesError || quizQuestionsError || homepageHero.error || homepageFeatureCards.error || homepageFeaturedTopics.error || aboutContent.error || materialsGalleryImages.error || materialsVideos.error || materialsPdfs.error;
 
   if (allLoading) {
     return (
@@ -155,118 +156,174 @@ export default function AdminPage() {
     );
   }
 
-  if (anyError) {
+  if (initialLoadError) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] text-red-400">
-        Error loading admin data: {anyError}
+        Error loading admin data: {initialLoadError}
       </div>
     );
   }
 
   // ── Homepage ────────────────────────────────────────────────────────────────
   const updateFeatureCard = async (i: number, field: keyof FeatureCard, value: string) => {
-    const updatedCards = [...homepageFeatureCards.featureCards];
-    updatedCards[i] = { ...updatedCards[i], [field]: value };
-    await homepageFeatureCards.saveFeatureCards(updatedCards);
+    try {
+      const updatedCards = [...homepageFeatureCards.featureCards];
+      updatedCards[i] = { ...updatedCards[i], [field]: value };
+      await homepageFeatureCards.saveFeatureCards(updatedCards);
+    } catch (err) {
+      console.error('Failed to update feature card:', err);
+      // Error is handled in the hook, don't re-throw to prevent UI blocking
+    }
   };
 
   const updateFeaturedTopic = async (i: number, field: keyof FeaturedTopic, value: string) => {
-    const updatedTopics = [...homepageFeaturedTopics.featuredTopics];
-    updatedTopics[i] = { ...updatedTopics[i], [field]: value };
-    await homepageFeaturedTopics.saveFeaturedTopics(updatedTopics);
+    try {
+      const updatedTopics = [...homepageFeaturedTopics.featuredTopics];
+      updatedTopics[i] = { ...updatedTopics[i], [field]: value };
+      await homepageFeaturedTopics.saveFeaturedTopics(updatedTopics);
+    } catch (err) {
+      console.error('Failed to update featured topic:', err);
+      // Error is handled in the hook, don't re-throw to prevent UI blocking
+    }
   };
 
   const addFeaturedTopic = async () => {
-    const newTopic: FeaturedTopic = { id: newId(), title: 'New Topic', description: 'Description', image_url: '/images/topic-fundamentals.jpg' };
-    await homepageFeaturedTopics.saveFeaturedTopics([...homepageFeaturedTopics.featuredTopics, newTopic]);
+    try {
+      const newTopic: FeaturedTopic = { id: newId(), title: 'New Topic', description: 'Description', image_url: '/images/topic-fundamentals.jpg' };
+      await homepageFeaturedTopics.saveFeaturedTopics([...homepageFeaturedTopics.featuredTopics, newTopic]);
+    } catch (err) {
+      console.error('Failed to add featured topic:', err);
+      // Error is handled in the hook, don't re-throw to prevent UI blocking
+    }
   };
 
   const deleteFeaturedTopic = async (i: number) => {
-    const updatedTopics = homepageFeaturedTopics.featuredTopics.filter((_, idx) => idx !== i);
-    await homepageFeaturedTopics.saveFeaturedTopics(updatedTopics);
+    try {
+      const updatedTopics = homepageFeaturedTopics.featuredTopics.filter((_, idx) => idx !== i);
+      await homepageFeaturedTopics.saveFeaturedTopics(updatedTopics);
+    } catch (err) {
+      console.error('Failed to delete featured topic:', err);
+      // Error is handled in the hook, don't re-throw to prevent UI blocking
+    }
   };
 
   // ── Topics ──────────────────────────────────────────────────────────────────
   const handleUpdateTopic = async (id: string, field: keyof Topic, value: string | number) => {
-    await editTopic(id, { [field]: value });
+    try {
+      await editTopic(id, { [field]: value });
+    } catch (err) {
+      console.error('Failed to update topic:', err);
+    }
   };
 
   const handleAddTopic = async () => {
-    const newTopic: Omit<Topic, "id" | "created_at" | "updated_at"> = { 
-      emoji: '🚀', 
-      title: 'New Topic', 
-      description: 'Description', 
-      order_index: topics.length, 
-      image_url: '/images/topic-fundamentals.jpg' 
-    };
-    await addTopic(newTopic);
+    try {
+      const newTopic: Omit<Topic, "id" | "created_at" | "updated_at"> = { 
+        emoji: '🚀', 
+        title: 'New Topic', 
+        description: 'Description', 
+        order_index: topics.length, 
+        image_url: '/images/topic-fundamentals.jpg' 
+      };
+      await addTopic(newTopic);
+    } catch (err) {
+      console.error('Failed to add topic:', err);
+    }
   };
 
   const handleDeleteTopic = async (id: string) => {
-    await removeTopic(id);
+    try {
+      await removeTopic(id);
+    } catch (err) {
+      console.error('Failed to delete topic:', err);
+    }
   };
 
   const moveTopic = async (i: number, dir: 'up' | 'down') => {
-    const updatedTopics = [...topics];
-    if (dir === 'up' && i === 0) return;
-    if (dir === 'down' && i === updatedTopics.length - 1) return;
-    const swap = dir === 'up' ? i - 1 : i + 1;
-    [updatedTopics[i], updatedTopics[swap]] = [updatedTopics[swap], updatedTopics[i]];
-    // Update order_index for both swapped topics
-    await editTopic(updatedTopics[i].id, { order_index: i });
-    await editTopic(updatedTopics[swap].id, { order_index: swap });
-    // Re-fetch to ensure UI is consistent with DB order
-    fetchTopics();
+    try {
+      const updatedTopics = [...topics];
+      if (dir === 'up' && i === 0) return;
+      if (dir === 'down' && i === updatedTopics.length - 1) return;
+      const swap = dir === 'up' ? i - 1 : i + 1;
+      [updatedTopics[i], updatedTopics[swap]] = [updatedTopics[swap], updatedTopics[i]];
+      // Update order_index for both swapped topics
+      await editTopic(updatedTopics[i].id, { order_index: i });
+      await editTopic(updatedTopics[swap].id, { order_index: swap });
+      // Re-fetch to ensure UI is consistent with DB order
+      fetchTopics();
+    } catch (err) {
+      console.error('Failed to move topic:', err);
+    }
   };
 
   // ── Subtopics ───────────────────────────────────────────────────────────────
   const handleUpdateSubtopic = async (id: string, field: keyof Subtopic, value: string) => {
-    await editSubtopic(id, { [field]: value });
+    try {
+      await editSubtopic(id, { [field]: value });
+    } catch (err) {
+      console.error('Failed to update subtopic:', err);
+    }
   };
 
   const handleAddSubtopic = async () => {
-    if (!selectedTopicId) return;
-    const newSubtopic: Omit<Subtopic, "id" | "created_at" | "updated_at"> = { 
-      topic_id: selectedTopicId, 
-      emoji: '📚', 
-      title: 'New Lesson', 
-      description: 'Lesson description', 
-      order_index: subtopics.length 
-    };
-    await addSubtopic(newSubtopic);
+    try {
+      if (!selectedTopicId) return;
+      const newSubtopic: Omit<Subtopic, "id" | "created_at" | "updated_at"> = { 
+        topic_id: selectedTopicId, 
+        emoji: '📚', 
+        title: 'New Lesson', 
+        description: 'Lesson description', 
+        order_index: subtopics.length 
+      };
+      await addSubtopic(newSubtopic);
+    } catch (err) {
+      console.error('Failed to add subtopic:', err);
+    }
   };
 
   const handleDeleteSubtopic = async (id: string) => {
-    await removeSubtopic(id);
+    try {
+      await removeSubtopic(id);
+    } catch (err) {
+      console.error('Failed to delete subtopic:', err);
+    }
   };
 
   const moveSubtopic = async (i: number, dir: 'up' | 'down') => {
-    if (!selectedTopicId) return;
-    const updatedSubtopics = [...subtopics];
-    if (dir === 'up' && i === 0) return;
-    if (dir === 'down' && i === updatedSubtopics.length - 1) return;
-    const swap = dir === 'up' ? i - 1 : i + 1;
-    [updatedSubtopics[i], updatedSubtopics[swap]] = [updatedSubtopics[swap], updatedSubtopics[i]];
-    // Update order_index for both swapped subtopics
-    await editSubtopic(updatedSubtopics[i].id, { order_index: i });
-    await editSubtopic(updatedSubtopics[swap].id, { order_index: swap });
-    // Re-fetch to ensure UI is consistent with DB order
-    fetchSubtopics();
+    try {
+      if (!selectedTopicId) return;
+      const updatedSubtopics = [...subtopics];
+      if (dir === 'up' && i === 0) return;
+      if (dir === 'down' && i === updatedSubtopics.length - 1) return;
+      const swap = dir === 'up' ? i - 1 : i + 1;
+      [updatedSubtopics[i], updatedSubtopics[swap]] = [updatedSubtopics[swap], updatedSubtopics[i]];
+      // Update order_index for both swapped subtopics
+      await editSubtopic(updatedSubtopics[i].id, { order_index: i });
+      await editSubtopic(updatedSubtopics[swap].id, { order_index: swap });
+      // Re-fetch to ensure UI is consistent with DB order
+      fetchSubtopics();
+    } catch (err) {
+      console.error('Failed to move subtopic:', err);
+    }
   };
 
   // ── Lessons ─────────────────────────────────────────────────────────────────
   const currentLessonBlocks = lesson?.content_blocks || [];
 
   const handleSaveLessonBlocks = async (blocks: LessonBlock[]) => {
-    if (!selectedSubtopicId) return;
-    const currentSubtopic = subtopics.find(s => s.id === selectedSubtopicId);
-    if (!currentSubtopic) return;
+    try {
+      if (!selectedSubtopicId) return;
+      const currentSubtopic = subtopics.find(s => s.id === selectedSubtopicId);
+      if (!currentSubtopic) return;
 
-    await saveLesson({
-      subtopic_id: selectedSubtopicId,
-      title: currentSubtopic.title, // Lesson title from subtopic
-      content_blocks: blocks,
-    });
+      await saveLesson({
+        subtopic_id: selectedSubtopicId,
+        title: currentSubtopic.title, // Lesson title from subtopic
+        content_blocks: blocks,
+      });
+    } catch (err) {
+      console.error('Failed to save lesson blocks:', err);
+    }
   };
 
   const updateLessonBlock = (i: number, content: string) => {
@@ -294,89 +351,145 @@ export default function AdminPage() {
 
   // ── About Page ──────────────────────────────────────────────────────────────
   const handleUpdateAboutContent = async (field: keyof AboutContent, value: string) => {
-    const base = aboutContent.aboutContent ?? DEFAULT_ABOUT;
-    const updatedContent: AboutContent = { ...base, [field]: value };
-    await aboutContent.saveAboutContent(updatedContent);
+    try {
+      const base = aboutContent.aboutContent ?? DEFAULT_ABOUT;
+      const updatedContent: AboutContent = { ...base, [field]: value };
+      await aboutContent.saveAboutContent(updatedContent);
+    } catch (err) {
+      console.error('Failed to update about content:', err);
+    }
   };
 
   // ── Materials ───────────────────────────────────────────────────────────────
   const handleAddGalleryImage = async () => {
-    const newImage: GalleryImage = { id: newId(), url: '', title: 'New Image' };
-    await materialsGalleryImages.saveGalleryImages([...materialsGalleryImages.galleryImages, newImage]);
+    try {
+      const newImage: GalleryImage = { id: newId(), url: '', title: 'New Image' };
+      await materialsGalleryImages.saveGalleryImages([...materialsGalleryImages.galleryImages, newImage]);
+    } catch (err) {
+      console.error('Failed to add gallery image:', err);
+    }
   };
 
   const handleUpdateGalleryImage = async (id: string, field: keyof GalleryImage, value: string) => {
-    const updatedImages = materialsGalleryImages.galleryImages.map(img => 
-      img.id === id ? { ...img, [field]: value } : img
-    );
-    await materialsGalleryImages.saveGalleryImages(updatedImages);
+    try {
+      const updatedImages = materialsGalleryImages.galleryImages.map(img => 
+        img.id === id ? { ...img, [field]: value } : img
+      );
+      await materialsGalleryImages.saveGalleryImages(updatedImages);
+    } catch (err) {
+      console.error('Failed to update gallery image:', err);
+    }
   };
 
   const handleDeleteGalleryImage = async (id: string) => {
-    const updatedImages = materialsGalleryImages.galleryImages.filter(img => img.id !== id);
-    await materialsGalleryImages.saveGalleryImages(updatedImages);
+    try {
+      const updatedImages = materialsGalleryImages.galleryImages.filter(img => img.id !== id);
+      await materialsGalleryImages.saveGalleryImages(updatedImages);
+    } catch (err) {
+      console.error('Failed to delete gallery image:', err);
+    }
   };
 
   const handleAddVideo = async () => {
-    const newVideo: VideoItem = { id: newId(), url: '', thumbnail: '', title: 'New Video' };
-    await materialsVideos.saveVideos([...materialsVideos.videos, newVideo]);
+    try {
+      const newVideo: VideoItem = { id: newId(), url: '', thumbnail: '', title: 'New Video' };
+      await materialsVideos.saveVideos([...materialsVideos.videos, newVideo]);
+    } catch (err) {
+      console.error('Failed to add video:', err);
+    }
   };
 
   const handleUpdateVideo = async (id: string, field: keyof VideoItem, value: string) => {
-    const updatedVideos = materialsVideos.videos.map(video => 
-      video.id === id ? { ...video, [field]: value } : video
-    );
-    await materialsVideos.saveVideos(updatedVideos);
+    try {
+      const updatedVideos = materialsVideos.videos.map(video => 
+        video.id === id ? { ...video, [field]: value } : video
+      );
+      await materialsVideos.saveVideos(updatedVideos);
+    } catch (err) {
+      console.error('Failed to update video:', err);
+    }
   };
 
   const handleDeleteVideo = async (id: string) => {
-    const updatedVideos = materialsVideos.videos.filter(video => video.id !== id);
-    await materialsVideos.saveVideos(updatedVideos);
+    try {
+      const updatedVideos = materialsVideos.videos.filter(video => video.id !== id);
+      await materialsVideos.saveVideos(updatedVideos);
+    } catch (err) {
+      console.error('Failed to delete video:', err);
+    }
   };
 
   const handleAddPdf = async () => {
-    const newPdf: PdfItem = { id: newId(), url: '', title: 'New PDF', label: 'New PDF' };
-    await materialsPdfs.savePdfs([...materialsPdfs.pdfs, newPdf]);
+    try {
+      const newPdf: PdfItem = { id: newId(), url: '', title: 'New PDF', label: 'New PDF' };
+      await materialsPdfs.savePdfs([...materialsPdfs.pdfs, newPdf]);
+    } catch (err) {
+      console.error('Failed to add PDF:', err);
+    }
   };
 
   const handleUpdatePdf = async (id: string, field: keyof PdfItem, value: string) => {
-    const updatedPdfs = materialsPdfs.pdfs.map(pdf => 
-      pdf.id === id ? { ...pdf, [field]: value } : pdf
-    );
-    await materialsPdfs.savePdfs(updatedPdfs);
+    try {
+      const updatedPdfs = materialsPdfs.pdfs.map(pdf => 
+        pdf.id === id ? { ...pdf, [field]: value } : pdf
+      );
+      await materialsPdfs.savePdfs(updatedPdfs);
+    } catch (err) {
+      console.error('Failed to update PDF:', err);
+    }
   };
 
   const handleDeletePdf = async (id: string) => {
-    const updatedPdfs = materialsPdfs.pdfs.filter(pdf => pdf.id !== id);
-    await materialsPdfs.savePdfs(updatedPdfs);
+    try {
+      const updatedPdfs = materialsPdfs.pdfs.filter(pdf => pdf.id !== id);
+      await materialsPdfs.savePdfs(updatedPdfs);
+    } catch (err) {
+      console.error('Failed to delete PDF:', err);
+    }
   };
 
   // ── Quizzes ─────────────────────────────────────────────────────────────────
   const handleAddQuiz = async () => {
-    const newQuiz: Omit<Quiz, "id" | "created_at" | "updated_at"> = { title: 'New Quiz', description: 'Quiz description' };
-    await addQuiz(newQuiz);
+    try {
+      const newQuiz: Omit<Quiz, "id" | "created_at" | "updated_at"> = { title: 'New Quiz', description: 'Quiz description' };
+      await addQuiz(newQuiz);
+    } catch (err) {
+      console.error('Failed to add quiz:', err);
+    }
   };
   // (Quiz / QuizQuestion types are imported above)
 
   const handleUpdateQuiz = async (id: string, field: keyof Quiz, value: string) => {
-    await editQuiz(id, { [field]: value });
+    try {
+      await editQuiz(id, { [field]: value });
+    } catch (err) {
+      console.error('Failed to update quiz:', err);
+    }
   };
 
   const handleDeleteQuiz = async (id: string) => {
-    await removeQuiz(id);
+    try {
+      await removeQuiz(id);
+    } catch (err) {
+      console.error('Failed to delete quiz:', err);
+    }
   };
 
   // ── Quiz Questions ──────────────────────────────────────────────────────────
   const handleAddQuizQuestion = async () => {
-    if (!selectedQuizId) return;
-    const newQuestion: Omit<QuizQuestion, "id" | "created_at" | "updated_at"> = {
-      quiz_id: selectedQuizId,
-      question_text: 'New Question',
-      options: ['Option 1', 'Option 2'],
-      correct_answer: 0,
-      order_index: quizQuestions.length,
-    };
-    await addQuizQuestion(newQuestion);
+    try {
+      if (!selectedQuizId) return;
+      const newQuestion: Omit<QuizQuestion, "id" | "created_at" | "updated_at"> = {
+        quiz_id: selectedQuizId,
+        question_text: 'New Question',
+        options: ['Option 1', 'Option 2'],
+        correct_answer: 0,
+        order_index: quizQuestions.length,
+      };
+      await addQuizQuestion(newQuestion);
+    } catch (err) {
+      console.error('Failed to add quiz question:', err);
+    }
   };
 
   const handleUpdateQuizQuestion = async (
@@ -384,11 +497,19 @@ export default function AdminPage() {
     field: keyof QuizQuestion,
     value: QuizQuestion[keyof QuizQuestion]
   ) => {
-    await editQuizQuestion(id, { [field]: value });
+    try {
+      await editQuizQuestion(id, { [field]: value });
+    } catch (err) {
+      console.error('Failed to update quiz question:', err);
+    }
   };
 
   const handleDeleteQuizQuestion = async (id: string) => {
-    await removeQuizQuestion(id);
+    try {
+      await removeQuizQuestion(id);
+    } catch (err) {
+      console.error('Failed to delete quiz question:', err);
+    }
   };
 
   return (

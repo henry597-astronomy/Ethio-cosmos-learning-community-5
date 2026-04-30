@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowUp, ArrowDown, Plus, Trash2, Upload, FileText, Image as ImageIcon, Check, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Check, X } from 'lucide-react';
 import type {
   Topic,
   Subtopic,

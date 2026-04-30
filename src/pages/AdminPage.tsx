@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowUp, ArrowDown, Plus, Trash2, Upload, FileText, Image as ImageIcon } from 'lucide-react';
+import { ArrowUp, ArrowDown, Plus, Trash2, Upload, FileText, Image as ImageIcon, Check, X } from 'lucide-react';
 import type {
   Topic,
   Subtopic,
@@ -129,6 +129,34 @@ export default function AdminPage() {
   const [selectedSubtopicId, setSelectedSubtopicId] = useState<string | null>(null);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
 
+  // Local state for hero section (to avoid auto-save)
+  const [heroLocal, setHeroLocal] = useState(homepageHero.hero);
+  const [heroModified, setHeroModified] = useState(false);
+
+  // Local state for feature cards
+  const [featureCardsLocal, setFeatureCardsLocal] = useState(homepageFeatureCards.featureCards);
+  const [featureCardsModified, setFeatureCardsModified] = useState(false);
+
+  // Local state for featured topics
+  const [featuredTopicsLocal, setFeaturedTopicsLocal] = useState(homepageFeaturedTopics.featuredTopics);
+  const [featuredTopicsModified, setFeaturedTopicsModified] = useState(false);
+
+  // Local state for about content
+  const [aboutLocal, setAboutLocal] = useState(aboutContent.aboutContent || DEFAULT_ABOUT);
+  const [aboutModified, setAboutModified] = useState(false);
+
+  // Local state for gallery images
+  const [galleryImagesLocal, setGalleryImagesLocal] = useState(materialsGalleryImages.galleryImages);
+  const [galleryImagesModified, setGalleryImagesModified] = useState(false);
+
+  // Local state for videos
+  const [videosLocal, setVideosLocal] = useState(materialsVideos.videos);
+  const [videosModified, setVideosModified] = useState(false);
+
+  // Local state for PDFs
+  const [pdfsLocal, setPdfsLocal] = useState(materialsPdfs.pdfs);
+  const [pdfsModified, setPdfsModified] = useState(false);
+
   // Parameterized hooks are called directly here (proper React hooks usage)
   // instead of through factory functions on the context.
   const { topics, addTopic, editTopic, removeTopic, fetchTopics, loading: topicsLoading, error: topicsError } = topicsHook;
@@ -165,46 +193,87 @@ export default function AdminPage() {
   }
 
   // ── Homepage ────────────────────────────────────────────────────────────────
-  const updateFeatureCard = async (i: number, field: keyof FeatureCard, value: string) => {
+  const updateHeroLocal = (field: 'heroTitle' | 'heroSubtitle', value: string) => {
+    setHeroLocal(prev => prev ? { ...prev, [field]: value } : null);
+    setHeroModified(true);
+  };
+
+  const saveHero = async () => {
+    if (!heroLocal) return;
     try {
-      const updatedCards = [...homepageFeatureCards.featureCards];
-      updatedCards[i] = { ...updatedCards[i], [field]: value };
-      await homepageFeatureCards.saveFeatureCards(updatedCards);
+      await homepageHero.saveHero(heroLocal);
+      setHeroModified(false);
     } catch (err) {
-      console.error('Failed to update feature card:', err);
-      // Error is handled in the hook, don't re-throw to prevent UI blocking
+      console.error('Failed to save hero:', err);
     }
   };
 
-  const updateFeaturedTopic = async (i: number, field: keyof FeaturedTopic, value: string) => {
+  const resetHero = () => {
+    setHeroLocal(homepageHero.hero);
+    setHeroModified(false);
+  };
+
+  const updateFeatureCardLocal = (i: number, field: keyof FeatureCard, value: string) => {
+    const updated = [...featureCardsLocal];
+    updated[i] = { ...updated[i], [field]: value };
+    setFeatureCardsLocal(updated);
+    setFeatureCardsModified(true);
+  };
+
+  const saveFeatureCards = async () => {
     try {
-      const updatedTopics = [...homepageFeaturedTopics.featuredTopics];
-      updatedTopics[i] = { ...updatedTopics[i], [field]: value };
-      await homepageFeaturedTopics.saveFeaturedTopics(updatedTopics);
+      await homepageFeatureCards.saveFeatureCards(featureCardsLocal);
+      setFeatureCardsModified(false);
     } catch (err) {
-      console.error('Failed to update featured topic:', err);
-      // Error is handled in the hook, don't re-throw to prevent UI blocking
+      console.error('Failed to save feature cards:', err);
     }
   };
 
-  const addFeaturedTopic = async () => {
+  const resetFeatureCards = () => {
+    setFeatureCardsLocal(homepageFeatureCards.featureCards);
+    setFeatureCardsModified(false);
+  };
+
+  const addFeatureCardLocal = () => {
+    setFeatureCardsLocal([...featureCardsLocal, { icon: '✨', title: 'New Card', description: 'New description' }]);
+    setFeatureCardsModified(true);
+  };
+
+  const deleteFeatureCardLocal = (i: number) => {
+    setFeatureCardsLocal(featureCardsLocal.filter((_, idx) => idx !== i));
+    setFeatureCardsModified(true);
+  };
+
+  const updateFeaturedTopicLocal = (i: number, field: keyof FeaturedTopic, value: string) => {
+    const updated = [...featuredTopicsLocal];
+    updated[i] = { ...updated[i], [field]: value };
+    setFeaturedTopicsLocal(updated);
+    setFeaturedTopicsModified(true);
+  };
+
+  const saveFeaturedTopics = async () => {
     try {
-      const newTopic: FeaturedTopic = { id: newId(), title: 'New Topic', description: 'Description', image_url: '/images/topic-fundamentals.jpg' };
-      await homepageFeaturedTopics.saveFeaturedTopics([...homepageFeaturedTopics.featuredTopics, newTopic]);
+      await homepageFeaturedTopics.saveFeaturedTopics(featuredTopicsLocal);
+      setFeaturedTopicsModified(false);
     } catch (err) {
-      console.error('Failed to add featured topic:', err);
-      // Error is handled in the hook, don't re-throw to prevent UI blocking
+      console.error('Failed to save featured topics:', err);
     }
   };
 
-  const deleteFeaturedTopic = async (i: number) => {
-    try {
-      const updatedTopics = homepageFeaturedTopics.featuredTopics.filter((_, idx) => idx !== i);
-      await homepageFeaturedTopics.saveFeaturedTopics(updatedTopics);
-    } catch (err) {
-      console.error('Failed to delete featured topic:', err);
-      // Error is handled in the hook, don't re-throw to prevent UI blocking
-    }
+  const resetFeaturedTopics = () => {
+    setFeaturedTopicsLocal(homepageFeaturedTopics.featuredTopics);
+    setFeaturedTopicsModified(false);
+  };
+
+  const addFeaturedTopicLocal = () => {
+    const newTopic: FeaturedTopic = { id: newId(), title: 'New Topic', description: 'Description', image_url: '/images/topic-fundamentals.jpg' };
+    setFeaturedTopicsLocal([...featuredTopicsLocal, newTopic]);
+    setFeaturedTopicsModified(true);
+  };
+
+  const deleteFeaturedTopicLocal = (i: number) => {
+    setFeaturedTopicsLocal(featuredTopicsLocal.filter((_, idx) => idx !== i));
+    setFeaturedTopicsModified(true);
   };
 
   // ── Topics ──────────────────────────────────────────────────────────────────
@@ -257,7 +326,7 @@ export default function AdminPage() {
   };
 
   // ── Subtopics ───────────────────────────────────────────────────────────────
-  const handleUpdateSubtopic = async (id: string, field: keyof Subtopic, value: string) => {
+  const handleUpdateSubtopic = async (id: string, field: keyof Subtopic, value: string | number) => {
     try {
       await editSubtopic(id, { [field]: value });
     } catch (err) {
@@ -350,102 +419,123 @@ export default function AdminPage() {
   };
 
   // ── About Page ──────────────────────────────────────────────────────────────
-  const handleUpdateAboutContent = async (field: keyof AboutContent, value: string) => {
+  const updateAboutLocal = (field: keyof AboutContent, value: string) => {
+    setAboutLocal(prev => ({ ...prev, [field]: value }));
+    setAboutModified(true);
+  };
+
+  const saveAbout = async () => {
     try {
-      const base = aboutContent.aboutContent ?? DEFAULT_ABOUT;
-      const updatedContent: AboutContent = { ...base, [field]: value };
-      await aboutContent.saveAboutContent(updatedContent);
+      await aboutContent.saveAboutContent(aboutLocal);
+      setAboutModified(false);
     } catch (err) {
-      console.error('Failed to update about content:', err);
+      console.error('Failed to save about content:', err);
     }
+  };
+
+  const resetAbout = () => {
+    setAboutLocal(aboutContent.aboutContent || DEFAULT_ABOUT);
+    setAboutModified(false);
   };
 
   // ── Materials ───────────────────────────────────────────────────────────────
-  const handleAddGalleryImage = async () => {
+  const updateGalleryImageLocal = (id: string, field: keyof GalleryImage, value: string) => {
+    const updated = galleryImagesLocal.map(img => 
+      img.id === id ? { ...img, [field]: value } : img
+    );
+    setGalleryImagesLocal(updated);
+    setGalleryImagesModified(true);
+  };
+
+  const saveGalleryImages = async () => {
     try {
-      const newImage: GalleryImage = { id: newId(), url: '', title: 'New Image' };
-      await materialsGalleryImages.saveGalleryImages([...materialsGalleryImages.galleryImages, newImage]);
+      await materialsGalleryImages.saveGalleryImages(galleryImagesLocal);
+      setGalleryImagesModified(false);
     } catch (err) {
-      console.error('Failed to add gallery image:', err);
+      console.error('Failed to save gallery images:', err);
     }
   };
 
-  const handleUpdateGalleryImage = async (id: string, field: keyof GalleryImage, value: string) => {
+  const resetGalleryImages = () => {
+    setGalleryImagesLocal(materialsGalleryImages.galleryImages);
+    setGalleryImagesModified(false);
+  };
+
+  const addGalleryImageLocal = () => {
+    const newImage: GalleryImage = { id: newId(), url: '', title: 'New Image' };
+    setGalleryImagesLocal([...galleryImagesLocal, newImage]);
+    setGalleryImagesModified(true);
+  };
+
+  const deleteGalleryImageLocal = (id: string) => {
+    setGalleryImagesLocal(galleryImagesLocal.filter(img => img.id !== id));
+    setGalleryImagesModified(true);
+  };
+
+  const updateVideoLocal = (id: string, field: keyof VideoItem, value: string) => {
+    const updated = videosLocal.map(video => 
+      video.id === id ? { ...video, [field]: value } : video
+    );
+    setVideosLocal(updated);
+    setVideosModified(true);
+  };
+
+  const saveVideos = async () => {
     try {
-      const updatedImages = materialsGalleryImages.galleryImages.map(img => 
-        img.id === id ? { ...img, [field]: value } : img
-      );
-      await materialsGalleryImages.saveGalleryImages(updatedImages);
+      await materialsVideos.saveVideos(videosLocal);
+      setVideosModified(false);
     } catch (err) {
-      console.error('Failed to update gallery image:', err);
+      console.error('Failed to save videos:', err);
     }
   };
 
-  const handleDeleteGalleryImage = async (id: string) => {
+  const resetVideos = () => {
+    setVideosLocal(materialsVideos.videos);
+    setVideosModified(false);
+  };
+
+  const addVideoLocal = () => {
+    const newVideo: VideoItem = { id: newId(), url: '', thumbnail: '', title: 'New Video' };
+    setVideosLocal([...videosLocal, newVideo]);
+    setVideosModified(true);
+  };
+
+  const deleteVideoLocal = (id: string) => {
+    setVideosLocal(videosLocal.filter(video => video.id !== id));
+    setVideosModified(true);
+  };
+
+  const updatePdfLocal = (id: string, field: keyof PdfItem, value: string) => {
+    const updated = pdfsLocal.map(pdf => 
+      pdf.id === id ? { ...pdf, [field]: value } : pdf
+    );
+    setPdfsLocal(updated);
+    setPdfsModified(true);
+  };
+
+  const savePdfs = async () => {
     try {
-      const updatedImages = materialsGalleryImages.galleryImages.filter(img => img.id !== id);
-      await materialsGalleryImages.saveGalleryImages(updatedImages);
+      await materialsPdfs.savePdfs(pdfsLocal);
+      setPdfsModified(false);
     } catch (err) {
-      console.error('Failed to delete gallery image:', err);
+      console.error('Failed to save PDFs:', err);
     }
   };
 
-  const handleAddVideo = async () => {
-    try {
-      const newVideo: VideoItem = { id: newId(), url: '', thumbnail: '', title: 'New Video' };
-      await materialsVideos.saveVideos([...materialsVideos.videos, newVideo]);
-    } catch (err) {
-      console.error('Failed to add video:', err);
-    }
+  const resetPdfs = () => {
+    setPdfsLocal(materialsPdfs.pdfs);
+    setPdfsModified(false);
   };
 
-  const handleUpdateVideo = async (id: string, field: keyof VideoItem, value: string) => {
-    try {
-      const updatedVideos = materialsVideos.videos.map(video => 
-        video.id === id ? { ...video, [field]: value } : video
-      );
-      await materialsVideos.saveVideos(updatedVideos);
-    } catch (err) {
-      console.error('Failed to update video:', err);
-    }
+  const addPdfLocal = () => {
+    const newPdf: PdfItem = { id: newId(), url: '', title: 'New PDF', label: 'New PDF' };
+    setPdfsLocal([...pdfsLocal, newPdf]);
+    setPdfsModified(true);
   };
 
-  const handleDeleteVideo = async (id: string) => {
-    try {
-      const updatedVideos = materialsVideos.videos.filter(video => video.id !== id);
-      await materialsVideos.saveVideos(updatedVideos);
-    } catch (err) {
-      console.error('Failed to delete video:', err);
-    }
-  };
-
-  const handleAddPdf = async () => {
-    try {
-      const newPdf: PdfItem = { id: newId(), url: '', title: 'New PDF', label: 'New PDF' };
-      await materialsPdfs.savePdfs([...materialsPdfs.pdfs, newPdf]);
-    } catch (err) {
-      console.error('Failed to add PDF:', err);
-    }
-  };
-
-  const handleUpdatePdf = async (id: string, field: keyof PdfItem, value: string) => {
-    try {
-      const updatedPdfs = materialsPdfs.pdfs.map(pdf => 
-        pdf.id === id ? { ...pdf, [field]: value } : pdf
-      );
-      await materialsPdfs.savePdfs(updatedPdfs);
-    } catch (err) {
-      console.error('Failed to update PDF:', err);
-    }
-  };
-
-  const handleDeletePdf = async (id: string) => {
-    try {
-      const updatedPdfs = materialsPdfs.pdfs.filter(pdf => pdf.id !== id);
-      await materialsPdfs.savePdfs(updatedPdfs);
-    } catch (err) {
-      console.error('Failed to delete PDF:', err);
-    }
+  const deletePdfLocal = (id: string) => {
+    setPdfsLocal(pdfsLocal.filter(pdf => pdf.id !== id));
+    setPdfsModified(true);
   };
 
   // ── Quizzes ─────────────────────────────────────────────────────────────────
@@ -457,7 +547,6 @@ export default function AdminPage() {
       console.error('Failed to add quiz:', err);
     }
   };
-  // (Quiz / QuizQuestion types are imported above)
 
   const handleUpdateQuiz = async (id: string, field: keyof Quiz, value: string) => {
     try {
@@ -529,69 +618,105 @@ export default function AdminPage() {
 
           {/* ── HOMEPAGE TAB ────────────────────────────────────────────── */}
           <TabsContent value="homepage" className="space-y-8">
+            {/* Hero Section */}
             <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Hero Section</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Hero Section</h2>
+                {heroModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveHero} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetHero} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Title</label>
-                  <Input value={homepageHero.hero?.heroTitle || ''} onChange={(e) => homepageHero.saveHero({ ...homepageHero.hero!, heroTitle: e.target.value })} className="bg-slate-800 border-white/20 text-white" />
+                  <Input value={heroLocal?.heroTitle || ''} onChange={(e) => updateHeroLocal('heroTitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Subtitle</label>
-                  <Input value={homepageHero.hero?.heroSubtitle || ''} onChange={(e) => homepageHero.saveHero({ ...homepageHero.hero!, heroSubtitle: e.target.value })} className="bg-slate-800 border-white/20 text-white" />
+                  <Input value={heroLocal?.heroSubtitle || ''} onChange={(e) => updateHeroLocal('heroSubtitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
               </div>
             </div>
 
+            {/* Feature Cards */}
             <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Feature Cards</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Feature Cards</h2>
+                {featureCardsModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveFeatureCards} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetFeatureCards} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-4">
-                {homepageFeatureCards.featureCards.map((card, i) => (
+                {featureCardsLocal.map((card, i) => (
                   <div key={i} className="flex items-end gap-2">
                     <div className="flex-1 space-y-1">
                       <label className="block text-sm text-gray-400">Icon (Emoji)</label>
-                      <Input value={card.icon} onChange={(e) => updateFeatureCard(i, 'icon', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <Input value={card.icon} onChange={(e) => updateFeatureCardLocal(i, 'icon', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={card.title} onChange={(e) => updateFeatureCard(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <Input value={card.title} onChange={(e) => updateFeatureCardLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <label className="block text-sm text-gray-400">Description</label>
-                      <Textarea value={card.description} onChange={(e) => updateFeatureCard(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <Textarea value={card.description} onChange={(e) => updateFeatureCardLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => {
-                      const updatedCards = homepageFeatureCards.featureCards.filter((_, idx) => idx !== i);
-                      homepageFeatureCards.saveFeatureCards(updatedCards);
-                    }}>
+                    <Button variant="destructive" size="icon" onClick={() => deleteFeatureCardLocal(i)}>
                       <Trash2 size={18} />
                     </Button>
                   </div>
                 ))}
-                <Button onClick={() => homepageFeatureCards.saveFeatureCards([...homepageFeatureCards.featureCards, { icon: '✨', title: 'New Card', description: 'New description' }])} className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button onClick={addFeatureCardLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
                   <Plus size={18} className="mr-2" /> Add Feature Card
                 </Button>
               </div>
             </div>
 
+            {/* Featured Topics */}
             <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Featured Topics</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Featured Topics</h2>
+                {featuredTopicsModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveFeaturedTopics} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetFeaturedTopics} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-4">
-                {homepageFeaturedTopics.featuredTopics.map((topic, i) => (
+                {featuredTopicsLocal.map((topic, i) => (
                   <div key={topic.id} className="flex items-end gap-2">
                     <div className="flex-1 space-y-1">
                       <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={topic.title} onChange={(e) => updateFeaturedTopic(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <Input value={topic.title} onChange={(e) => updateFeaturedTopicLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <label className="block text-sm text-gray-400">Description</label>
-                      <Textarea value={topic.description} onChange={(e) => updateFeaturedTopic(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <Textarea value={topic.description} onChange={(e) => updateFeaturedTopicLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <ImageUpload 
                         currentImage={topic.image_url}
-                        onImageUploaded={(url) => updateFeaturedTopic(i, 'image_url', url)}
+                        onImageUploaded={(url) => updateFeaturedTopicLocal(i, 'image_url', url)}
                         label="Image URL"
                       />
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => deleteFeaturedTopic(i)}>
+                    <Button variant="destructive" size="icon" onClick={() => deleteFeaturedTopicLocal(i)}>
                       <Trash2 size={18} />
                     </Button>
                   </div>
                 ))}
-                <Button onClick={addFeaturedTopic} className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button onClick={addFeaturedTopicLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
                   <Plus size={18} className="mr-2" /> Add Featured Topic
                 </Button>
               </div>
@@ -681,63 +806,55 @@ export default function AdminPage() {
             </div>
           </TabsContent>
 
-          {/* ── LESSONS TAB ──────────────────────────────────────────────── */}
+          {/* ── LESSONS TAB ─────────────────────────────────────────────── */}
           <TabsContent value="lessons" className="space-y-8">
             <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
               <h2 className="text-xl font-bold text-white mb-4">Manage Lessons</h2>
-              <div className="mb-4">
-                <label className="block text-sm text-gray-400 mb-1">Select Topic</label>
-                <select 
-                  value={selectedTopicId || ''}
-                  onChange={(e) => {
-                    setSelectedTopicId(e.target.value || null);
-                    setSelectedSubtopicId(null); // Reset subtopic when topic changes
-                  }}
-                  className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
-                >
-                  <option value="">-- Select a Topic --</option>
-                  {topics.map(topic => (
-                    <option key={topic.id} value={topic.id}>{topic.title}</option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedTopicId && (
-                <div className="mb-4">
-                  <label className="block text-sm text-gray-400 mb-1">Select Subtopic (Lesson)</label>
+              <div className="mb-4 flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-400 mb-1">Select Topic</label>
                   <select 
-                    value={selectedSubtopicId || ''}
-                    onChange={(e) => setSelectedSubtopicId(e.target.value || null)}
+                    value={selectedTopicId || ''}
+                    onChange={(e) => {
+                      setSelectedTopicId(e.target.value || null);
+                      setSelectedSubtopicId(null);
+                    }}
                     className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
                   >
-                    <option value="">-- Select a Subtopic --</option>
-                    {subtopics.map(subtopic => (
-                      <option key={subtopic.id} value={subtopic.id}>{subtopic.title}</option>
+                    <option value="">-- Select a Topic --</option>
+                    {topics.map(topic => (
+                      <option key={topic.id} value={topic.id}>{topic.title}</option>
                     ))}
                   </select>
                 </div>
-              )}
+                {selectedTopicId && (
+                  <div className="flex-1">
+                    <label className="block text-sm text-gray-400 mb-1">Select Subtopic</label>
+                    <select 
+                      value={selectedSubtopicId || ''}
+                      onChange={(e) => setSelectedSubtopicId(e.target.value || null)}
+                      className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
+                    >
+                      <option value="">-- Select a Subtopic --</option>
+                      {subtopics.map(subtopic => (
+                        <option key={subtopic.id} value={subtopic.id}>{subtopic.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
 
               {selectedSubtopicId && (
                 <div className="space-y-4 mt-4">
-                  <h3 className="text-lg font-bold text-white">Lesson Content</h3>
                   {currentLessonBlocks.map((block, i) => (
-                    <div key={i} className="flex items-end gap-2 p-3 bg-slate-800 rounded-lg border border-white/10">
+                    <div key={i} className="flex items-start gap-4 p-3 bg-slate-800 rounded-lg border border-white/10">
                       <div className="flex flex-col gap-1">
                         <Button variant="ghost" size="icon" onClick={() => moveLessonBlock(i, 'up')} disabled={i === 0}><ArrowUp size={16} /></Button>
                         <Button variant="ghost" size="icon" onClick={() => moveLessonBlock(i, 'down')} disabled={i === currentLessonBlocks.length - 1}><ArrowDown size={16} /></Button>
                       </div>
                       <div className="flex-1 space-y-1">
-                        <label className="block text-sm text-gray-400">Block Type: {block.type}</label>
-                        {block.type === 'text' ? (
-                          <Textarea value={block.content} onChange={(e) => updateLessonBlock(i, e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                        ) : (
-                          <ImageUpload 
-                            currentImage={block.content}
-                            onImageUploaded={(url) => updateLessonBlock(i, url)}
-                            label="Image URL"
-                          />
-                        )}
+                        <label className="block text-sm text-gray-400">Type: {block.type}</label>
+                        <Textarea value={block.content} onChange={(e) => updateLessonBlock(i, e.target.value)} className="bg-slate-700 border-white/20 text-white" />
                       </div>
                       <Button variant="destructive" size="icon" onClick={() => removeLessonBlock(i)}>
                         <Trash2 size={18} />
@@ -745,11 +862,11 @@ export default function AdminPage() {
                     </div>
                   ))}
                   <div className="flex gap-2">
-                    <Button onClick={() => addLessonBlock('text')} className="bg-blue-500 hover:bg-blue-600 text-white">
-                      <FileText size={18} className="mr-2" /> Add Text Block
+                    <Button onClick={() => addLessonBlock('text')} className="bg-orange-500 hover:bg-orange-600 text-white">
+                      <Plus size={18} className="mr-2" /> Add Text Block
                     </Button>
-                    <Button onClick={() => addLessonBlock('image')} className="bg-purple-500 hover:bg-purple-600 text-white">
-                      <ImageIcon size={18} className="mr-2" /> Add Image Block
+                    <Button onClick={() => addLessonBlock('image')} className="bg-orange-500 hover:bg-orange-600 text-white">
+                      <Plus size={18} className="mr-2" /> Add Image Block
                     </Button>
                   </div>
                 </div>
@@ -760,112 +877,154 @@ export default function AdminPage() {
           {/* ── ABOUT TAB ───────────────────────────────────────────────── */}
           <TabsContent value="about" className="space-y-8">
             <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">About Page Content</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">About Page Content</h2>
+                {aboutModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveAbout} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetAbout} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Mission Text</label>
-                  <Textarea value={aboutContent.aboutContent?.missionText || ''} onChange={(e) => handleUpdateAboutContent('missionText', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                  <Textarea value={aboutLocal.missionText} onChange={(e) => updateAboutLocal('missionText', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Who We Are Text 1</label>
-                  <Textarea value={aboutContent.aboutContent?.whoWeAreText1 || ''} onChange={(e) => handleUpdateAboutContent('whoWeAreText1', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                  <label className="block text-sm text-gray-400 mb-1">Mission Image URL</label>
+                  <Input value={aboutLocal.missionImage} onChange={(e) => updateAboutLocal('missionImage', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Who We Are Text 2</label>
-                  <Textarea value={aboutContent.aboutContent?.whoWeAreText2 || ''} onChange={(e) => handleUpdateAboutContent('whoWeAreText2', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Text 1</label>
+                  <Textarea value={aboutLocal.whoWeAreText1} onChange={(e) => updateAboutLocal('whoWeAreText1', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
-                <ImageUpload 
-                  currentImage={aboutContent.aboutContent?.missionImage || ''}
-                  onImageUploaded={(url) => handleUpdateAboutContent('missionImage', url)}
-                  label="Mission Image URL"
-                />
-                <ImageUpload 
-                  currentImage={aboutContent.aboutContent?.whoWeAreImage1 || ''}
-                  onImageUploaded={(url) => handleUpdateAboutContent('whoWeAreImage1', url)}
-                  label="Who We Are Image 1 URL"
-                />
-                <ImageUpload 
-                  currentImage={aboutContent.aboutContent?.whoWeAreImage2 || ''}
-                  onImageUploaded={(url) => handleUpdateAboutContent('whoWeAreImage2', url)}
-                  label="Who We Are Image 2 URL"
-                />
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Image 1 URL</label>
+                  <Input value={aboutLocal.whoWeAreImage1} onChange={(e) => updateAboutLocal('whoWeAreImage1', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Text 2</label>
+                  <Textarea value={aboutLocal.whoWeAreText2} onChange={(e) => updateAboutLocal('whoWeAreText2', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Image 2 URL</label>
+                  <Input value={aboutLocal.whoWeAreImage2} onChange={(e) => updateAboutLocal('whoWeAreImage2', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                </div>
               </div>
             </div>
           </TabsContent>
 
           {/* ── MATERIALS TAB ───────────────────────────────────────────── */}
           <TabsContent value="materials" className="space-y-8">
+            {/* Gallery Images */}
             <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Gallery Images</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Gallery Images</h2>
+                {galleryImagesModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveGalleryImages} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetGalleryImages} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-4">
-                {materialsGalleryImages.galleryImages.map((img) => (
-                  <div key={img.id} className="flex items-end gap-2">
+                {galleryImagesLocal.map((image) => (
+                  <div key={image.id} className="flex items-end gap-2">
                     <div className="flex-1 space-y-1">
                       <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={img.title} onChange={(e) => handleUpdateGalleryImage(img.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <ImageUpload 
-                        currentImage={img.url}
-                        onImageUploaded={(url) => handleUpdateGalleryImage(img.id, 'url', url)}
-                        label="Image URL"
-                      />
+                      <Input value={image.title} onChange={(e) => updateGalleryImageLocal(image.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Image URL</label>
+                      <Input value={image.url} onChange={(e) => updateGalleryImageLocal(image.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => handleDeleteGalleryImage(img.id)}>
+                    <Button variant="destructive" size="icon" onClick={() => deleteGalleryImageLocal(image.id)}>
                       <Trash2 size={18} />
                     </Button>
                   </div>
                 ))}
-                <Button onClick={handleAddGalleryImage} className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button onClick={addGalleryImageLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
                   <Plus size={18} className="mr-2" /> Add Gallery Image
                 </Button>
               </div>
             </div>
 
+            {/* Videos */}
             <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Videos</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Videos</h2>
+                {videosModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveVideos} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetVideos} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-4">
-                {materialsVideos.videos.map((video) => (
+                {videosLocal.map((video) => (
                   <div key={video.id} className="flex items-end gap-2">
                     <div className="flex-1 space-y-1">
                       <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={video.title} onChange={(e) => handleUpdateVideo(video.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <Input value={video.title} onChange={(e) => updateVideoLocal(video.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <label className="block text-sm text-gray-400">Video URL</label>
-                      <Input value={video.url} onChange={(e) => handleUpdateVideo(video.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <ImageUpload 
-                        currentImage={video.thumbnail}
-                        onImageUploaded={(url) => handleUpdateVideo(video.id, 'thumbnail', url)}
-                        label="Thumbnail URL"
-                      />
+                      <Input value={video.url} onChange={(e) => updateVideoLocal(video.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Thumbnail URL</label>
+                      <Input value={video.thumbnail} onChange={(e) => updateVideoLocal(video.id, 'thumbnail', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => handleDeleteVideo(video.id)}>
+                    <Button variant="destructive" size="icon" onClick={() => deleteVideoLocal(video.id)}>
                       <Trash2 size={18} />
                     </Button>
                   </div>
                 ))}
-                <Button onClick={handleAddVideo} className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button onClick={addVideoLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
                   <Plus size={18} className="mr-2" /> Add Video
                 </Button>
               </div>
             </div>
 
+            {/* PDFs */}
             <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">PDFs</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">PDFs</h2>
+                {pdfsModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={savePdfs} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetPdfs} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-4">
-                {materialsPdfs.pdfs.map((pdf) => (
+                {pdfsLocal.map((pdf) => (
                   <div key={pdf.id} className="flex items-end gap-2">
                     <div className="flex-1 space-y-1">
                       <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={pdf.title} onChange={(e) => handleUpdatePdf(pdf.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <Input value={pdf.title} onChange={(e) => updatePdfLocal(pdf.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <label className="block text-sm text-gray-400">Label</label>
-                      <Input value={pdf.label} onChange={(e) => handleUpdatePdf(pdf.id, 'label', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <Input value={pdf.label} onChange={(e) => updatePdfLocal(pdf.id, 'label', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <label className="block text-sm text-gray-400">PDF URL</label>
-                      <Input value={pdf.url} onChange={(e) => handleUpdatePdf(pdf.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <Input value={pdf.url} onChange={(e) => updatePdfLocal(pdf.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => handleDeletePdf(pdf.id)}>
+                    <Button variant="destructive" size="icon" onClick={() => deletePdfLocal(pdf.id)}>
                       <Trash2 size={18} />
                     </Button>
                   </div>
                 ))}
-                <Button onClick={handleAddPdf} className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button onClick={addPdfLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
                   <Plus size={18} className="mr-2" /> Add PDF
                 </Button>
               </div>
@@ -878,15 +1037,46 @@ export default function AdminPage() {
               <h2 className="text-xl font-bold text-white mb-4">Manage Quizzes</h2>
               <div className="space-y-4">
                 {quizzes.map((quiz) => (
-                  <div key={quiz.id} className="flex items-end gap-2 p-3 bg-slate-800 rounded-lg border border-white/10">
-                    <div className="flex-1 space-y-1">
-                      <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={quiz.title} onChange={(e) => handleUpdateQuiz(quiz.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Description</label>
-                      <Textarea value={quiz.description || ''} onChange={(e) => handleUpdateQuiz(quiz.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                  <div key={quiz.id} className="p-3 bg-slate-800 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="flex-1 space-y-1">
+                        <label className="block text-sm text-gray-400">Title</label>
+                        <Input value={quiz.title} onChange={(e) => handleUpdateQuiz(quiz.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                        <label className="block text-sm text-gray-400">Description</label>
+                        <Textarea value={quiz.description || ''} onChange={(e) => handleUpdateQuiz(quiz.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                      </div>
+                      <Button variant="destructive" size="icon" onClick={() => handleDeleteQuiz(quiz.id)}>
+                        <Trash2 size={18} />
+                      </Button>
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => handleDeleteQuiz(quiz.id)}>
-                      <Trash2 size={18} />
+
+                    {/* Quiz Questions */}
+                    {selectedQuizId === quiz.id && (
+                      <div className="mt-4 p-3 bg-slate-700 rounded-lg border border-white/10">
+                        <h3 className="text-white font-semibold mb-3">Questions</h3>
+                        <div className="space-y-3">
+                          {quizQuestions.map((question) => (
+                            <div key={question.id} className="p-2 bg-slate-600 rounded border border-white/10">
+                              <label className="block text-sm text-gray-400 mb-1">Question</label>
+                              <Textarea value={question.question_text} onChange={(e) => handleUpdateQuizQuestion(question.id, 'question_text', e.target.value)} className="bg-slate-700 border-white/20 text-white mb-2" />
+                              <label className="block text-sm text-gray-400 mb-1">Options (comma-separated)</label>
+                              <Input value={question.options.join(', ')} onChange={(e) => handleUpdateQuizQuestion(question.id, 'options', e.target.value.split(', '))} className="bg-slate-700 border-white/20 text-white mb-2" />
+                              <label className="block text-sm text-gray-400 mb-1">Correct Answer Index</label>
+                              <Input type="number" value={question.correct_answer} onChange={(e) => handleUpdateQuizQuestion(question.id, 'correct_answer', parseInt(e.target.value))} className="bg-slate-700 border-white/20 text-white" />
+                              <Button variant="destructive" size="sm" onClick={() => handleDeleteQuizQuestion(question.id)} className="mt-2">
+                                <Trash2 size={14} className="mr-1" /> Delete Question
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                        <Button onClick={handleAddQuizQuestion} className="mt-3 bg-orange-500 hover:bg-orange-600 text-white">
+                          <Plus size={16} className="mr-2" /> Add Question
+                        </Button>
+                      </div>
+                    )}
+
+                    <Button onClick={() => setSelectedQuizId(selectedQuizId === quiz.id ? null : quiz.id)} className="mt-3 bg-blue-600 hover:bg-blue-700 text-white">
+                      {selectedQuizId === quiz.id ? 'Hide Questions' : 'Manage Questions'}
                     </Button>
                   </div>
                 ))}
@@ -894,52 +1084,6 @@ export default function AdminPage() {
                   <Plus size={18} className="mr-2" /> Add Quiz
                 </Button>
               </div>
-            </div>
-
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Manage Quiz Questions</h2>
-              <div className="mb-4">
-                <label className="block text-sm text-gray-400 mb-1">Select Quiz</label>
-                <select 
-                  value={selectedQuizId || ''}
-                  onChange={(e) => setSelectedQuizId(e.target.value || null)}
-                  className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
-                >
-                  <option value="">-- Select a Quiz --</option>
-                  {quizzes.map(quiz => (
-                    <option key={quiz.id} value={quiz.id}>{quiz.title}</option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedQuizId && (
-                <div className="space-y-4 mt-4">
-                  {quizQuestions.map((question, i) => (
-                    <div key={question.id} className="flex items-end gap-2 p-3 bg-slate-800 rounded-lg border border-white/10">
-                      <div className="flex flex-col gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleUpdateQuizQuestion(question.id, 'order_index', i - 1)} disabled={i === 0}><ArrowUp size={16} /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleUpdateQuizQuestion(question.id, 'order_index', i + 1)} disabled={i === quizQuestions.length - 1}><ArrowDown size={16} /></Button>
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <label className="block text-sm text-gray-400">Question Text</label>
-                        <Textarea value={question.question_text} onChange={(e) => handleUpdateQuizQuestion(question.id, 'question_text', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                        <label className="block text-sm text-gray-400">Options (comma-separated)</label>
-                        <Input value={question.options.join(', ')} onChange={(e) => handleUpdateQuizQuestion(question.id, 'options', e.target.value.split(',').map(opt => opt.trim()))} className="bg-slate-700 border-white/20 text-white" />
-                        <label className="block text-sm text-gray-400">Correct Answer Index</label>
-                        <Input type="number" value={question.correct_answer} onChange={(e) => handleUpdateQuizQuestion(question.id, 'correct_answer', parseInt(e.target.value))} className="bg-slate-700 border-white/20 text-white" />
-                        <label className="block text-sm text-gray-400">Explanation</label>
-                        <Textarea value={question.explanation || ''} onChange={(e) => handleUpdateQuizQuestion(question.id, 'explanation', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                      </div>
-                      <Button variant="destructive" size="icon" onClick={() => handleDeleteQuizQuestion(question.id)}>
-                        <Trash2 size={18} />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button onClick={handleAddQuizQuestion} className="bg-orange-500 hover:bg-orange-600 text-white">
-                    <Plus size={18} className="mr-2" /> Add Quiz Question
-                  </Button>
-                </div>
-              )}
             </div>
           </TabsContent>
         </Tabs>

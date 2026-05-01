@@ -94,12 +94,6 @@ function ImageUpload({ currentImage, onImageUploaded, label }: ImageUploadProps)
           <img src={currentImage} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-white/10" />
         )}
         <div className="flex-1">
-          <Input
-            value={currentImage}
-            onChange={(e) => onImageUploaded(e.target.value)}
-            className="bg-slate-800 border-white/20 text-white mb-2"
-            placeholder="Or paste image URL here"
-          />
           <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
           <Button
             variant="outline"
@@ -888,7 +882,7 @@ export default function AdminPage() {
                         <Button variant="ghost" size="icon" onClick={() => moveLessonBlock(i, 'down')} disabled={i === currentLessonBlocks.length - 1}><ArrowDown size={16} /></Button>
                       </div>
                       <div className="flex-1 space-y-1">
-                        <label className="block text-sm text-gray-400">Type: {block.type}</label>
+                        <label className="block text-sm text-gray-400">{block.type === 'image' ? 'Upload image' : `Type: ${block.type}`}</label>
                         {block.type === 'image' ? (
                           <ImageUpload 
                             currentImage={block.content}

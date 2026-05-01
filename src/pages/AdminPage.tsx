@@ -56,7 +56,7 @@ function newId(): string {
 interface ImageUploadProps {
   currentImage: string;
   onImageUploaded: (url: string) => void;
-  label: string;
+  label?: string;
 }
 
 function ImageUpload({ currentImage, onImageUploaded, label }: ImageUploadProps) {
@@ -884,10 +884,12 @@ export default function AdminPage() {
                       <div className="flex-1 space-y-1">
                         <label className="block text-sm text-gray-400">{block.type === 'image' ? 'Upload image' : `Type: ${block.type}`}</label>
                         {block.type === 'image' ? (
-                          <ImageUpload 
-                            currentImage={block.content}
-                            onImageUploaded={(url) => updateLessonBlock(i, url)}
-                          />
+                          <div className="mt-2">
+                            <ImageUpload 
+                              currentImage={block.content}
+                              onImageUploaded={(url) => updateLessonBlock(i, url)}
+                            />
+                          </div>
                         ) : (
                           <Textarea value={block.content} onChange={(e) => updateLessonBlock(i, e.target.value)} className="bg-slate-700 border-white/20 text-white" />
                         )}

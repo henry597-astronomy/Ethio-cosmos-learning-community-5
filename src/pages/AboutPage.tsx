@@ -143,7 +143,7 @@ export default function AboutPage() {
                 {section.title}
               </h3>
               
-              <div className="grid grid-cols-4 gap-6">
+              <div className="grid grid-cols-4 gap-3">
                 {section.members && section.members.length > 0 ? (
                   section.members.map((member: TeamMember) => (
                     <div 
@@ -164,11 +164,11 @@ export default function AboutPage() {
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </div>
-                      <div className="p-6 text-center">
-                        <h4 className="text-lg font-bold text-white mb-1 group-hover:text-orange-500 transition-colors">
+                      <div className="p-2 text-center">
+                        <h4 className="text-xs font-bold text-white mb-0.5 group-hover:text-orange-500 transition-colors">
                           {member.name}
                         </h4>
-                        <p className="text-orange-500 text-sm font-medium">
+                        <p className="text-orange-500 text-xs font-medium">
                           {member.work}
                         </p>
                       </div>

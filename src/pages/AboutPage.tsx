@@ -1,15 +1,21 @@
 import { useAboutContent } from '@/hooks/use-cms-data';
+import type { AboutContent, TeamMember } from '@/types';
 
 export default function AboutPage() {
   const { aboutContent, loading, error } = useAboutContent();
 
-  const about = aboutContent || {
+  const about: AboutContent = aboutContent || {
     missionText: '',
     whoWeAreText1: '',
     whoWeAreText2: '',
     missionImage: '/images/mission.jpg',
     whoWeAreImage1: '/images/who-we-are-1.jpg',
     whoWeAreImage2: '/images/who-we-are-2.jpg',
+    team: {
+      platformCreators: [],
+      educationalAdvisors: [],
+      communityMembers: [],
+    },
   };
 
   if (loading) {
@@ -120,28 +126,62 @@ export default function AboutPage() {
       </section>
 
       {/* Team Section */}
-      <section className="py-16 bg-slate-900/50">
+      <section className="py-24 bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-white mb-12 text-center">
-            Meet the Team
-          </h2>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: 'Dr. Solomon Belay', role: 'Scientific Advisor', bio: 'Pioneer in Ethiopian astronomy and space science.' },
-              { name: 'Abebe Kebede', role: 'Education Lead', bio: 'Expert in astronomical curriculum development.' },
-              { name: 'Tigist G/Mariam', role: 'Community Manager', bio: 'Passionate about connecting space enthusiasts across Ethiopia.' }
-            ].map((member, i) => (
-              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center hover:border-orange-500/50 transition-colors">
-                <div className="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <span className="text-2xl">👤</span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">{member.name}</h3>
-                <p className="text-orange-500 text-sm mb-4">{member.role}</p>
-                <p className="text-gray-400 text-sm leading-relaxed">{member.bio}</p>
-              </div>
-            ))}
+          <div className="text-center mb-20">
+            <h2 className="text-4xl font-bold text-white mb-4">Meet the Team</h2>
+            <div className="w-24 h-1 bg-orange-500 mx-auto"></div>
           </div>
+
+          {[
+            { id: 'platformCreators', title: 'Platform Creators', members: about.team?.platformCreators },
+            { id: 'educationalAdvisors', title: 'Educational Advisors', members: about.team?.educationalAdvisors },
+            { id: 'communityMembers', title: 'Community Members', members: about.team?.communityMembers }
+          ].map((section) => (
+            <div key={section.id} className="mb-20 last:mb-0">
+              <h3 className="text-2xl font-bold text-white mb-10 pl-4 border-l-4 border-orange-500">
+                {section.title}
+              </h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {section.members && section.members.length > 0 ? (
+                  section.members.map((member: TeamMember) => (
+                    <div 
+                      key={member.id} 
+                      className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 hover:-translate-y-1"
+                    >
+                      <div className="aspect-square overflow-hidden relative">
+                        {member.image_url ? (
+                          <img 
+                            src={member.image_url} 
+                            alt={member.name} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                            <span className="text-4xl">👤</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </div>
+                      <div className="p-6 text-center">
+                        <h4 className="text-lg font-bold text-white mb-1 group-hover:text-orange-500 transition-colors">
+                          {member.name}
+                        </h4>
+                        <p className="text-orange-500 text-sm font-medium">
+                          {member.work}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full py-12 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+                    <p className="text-gray-500 italic">No members added to this section yet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>

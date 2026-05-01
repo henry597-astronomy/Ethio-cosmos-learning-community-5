@@ -25,6 +25,7 @@ import type {
   Quiz,
   QuizQuestion,
   AboutContent,
+  TeamMember,
 } from '@/types';
 
 const DEFAULT_ABOUT: AboutContent = {
@@ -34,6 +35,11 @@ const DEFAULT_ABOUT: AboutContent = {
   missionImage: '',
   whoWeAreImage1: '',
   whoWeAreImage2: '',
+  team: {
+    platformCreators: [],
+    educationalAdvisors: [],
+    communityMembers: [],
+  },
 };
 
 // Use the platform's built-in UUID generator instead of pulling in the `uuid`
@@ -436,6 +442,35 @@ export default function AdminPage() {
   const resetAbout = () => {
     setAboutLocal(aboutContent.aboutContent || DEFAULT_ABOUT);
     setAboutModified(false);
+  };
+
+  const updateTeamMemberLocal = (
+    category: keyof AboutContent['team'],
+    id: string,
+    field: keyof TeamMember,
+    value: string
+  ) => {
+    const updatedTeam = { ...aboutLocal.team };
+    updatedTeam[category] = updatedTeam[category].map((member) =>
+      member.id === id ? { ...member, [field]: value } : member
+    );
+    setAboutLocal((prev) => ({ ...prev, team: updatedTeam }));
+    setAboutModified(true);
+  };
+
+  const addTeamMemberLocal = (category: keyof AboutContent['team']) => {
+    const updatedTeam = { ...aboutLocal.team };
+    const newMember: TeamMember = { id: newId(), name: 'New Member', work: 'Role/Work', image_url: '' };
+    updatedTeam[category] = [...updatedTeam[category], newMember];
+    setAboutLocal((prev) => ({ ...prev, team: updatedTeam }));
+    setAboutModified(true);
+  };
+
+  const deleteTeamMemberLocal = (category: keyof AboutContent['team'], id: string) => {
+    const updatedTeam = { ...aboutLocal.team };
+    updatedTeam[category] = updatedTeam[category].filter((member) => member.id !== id);
+    setAboutLocal((prev) => ({ ...prev, team: updatedTeam }));
+    setAboutModified(true);
   };
 
   // ── Materials ───────────────────────────────────────────────────────────────
@@ -918,6 +953,69 @@ export default function AdminPage() {
                   onImageUploaded={(url) => updateAboutLocal('whoWeAreImage2', url)}
                   label="Who We Are - Image 2"
                 />
+              </div>
+
+              {/* Team Sections */}
+              <div className="mt-12 space-y-12">
+                {(['platformCreators', 'educationalAdvisors', 'communityMembers'] as const).map((category) => (
+                  <div key={category} className="bg-slate-800/50 rounded-xl p-6 border border-white/10">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-bold text-white capitalize">
+                        {category.replace(/([A-Z])/g, ' $1').trim()}
+                      </h3>
+                      <Button 
+                        onClick={() => addTeamMemberLocal(category)} 
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        <Plus size={16} className="mr-2" /> Add Member
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-6">
+                      {(aboutLocal.team?.[category] || []).map((member) => (
+                        <div key={member.id} className="flex items-start gap-4 p-4 bg-slate-900/50 rounded-lg border border-white/5">
+                          <div className="flex-1 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="block text-xs text-gray-400">Name</label>
+                                <Input 
+                                  value={member.name} 
+                                  onChange={(e) => updateTeamMemberLocal(category, member.id, 'name', e.target.value)} 
+                                  className="bg-slate-800 border-white/10 text-white" 
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="block text-xs text-gray-400">Work/Role</label>
+                                <Input 
+                                  value={member.work} 
+                                  onChange={(e) => updateTeamMemberLocal(category, member.id, 'work', e.target.value)} 
+                                  className="bg-slate-800 border-white/10 text-white" 
+                                />
+                              </div>
+                            </div>
+                            <ImageUpload 
+                              currentImage={member.image_url}
+                              onImageUploaded={(url) => updateTeamMemberLocal(category, member.id, 'image_url', url)}
+                              label="Profile Image"
+                            />
+                          </div>
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            onClick={() => deleteTeamMemberLocal(category, member.id)}
+                            className="mt-6"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      ))}
+                      {(aboutLocal.team?.[category] || []).length === 0 && (
+                        <p className="text-gray-500 text-center py-4">No members added yet.</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </TabsContent>

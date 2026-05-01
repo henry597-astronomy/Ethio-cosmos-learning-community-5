@@ -93,6 +93,13 @@ export interface PdfItem {
 
 // Shape of the `about_content` row in `site_content`. Matches the JSON
 // stored in Supabase and the form fields rendered in AdminPage.
+export interface TeamMember {
+  id: string;
+  name: string;
+  work: string;
+  image_url: string;
+}
+
 export interface AboutContent {
   missionText: string;
   whoWeAreText1: string;
@@ -100,6 +107,11 @@ export interface AboutContent {
   missionImage: string;
   whoWeAreImage1: string;
   whoWeAreImage2: string;
+  team: {
+    platformCreators: TeamMember[];
+    educationalAdvisors: TeamMember[];
+    communityMembers: TeamMember[];
+  };
 }
 
 // New types for Quizzes
@@ -155,7 +167,7 @@ export type SiteContentValue =
   | { heroTitle: string; heroSubtitle: string }
   | FeatureCard[]
   | FeaturedTopic[]
-  | { missionText: string; whoWeAreText1: string; whoWeAreText2: string; missionImage: string; whoWeAreImage1: string; whoWeAreImage2: string }
+  | AboutContent
   | GalleryImage[]
   | VideoItem[]
   | PdfItem[];

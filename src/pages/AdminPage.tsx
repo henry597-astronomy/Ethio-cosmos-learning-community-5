@@ -889,7 +889,14 @@ export default function AdminPage() {
                       </div>
                       <div className="flex-1 space-y-1">
                         <label className="block text-sm text-gray-400">Type: {block.type}</label>
-                        <Textarea value={block.content} onChange={(e) => updateLessonBlock(i, e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                        {block.type === 'image' ? (
+                          <ImageUpload 
+                            currentImage={block.content}
+                            onImageUploaded={(url) => updateLessonBlock(i, url)}
+                          />
+                        ) : (
+                          <Textarea value={block.content} onChange={(e) => updateLessonBlock(i, e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                        )}
                       </div>
                       <Button variant="destructive" size="icon" onClick={() => removeLessonBlock(i)}>
                         <Trash2 size={18} />

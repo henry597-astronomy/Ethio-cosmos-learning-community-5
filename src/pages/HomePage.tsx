@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } from '@/hooks/use-cms-data';
 import { Button } from '@/components/ui/button';
-import { getVideoType, getYouTubeEmbedUrl } from '@/lib/video-utils';
+import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
 import { AlertCircle } from 'lucide-react';
 
 export default function HomePage() {
@@ -78,10 +78,25 @@ export default function HomePage() {
                       key={homepageHero.hero.videoUrl}
                       width="100%"
                       height="100%"
-                      src={getYouTubeEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                      src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
                       title="Hero Video"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0"
+                    />
+                  </div>
+                ) : getVideoType(homepageHero.hero.videoUrl) === 'google-drive' ? (
+                  // Google Drive Embedded Video
+                  <div className="relative w-full aspect-video bg-black">
+                    <iframe
+                      key={homepageHero.hero.videoUrl}
+                      width="100%"
+                      height="100%"
+                      src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                      title="Hero Video"
+                      frameBorder="0"
+                      allow="autoplay"
                       allowFullScreen
                       className="absolute inset-0"
                     />

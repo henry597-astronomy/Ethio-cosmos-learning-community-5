@@ -40,7 +40,9 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  // Fetch initial messages and setup real-time subscription
   useEffect(() => {
     if (!user) return;
 
@@ -70,6 +72,7 @@ export default function ChatPage() {
 
     fetchMessages();
 
+    // Setup real-time subscription
     const channel = supabase
       .channel('messages-realtime')
       .on(
@@ -90,10 +93,8 @@ export default function ChatPage() {
             .eq('id', m.user_id)
             .maybeSingle();
 
-          setMessages((prev) => [
-            ...prev,
-            rowToMessage({ ...m, profiles: profileData ?? null }),
-          ]);
+          const newMsg = rowToMessage({ ...m, profiles: profileData ?? null });
+          setMessages((prev) => [...prev, newMsg]);
         }
       )
       .subscribe();
@@ -103,8 +104,11 @@ export default function ChatPage() {
     };
   }, [user]);
 
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   const sendMessage = async () => {
@@ -171,8 +175,9 @@ export default function ChatPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] flex flex-col">
-      <div className="bg-slate-900 border-b border-white/10 px-4 py-3">
+    <div className="fixed inset-0 top-28 flex flex-col bg-[#0a0e1a]">
+      {/* Header */}
+      <div className="bg-slate-900 border-b border-white/10 px-4 py-3 flex-shrink-0">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">Community Chat</h1>
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
@@ -182,13 +187,18 @@ export default function ChatPage() {
         </div>
       </div>
 
+      {/* Error Message */}
       {error && (
-        <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 mx-4 mt-4 rounded-lg">
+        <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 mx-4 mt-2 rounded-lg flex-shrink-0">
           {error}
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4">
+      {/* Messages Container */}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4"
+      >
         <div className="max-w-4xl mx-auto space-y-4">
           {messages.length === 0 ? (
             <div className="text-center py-12">
@@ -224,7 +234,8 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className="bg-slate-900 border-t border-white/10 p-4">
+      {/* Input Area - Fixed at Bottom */}
+      <div className="bg-slate-900 border-t border-white/10 p-4 flex-shrink-0">
         <div className="max-w-4xl mx-auto flex items-center gap-2">
           <input
             type="file"
@@ -236,7 +247,7 @@ export default function ChatPage() {
           <Button
             variant="outline"
             size="icon"
-            className="border-white/20 text-gray-400 hover:text-white hover:bg-white/10"
+            className="border-white/20 text-gray-400 hover:text-white hover:bg-white/10 flex-shrink-0"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
@@ -252,7 +263,7 @@ export default function ChatPage() {
             disabled={uploading}
           />
           <Button
-            className="bg-orange-500 hover:bg-orange-600 text-white"
+            className="bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
             onClick={sendMessage}
             disabled={!newMessage.trim() || uploading}
           >

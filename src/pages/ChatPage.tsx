@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Paperclip, Send } from 'lucide-react';
+import { Paperclip, Send, Trash2 } from 'lucide-react';
 import type { ChatMessage } from '@/types';
 
 interface ChatMessageRow {
@@ -38,6 +38,7 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -72,9 +73,9 @@ export default function ChatPage() {
 
     fetchMessages();
 
-    // Setup real-time subscription
-    const channel = supabase
-      .channel('messages-realtime')
+    // Setup real-time subscription for INSERT events
+    const insertChannel = supabase
+      .channel('messages-insert')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
@@ -94,13 +95,33 @@ export default function ChatPage() {
             .maybeSingle();
 
           const newMsg = rowToMessage({ ...m, profiles: profileData ?? null });
-          setMessages((prev) => [...prev, newMsg]);
+          setMessages((prev) => {
+            // Avoid duplicates
+            if (prev.some((msg) => msg.id === newMsg.id)) {
+              return prev;
+            }
+            return [...prev, newMsg];
+          });
+        }
+      )
+      .subscribe();
+
+    // Setup real-time subscription for DELETE events
+    const deleteChannel = supabase
+      .channel('messages-delete')
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'chat_messages' },
+        (payload) => {
+          const deletedId = payload.old.id;
+          setMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
         }
       )
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      insertChannel.unsubscribe();
+      deleteChannel.unsubscribe();
     };
   }, [user]);
 
@@ -118,20 +139,84 @@ export default function ChatPage() {
       setError('Message is too long. Maximum 1000 characters.');
       return;
     }
+
+    // Optimistic UI update
+    const optimisticMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      user_id: user.id,
+      message_text: text,
+      image_url: null,
+      created_at: new Date().toISOString(),
+      sender_name: 'You',
+      sender_email: user.email,
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage('');
     setError(null);
+
     try {
-      const { error: insertError } = await supabase.from('chat_messages').insert({
-        user_id: user.id,
-        message_text: text,
-      });
+      const { data, error: insertError } = await supabase
+        .from('chat_messages')
+        .insert({
+          user_id: user.id,
+          message_text: text,
+        })
+        .select();
+
       if (insertError) {
         console.error('Error sending message:', insertError);
         setError('Failed to send message. Please try again.');
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id));
+        return;
+      }
+
+      // Replace optimistic message with real one from server
+      if (data && data[0]) {
+        const realMessage = rowToMessage({
+          ...data[0],
+          profiles: { username: user.user_metadata?.name, email: user.email },
+        } as ChatMessageRow);
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === optimisticMessage.id ? realMessage : msg))
+        );
       }
     } catch (err) {
       console.error('Unexpected error sending message:', err);
       setError('An unexpected error occurred.');
+      // Remove optimistic message on error
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id));
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    if (!user) return;
+
+    setDeletingMessageId(messageId);
+    setError(null);
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('id', messageId)
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        console.error('Error deleting message:', deleteError);
+        setError('Failed to delete message. Please try again.');
+        setDeletingMessageId(null);
+        return;
+      }
+
+      // Remove message from UI immediately
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+    } catch (err) {
+      console.error('Unexpected error deleting message:', err);
+      setError('An unexpected error occurred.');
+    } finally {
+      setDeletingMessageId(null);
     }
   };
 
@@ -151,11 +236,39 @@ export default function ChatPage() {
         data: { publicUrl },
       } = supabase.storage.from('uploads').getPublicUrl(filePath);
 
-      const { error: insertError } = await supabase.from('chat_messages').insert({
+      // Optimistic UI update for image
+      const optimisticMessage: ChatMessage = {
+        id: `temp-${Date.now()}`,
         user_id: user.id,
+        message_text: null,
         image_url: publicUrl,
-      });
+        created_at: new Date().toISOString(),
+        sender_name: 'You',
+        sender_email: user.email,
+      };
+
+      setMessages((prev) => [...prev, optimisticMessage]);
+
+      const { data, error: insertError } = await supabase
+        .from('chat_messages')
+        .insert({
+          user_id: user.id,
+          image_url: publicUrl,
+        })
+        .select();
+
       if (insertError) throw insertError;
+
+      // Replace optimistic message with real one
+      if (data && data[0]) {
+        const realMessage = rowToMessage({
+          ...data[0],
+          profiles: { username: user.user_metadata?.name, email: user.email },
+        } as ChatMessageRow);
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === optimisticMessage.id ? realMessage : msg))
+        );
+      }
     } catch (err) {
       console.error('Error uploading image:', err);
       setError('Failed to upload image. Please try again.');
@@ -207,24 +320,38 @@ export default function ChatPage() {
           ) : (
             messages.map((msg) => {
               const isOwn = msg.user_id === user.id;
+              const isTemp = msg.id.startsWith('temp-');
               return (
-                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                      isOwn ? 'bg-orange-500 text-white' : 'bg-slate-800 text-gray-200'
-                    }`}
-                  >
-                    {!isOwn && (
-                      <p className="text-xs font-medium text-gray-400 mb-1">{msg.sender_name}</p>
+                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
+                  <div className="relative">
+                    <div
+                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                        isOwn ? 'bg-orange-500 text-white' : 'bg-slate-800 text-gray-200'
+                      } ${isTemp ? 'opacity-70' : ''}`}
+                    >
+                      {!isOwn && (
+                        <p className="text-xs font-medium text-gray-400 mb-1">{msg.sender_name}</p>
+                      )}
+                      {msg.image_url ? (
+                        <img src={msg.image_url} alt="Shared" className="max-w-full rounded-lg" />
+                      ) : (
+                        <p>{msg.message_text}</p>
+                      )}
+                      <p className={`text-xs mt-1 ${isOwn ? 'text-orange-200' : 'text-gray-500'}`}>
+                        {formatTime(msg.created_at)}
+                      </p>
+                    </div>
+                    {/* Delete Button - Only for own messages */}
+                    {isOwn && !isTemp && (
+                      <button
+                        onClick={() => deleteMessage(msg.id)}
+                        disabled={deletingMessageId === msg.id}
+                        className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-400 disabled:opacity-50"
+                        title="Delete message"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     )}
-                    {msg.image_url ? (
-                      <img src={msg.image_url} alt="Shared" className="max-w-full rounded-lg" />
-                    ) : (
-                      <p>{msg.message_text}</p>
-                    )}
-                    <p className={`text-xs mt-1 ${isOwn ? 'text-orange-200' : 'text-gray-500'}`}>
-                      {formatTime(msg.created_at)}
-                    </p>
                   </div>
                 </div>
               );

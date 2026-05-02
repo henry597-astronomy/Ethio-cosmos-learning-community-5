@@ -3,7 +3,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } from '@/hooks/use-cms-data';
 import { Button } from '@/components/ui/button';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Play } from 'lucide-react';
+import { useState } from 'react';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function HomePage() {
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
   const navigate = useNavigate();
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const scrollToFeatures = () => {
     const element = document.getElementById('feature-cards');
@@ -87,26 +89,35 @@ export default function HomePage() {
                     />
                   </div>
                 ) : getVideoType(homepageHero.hero.videoUrl) === 'google-drive' ? (
-                  // Google Drive Embedded Video
-                  <div className="relative w-full aspect-video bg-black overflow-hidden rounded-lg">
+                  // Google Drive Embedded Video with Custom Overlay
+                  <div className="relative w-full aspect-video bg-black overflow-hidden rounded-lg group">
                     <iframe
                       key={homepageHero.hero.videoUrl}
-                      src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                      src={`${getEmbedUrl(homepageHero.hero.videoUrl)}${isPlaying ? '&autoplay=1' : ''}`}
                       title="Hero Video"
                       allow="autoplay; fullscreen"
                       allowFullScreen
-                      className="absolute top-0 left-0 w-full h-full border-0"
+                      className={`absolute top-0 left-0 w-full h-full border-0 transition-opacity duration-500 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
                       style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        border: 'none',
-                        margin: 0,
-                        padding: 0,
+                        pointerEvents: isPlaying ? 'auto' : 'none',
                       }}
                     />
+                    {!isPlaying && (
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ backgroundImage: 'url(/images/hero-bg.jpg)' }}
+                      />
+                    )}
+                    {!isPlaying && (
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer transition-colors hover:bg-black/20"
+                        onClick={() => setIsPlaying(true)}
+                      >
+                        <div className="w-20 h-20 flex items-center justify-center rounded-full bg-orange-500 text-white shadow-lg transform transition-transform group-hover:scale-110">
+                          <Play className="w-10 h-10 fill-current ml-1" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : getVideoType(homepageHero.hero.videoUrl) === 'cloudinary' ? (
                   // Cloudinary Embedded Video

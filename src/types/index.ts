@@ -164,7 +164,7 @@ export type SiteContentKey =
   | 'materials_pdfs';
 
 export type SiteContentValue = 
-  | { heroTitle: string; heroSubtitle: string }
+  | { heroTitle: string; heroSubtitle: string; videoUrl?: string; videoVisible?: boolean }
   | FeatureCard[]
   | FeaturedTopic[]
   | AboutContent

@@ -20,7 +20,7 @@ import type {
 
 // --- Homepage Hooks ---
 export function useHomepageHero() {
-  const [hero, setHero] = useState<{ heroTitle: string; heroSubtitle: string } | null>(null);
+  const [hero, setHero] = useState<{ heroTitle: string; heroSubtitle: string; videoUrl?: string; videoVisible?: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +31,9 @@ export function useHomepageHero() {
         const data = await getHomepageHero();
         setHero(data ?? {
           heroTitle:    'Explore the Cosmos with Ethiopia',
-          heroSubtitle: 'Join the EthioCosmos Learning Community — learn astronomy from Ethiopia to the universe'
+          heroSubtitle: 'Join the EthioCosmos Learning Community — learn astronomy from Ethiopia to the universe',
+          videoUrl: '',
+          videoVisible: false
         });
       } catch (err) {
         setError("Failed to load homepage hero.");
@@ -43,7 +45,7 @@ export function useHomepageHero() {
     fetchHero();
   }, []);
 
-  const saveHero = useCallback(async (newHero: { heroTitle: string; heroSubtitle: string }) => {
+  const saveHero = useCallback(async (newHero: { heroTitle: string; heroSubtitle: string; videoUrl?: string; videoVisible?: boolean }) => {
     try {
       await updateHomepageHero(newHero);
       setHero(newHero);

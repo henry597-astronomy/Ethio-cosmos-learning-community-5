@@ -193,7 +193,7 @@ export default function AdminPage() {
   }
 
   // ── Homepage ────────────────────────────────────────────────────────────────
-  const updateHeroLocal = (field: 'heroTitle' | 'heroSubtitle', value: string) => {
+  const updateHeroLocal = (field: 'heroTitle' | 'heroSubtitle' | 'videoUrl' | 'videoVisible', value: string | boolean) => {
     setHeroLocal(prev => prev ? { ...prev, [field]: value } : null);
     setHeroModified(true);
   };
@@ -670,6 +670,36 @@ export default function AdminPage() {
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Subtitle</label>
                   <Input value={heroLocal?.heroSubtitle || ''} onChange={(e) => updateHeroLocal('heroSubtitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                </div>
+                <div className="border-t border-white/10 pt-4 mt-4">
+                  <h3 className="text-sm font-semibold text-white mb-3">Hero Video</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Video URL</label>
+                      <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4" className="bg-slate-800 border-white/20 text-white" />
+                      <p className="text-xs text-gray-500 mt-1">Enter the full URL to your video file (MP4 recommended)</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="checkbox" 
+                        id="videoVisible" 
+                        checked={heroLocal?.videoVisible || false} 
+                        onChange={(e) => updateHeroLocal('videoVisible', e.target.checked)}
+                        className="w-4 h-4 rounded border-white/20 bg-slate-800 cursor-pointer"
+                      />
+                      <label htmlFor="videoVisible" className="text-sm text-gray-400 cursor-pointer">Show video on homepage</label>
+                    </div>
+                    {heroLocal?.videoUrl && (
+                      <div className="bg-slate-800/50 rounded-lg p-3 border border-white/10">
+                        <p className="text-xs text-gray-400 mb-2">Preview:</p>
+                        <video 
+                          controls 
+                          className="w-full h-auto max-h-48 rounded bg-black"
+                          src={heroLocal.videoUrl}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

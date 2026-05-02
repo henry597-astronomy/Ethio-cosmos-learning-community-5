@@ -37,32 +37,48 @@ export default function HomePage() {
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              {homepageHero.hero?.heroTitle || 'Explore the Cosmos with Ethiopia'}
-            </h1>
-            <p className="text-xl text-gray-300 mb-8">
-              {homepageHero.hero?.heroSubtitle || 'Join the EthioCosmos Learning Community'}
-            </p>
-            <div className="flex flex-wrap gap-4">
-              {!user && (
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="max-w-2xl">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                {homepageHero.hero?.heroTitle || 'Explore the Cosmos with Ethiopia'}
+              </h1>
+              <p className="text-xl text-gray-300 mb-8">
+                {homepageHero.hero?.heroSubtitle || 'Join the EthioCosmos Learning Community'}
+              </p>
+              <div className="flex flex-wrap gap-4">
+                {!user && (
+                  <Button 
+                    size="lg" 
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-8"
+                    onClick={handleBeginJourney}
+                  >
+                    Begin Your Journey
+                  </Button>
+                )}
                 <Button 
                   size="lg" 
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-8"
-                  onClick={handleBeginJourney}
+                  variant="outline" 
+                  className="border-white/30 text-white hover:bg-white/10 px-8"
+                  onClick={scrollToFeatures}
                 >
-                  Begin Your Journey
+                  Learn More
                 </Button>
-              )}
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="border-white/30 text-white hover:bg-white/10 px-8"
-                onClick={scrollToFeatures}
-              >
-                Learn More
-              </Button>
+              </div>
             </div>
+            
+            {/* Video Section */}
+            {homepageHero.hero?.videoVisible && homepageHero.hero?.videoUrl && (
+              <div className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl">
+                <video
+                  controls
+                  className="w-full h-auto aspect-video bg-black"
+                  poster="/images/hero-bg.jpg"
+                >
+                  <source src={homepageHero.hero.videoUrl} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -3,7 +3,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+
 import HomePage from '@/pages/HomePage';
 import LearningPage from '@/pages/LearningPage';
 import TopicDetailPage from '@/pages/TopicDetailPage';
@@ -43,7 +43,6 @@ function AppRoutes() {
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPage /></ProtectedRoute>} />
         </Routes>
       </main>
-      <Footer />
     </div>
   );
 }

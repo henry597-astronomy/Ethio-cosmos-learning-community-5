@@ -3,8 +3,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } from '@/hooks/use-cms-data';
 import { Button } from '@/components/ui/button';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
-import { AlertCircle, Play } from 'lucide-react';
-import { useState } from 'react';
+import { AlertCircle, Play, Pause } from 'lucide-react';
+import { useState, useRef } from 'react';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -13,6 +13,8 @@ export default function HomePage() {
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
   const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToFeatures = () => {
     const element = document.getElementById('feature-cards');
@@ -26,6 +28,19 @@ export default function HomePage() {
       navigate('/learning');
     } else {
       navigate('/login');
+    }
+  };
+
+  const handlePlayPause = () => {
+    if (iframeRef.current && isPlaying) {
+      // Use postMessage to pause the YouTube video
+      iframeRef.current.contentWindow?.postMessage(
+        { event: 'command', func: 'pauseVideo' },
+        '*'
+      );
+      setIsPlaying(false);
+    } else if (!isPlaying) {
+      setIsPlaying(true);
     }
   };
 
@@ -74,11 +89,15 @@ export default function HomePage() {
             {homepageHero.hero?.videoVisible && homepageHero.hero?.videoUrl && (
               <div className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl">
                 {getVideoType(homepageHero.hero.videoUrl) === 'youtube' ? (
-                  // YouTube Embedded Video with Custom Overlay
-                  <div className="relative w-full aspect-video bg-black overflow-hidden rounded-lg group">
+                  // YouTube Embedded Video with Custom Clean Player
+                  <div 
+                    ref={videoContainerRef}
+                    className="relative w-full aspect-video bg-black overflow-hidden rounded-lg group"
+                  >
                     <iframe
+                      ref={iframeRef}
                       key={homepageHero.hero.videoUrl}
-                      src={`${getEmbedUrl(homepageHero.hero.videoUrl)}${isPlaying ? '&autoplay=1&mute=0&controls=0&showinfo=0&autohide=1&iv_load_policy=3&disablekb=1' : ''}`}
+                      src={`${getEmbedUrl(homepageHero.hero.videoUrl)}&fs=0&rel=0&modestbranding=1&controls=0&showinfo=0&autohide=2&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1`}
                       title="Hero Video"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
@@ -93,16 +112,34 @@ export default function HomePage() {
                         style={{ backgroundImage: 'url(/images/hero-bg.jpg)' }}
                       />
                     )}
-                    {!isPlaying && (
-                      <div 
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer transition-colors hover:bg-black/20"
-                        onClick={() => setIsPlaying(true)}
-                      >
-                        <div className="w-20 h-20 flex items-center justify-center rounded-full bg-orange-500 text-white shadow-lg transform transition-transform group-hover:scale-110">
-                          <Play className="w-10 h-10 fill-current ml-1" />
+                    {/* Custom Clean Player Controls */}
+                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none group">
+                      {/* Center Play Button */}
+                      {!isPlaying && (
+                        <div 
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer transition-colors hover:bg-black/20 pointer-events-auto"
+                          onClick={handlePlayPause}
+                        >
+                          <div className="w-20 h-20 flex items-center justify-center rounded-full bg-orange-500 text-white shadow-lg transform transition-transform group-hover:scale-110">
+                            <Play className="w-10 h-10 fill-current ml-1" />
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                      {/* Bottom Control Bar */}
+                      {isPlaying && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
+                          <div className="flex items-center justify-between">
+                            <button
+                              onClick={handlePlayPause}
+                              className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                              title={isPlaying ? 'Pause' : 'Play'}
+                            >
+                              <Pause className="w-5 h-5 fill-current" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : getVideoType(homepageHero.hero.videoUrl) === 'google-drive' ? (
                   // Google Drive Embedded Video with Custom Overlay

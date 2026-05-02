@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { getVideoType, getYouTubeEmbedUrl } from '@/lib/video-utils';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics, useAboutContent, useMaterialsGalleryImages, useMaterialsVideos, useMaterialsPdfs, useTopics, useQuizzes } from '@/hooks/use-cms-data';
 import {
   useSubtopics,
@@ -686,8 +687,8 @@ export default function AdminPage() {
                   <div className="space-y-3">
                     <div>
                       <label className="block text-sm text-gray-400 mb-1">Video URL</label>
-                      <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4" className="bg-slate-800 border-white/20 text-white" />
-                      <p className="text-xs text-gray-500 mt-1">Enter the full URL to your video file (MP4 recommended)</p>
+                      <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..." className="bg-slate-800 border-white/20 text-white" />
+                      <p className="text-xs text-gray-500 mt-1">Supports: Direct video files (MP4, WebM) or YouTube links (youtube.com, youtu.be)</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <input 
@@ -701,12 +702,31 @@ export default function AdminPage() {
                     </div>
                     {heroLocal?.videoUrl && (
                       <div className="bg-slate-800/50 rounded-lg p-3 border border-white/10">
-                        <p className="text-xs text-gray-400 mb-2">Preview:</p>
-                        <video 
-                          controls 
-                          className="w-full h-auto max-h-48 rounded bg-black"
-                          src={heroLocal.videoUrl}
-                        />
+                        <p className="text-xs text-gray-400 mb-2">Video Type: <span className="text-orange-400 font-semibold">{getVideoType(heroLocal.videoUrl) === 'youtube' ? 'YouTube' : getVideoType(heroLocal.videoUrl) === 'direct' ? 'Direct Video' : 'Unknown'}</span></p>
+                        {getVideoType(heroLocal.videoUrl) === 'youtube' ? (
+                          <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
+                            <iframe
+                              width="100%"
+                              height="100%"
+                              src={getYouTubeEmbedUrl(heroLocal.videoUrl) || ''}
+                              title="Preview"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="absolute inset-0"
+                            />
+                          </div>
+                        ) : getVideoType(heroLocal.videoUrl) === 'direct' ? (
+                          <video 
+                            controls 
+                            className="w-full h-auto max-h-48 rounded bg-black"
+                            src={heroLocal.videoUrl}
+                          />
+                        ) : (
+                          <div className="w-full aspect-video bg-black rounded flex items-center justify-center text-gray-500 text-sm">
+                            Invalid video URL
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

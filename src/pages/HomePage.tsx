@@ -78,7 +78,7 @@ export default function HomePage() {
                   <div className="relative w-full aspect-video bg-black overflow-hidden rounded-lg group">
                     <iframe
                       key={homepageHero.hero.videoUrl}
-                      src={`${getEmbedUrl(homepageHero.hero.videoUrl)}${isPlaying ? '&autoplay=1&mute=0&controls=1&showinfo=0&autohide=1' : ''}`}
+                      src={`${getEmbedUrl(homepageHero.hero.videoUrl)}${isPlaying ? '&autoplay=1&mute=0&controls=0&showinfo=0&autohide=1&iv_load_policy=3&disablekb=1' : ''}`}
                       title="Hero Video"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen

@@ -1,6 +1,6 @@
 /**
  * Video utility functions for handling different video sources
- * Supports: YouTube, Google Drive, and Direct Video Files
+ * Supports: YouTube (including Shorts), Google Drive, and Direct Video Files
  */
 
 export type VideoType = 'youtube' | 'google-drive' | 'direct' | 'unknown';
@@ -11,10 +11,18 @@ export type VideoType = 'youtube' | 'google-drive' | 'direct' | 'unknown';
 export function extractYouTubeVideoId(url: string): string | null {
   if (!url) return null;
   try {
+    // Matches youtu.be/ID
     const shortUrlMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
     if (shortUrlMatch) return shortUrlMatch[1];
+    
+    // Matches youtube.com/shorts/ID
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+    if (shortsMatch) return shortsMatch[1];
+
+    // Matches youtube.com/watch?v=ID or youtube.com/embed/ID
     const longUrlMatch = url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
     if (longUrlMatch) return longUrlMatch[1];
+    
     return null;
   } catch {
     return null;
@@ -27,8 +35,8 @@ export function extractYouTubeVideoId(url: string): string | null {
 export function extractGoogleDriveId(url: string): string | null {
   if (!url) return null;
   try {
-    // Matches /file/d/FILE_ID/ or id=FILE_ID
-    const match = url.match(/(?:\/file\/d\/|id=)([a-zA-Z0-9_-]{25,})/);
+    // Matches /file/d/FILE_ID/ or id=FILE_ID or /open?id=FILE_ID
+    const match = url.match(/(?:\/file\/d\/|id=|\/d\/)([a-zA-Z0-9_-]{25,})/);
     return match ? match[1] : null;
   } catch {
     return null;

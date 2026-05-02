@@ -89,11 +89,12 @@ export default function HomePage() {
             {homepageHero.hero?.videoVisible && homepageHero.hero?.videoUrl && (
               <div className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl">
                 {getVideoType(homepageHero.hero.videoUrl) === 'youtube' ? (
-                  // YouTube Embedded Video with Custom Clean Player
+                  // YouTube Embedded Video with Locked Custom Player
                   <div 
                     ref={videoContainerRef}
                     className="relative w-full aspect-video bg-black overflow-hidden rounded-lg group"
                   >
+                    {/* Hidden iframe - pointer events disabled to prevent clicks */}
                     <iframe
                       ref={iframeRef}
                       key={homepageHero.hero.videoUrl}
@@ -103,15 +104,25 @@ export default function HomePage() {
                       allowFullScreen
                       className={`absolute top-0 left-0 w-full h-full border-0 transition-opacity duration-500 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
                       style={{
-                        pointerEvents: isPlaying ? 'auto' : 'none',
+                        pointerEvents: 'none', // Disable all iframe interactions
                       }}
                     />
+
+                    {/* Poster/Background */}
                     {!isPlaying && (
                       <div 
                         className="absolute inset-0 bg-cover bg-center"
                         style={{ backgroundImage: 'url(/images/hero-bg.jpg)' }}
                       />
                     )}
+
+                    {/* Protective Overlay - Captures all clicks and prevents external redirects */}
+                    <div 
+                      className="absolute inset-0 pointer-events-auto"
+                      onClick={handlePlayPause}
+                      style={{ cursor: 'pointer' }}
+                    />
+
                     {/* Custom Clean Player Controls */}
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none group">
                       {/* Center Play Button */}
@@ -125,6 +136,7 @@ export default function HomePage() {
                           </div>
                         </div>
                       )}
+
                       {/* Bottom Control Bar */}
                       {isPlaying && (
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">

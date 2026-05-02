@@ -93,11 +93,13 @@ export default function HomePage() {
                       key={homepageHero.hero.videoUrl}
                       src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
                       title="Hero Video"
-                      frameBorder="0"
                       allow="autoplay; fullscreen"
                       allowFullScreen
-                      className="absolute inset-0 w-full h-full"
+                      className="absolute top-0 left-0 w-full h-full border-0"
                       style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
                         width: '100%',
                         height: '100%',
                         border: 'none',

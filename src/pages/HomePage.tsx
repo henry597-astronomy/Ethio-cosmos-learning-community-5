@@ -70,11 +70,12 @@ export default function HomePage() {
             {homepageHero.hero?.videoVisible && homepageHero.hero?.videoUrl && (
               <div className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl">
                 <video
+                  key={homepageHero.hero.videoUrl}
                   controls
                   className="w-full h-auto aspect-video bg-black"
                   poster="/images/hero-bg.jpg"
                 >
-                  <source src={homepageHero.hero.videoUrl} type="video/mp4" />
+                  <source src={homepageHero.hero.videoUrl} />
                   Your browser does not support the video tag.
                 </video>
               </div>

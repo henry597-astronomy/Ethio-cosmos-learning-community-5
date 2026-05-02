@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics, useAboutContent, useMaterialsGalleryImages, useMaterialsVideos, useMaterialsPdfs, useTopics, useQuizzes } from '@/hooks/use-cms-data';
 import {
@@ -133,6 +133,13 @@ export default function AdminPage() {
   const [heroLocal, setHeroLocal] = useState(homepageHero.hero);
   const [heroModified, setHeroModified] = useState(false);
 
+  // Sync local state when data finishes loading
+  useEffect(() => {
+    if (homepageHero.hero && !heroLocal) {
+      setHeroLocal(homepageHero.hero);
+    }
+  }, [homepageHero.hero, heroLocal]);
+
   // Local state for feature cards
   const [featureCardsLocal, setFeatureCardsLocal] = useState(homepageFeatureCards.featureCards);
   const [featureCardsModified, setFeatureCardsModified] = useState(false);
@@ -194,7 +201,10 @@ export default function AdminPage() {
 
   // ── Homepage ────────────────────────────────────────────────────────────────
   const updateHeroLocal = (field: 'heroTitle' | 'heroSubtitle' | 'videoUrl' | 'videoVisible', value: string | boolean) => {
-    setHeroLocal(prev => prev ? { ...prev, [field]: value } : null);
+    setHeroLocal(prev => {
+      const current = prev || { heroTitle: '', heroSubtitle: '', videoUrl: '', videoVisible: false };
+      return { ...current, [field]: value };
+    });
     setHeroModified(true);
   };
 

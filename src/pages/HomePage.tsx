@@ -74,19 +74,35 @@ export default function HomePage() {
             {homepageHero.hero?.videoVisible && homepageHero.hero?.videoUrl && (
               <div className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl">
                 {getVideoType(homepageHero.hero.videoUrl) === 'youtube' ? (
-                  // YouTube Embedded Video
-                  <div className="relative w-full aspect-video bg-black">
+                  // YouTube Embedded Video with Custom Overlay
+                  <div className="relative w-full aspect-video bg-black overflow-hidden rounded-lg group">
                     <iframe
                       key={homepageHero.hero.videoUrl}
-                      width="100%"
-                      height="100%"
-                      src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                      src={`${getEmbedUrl(homepageHero.hero.videoUrl)}${isPlaying ? '&autoplay=1&mute=0&controls=1&showinfo=0&autohide=1' : ''}`}
                       title="Hero Video"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
-                      className="absolute inset-0"
+                      className={`absolute top-0 left-0 w-full h-full border-0 transition-opacity duration-500 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
+                      style={{
+                        pointerEvents: isPlaying ? 'auto' : 'none',
+                      }}
                     />
+                    {!isPlaying && (
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ backgroundImage: 'url(/images/hero-bg.jpg)' }}
+                      />
+                    )}
+                    {!isPlaying && (
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer transition-colors hover:bg-black/20"
+                        onClick={() => setIsPlaying(true)}
+                      >
+                        <div className="w-20 h-20 flex items-center justify-center rounded-full bg-orange-500 text-white shadow-lg transform transition-transform group-hover:scale-110">
+                          <Play className="w-10 h-10 fill-current ml-1" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : getVideoType(homepageHero.hero.videoUrl) === 'google-drive' ? (
                   // Google Drive Embedded Video with Custom Overlay

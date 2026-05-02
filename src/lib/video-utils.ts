@@ -1,9 +1,9 @@
 /**
  * Video utility functions for handling different video sources
- * Supports: YouTube (including Shorts), Google Drive, Cloudinary, and Direct Video Files
+ * Supports: YouTube (including Shorts), Google Drive, and Direct Video Files
  */
 
-export type VideoType = 'youtube' | 'google-drive' | 'cloudinary' | 'direct' | 'unknown';
+export type VideoType = 'youtube' | 'google-drive' | 'direct' | 'unknown';
 
 /**
  * Extracts YouTube video ID from various YouTube URL formats
@@ -57,10 +57,6 @@ export function getVideoType(url: string): VideoType {
     return 'google-drive';
   }
 
-  if (url.includes('cloudinary.com')) {
-    return 'cloudinary';
-  }
-
   const directExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
   if (directExtensions.some(ext => url.toLowerCase().includes(ext))) {
     return 'direct';
@@ -86,17 +82,7 @@ export function getEmbedUrl(url: string): string | null {
 
   if (type === 'google-drive') {
     const fileId = extractGoogleDriveId(url);
-    return fileId ? `https://drive.google.com/file/d/${fileId}/preview?rm=minimal` : null;
-  }
-
-  if (type === 'cloudinary') {
-    // If it's already an embed URL, return it as is
-    if (url.includes('/embed/')) {
-      return url;
-    }
-    // Otherwise, try to handle basic Cloudinary video URLs if needed
-    // For now, we assume the user provides the embed URL as requested
-    return url;
+    return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : null;
   }
 
   return null;

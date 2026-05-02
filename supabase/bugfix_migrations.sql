@@ -21,7 +21,7 @@ BEGIN
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
     NEW.email,
-    CASE WHEN NEW.email = 'henokgirma648@gmail.com' THEN 'admin' ELSE 'user' END
+    'user'
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;

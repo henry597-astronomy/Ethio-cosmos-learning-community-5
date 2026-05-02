@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics, useAboutContent, useMaterialsGalleryImages, useMaterialsVideos, useMaterialsPdfs, useTopics, useQuizzes } from '@/hooks/use-cms-data';
 import {
   useSubtopics,
@@ -16,7 +17,7 @@ import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Check, X } from 'lucide-react
 import type {
   Topic,
   Subtopic,
-  Lesson,
+  LessonBlock,
   FeaturedTopic,
   FeatureCard,
   GalleryImage,
@@ -133,6 +134,13 @@ export default function AdminPage() {
   const [heroLocal, setHeroLocal] = useState(homepageHero.hero);
   const [heroModified, setHeroModified] = useState(false);
 
+  // Sync local state when data finishes loading
+  useEffect(() => {
+    if (homepageHero.hero && !heroLocal) {
+      setHeroLocal(homepageHero.hero);
+    }
+  }, [homepageHero.hero, heroLocal]);
+
   // Local state for feature cards
   const [featureCardsLocal, setFeatureCardsLocal] = useState(homepageFeatureCards.featureCards);
   const [featureCardsModified, setFeatureCardsModified] = useState(false);
@@ -194,7 +202,10 @@ export default function AdminPage() {
 
   // ── Homepage ────────────────────────────────────────────────────────────────
   const updateHeroLocal = (field: 'heroTitle' | 'heroSubtitle' | 'videoUrl' | 'videoVisible', value: string | boolean) => {
-    setHeroLocal(prev => prev ? { ...prev, [field]: value } : null);
+    setHeroLocal(prev => {
+      const current = prev || { heroTitle: '', heroSubtitle: '', videoUrl: '', videoVisible: false };
+      return { ...current, [field]: value };
+    });
     setHeroModified(true);
   };
 
@@ -266,53 +277,161 @@ export default function AdminPage() {
   };
 
   const addFeaturedTopicLocal = () => {
-    const newTopic: FeaturedTopic = { id: newId(), title: 'New Topic', description: 'New description', image_url: '' };
+    const newTopic: FeaturedTopic = { id: newId(), title: 'New Topic', description: 'Description', image_url: '/images/topic-fundamentals.jpg' };
     setFeaturedTopicsLocal([...featuredTopicsLocal, newTopic]);
     setFeaturedTopicsModified(true);
   };
 
-  const deleteFeaturedTopicLocal = (id: string) => {
-    setFeaturedTopicsLocal(featuredTopicsLocal.filter(t => t.id !== id));
+  const deleteFeaturedTopicLocal = (i: number) => {
+    setFeaturedTopicsLocal(featuredTopicsLocal.filter((_, idx) => idx !== i));
     setFeaturedTopicsModified(true);
   };
 
-  // ── About ───────────────────────────────────────────────────────────────────
-  const updateAboutLocal = (field: keyof AboutContent, value: any) => {
+  // ── Topics ──────────────────────────────────────────────────────────────────
+  const handleUpdateTopic = async (id: string, field: keyof Topic, value: string | number) => {
+    try {
+      await editTopic(id, { [field]: value });
+    } catch (err) {
+      console.error('Failed to update topic:', err);
+    }
+  };
+
+  const handleAddTopic = async () => {
+    try {
+      const newTopic: Omit<Topic, "id" | "created_at" | "updated_at"> = { 
+        emoji: '🚀', 
+        title: 'New Topic', 
+        description: 'Description', 
+        order_index: topics.length, 
+        image_url: '/images/topic-fundamentals.jpg' 
+      };
+      await addTopic(newTopic);
+    } catch (err) {
+      console.error('Failed to add topic:', err);
+    }
+  };
+
+  const handleDeleteTopic = async (id: string) => {
+    try {
+      await removeTopic(id);
+    } catch (err) {
+      console.error('Failed to delete topic:', err);
+    }
+  };
+
+  const moveTopic = async (i: number, dir: 'up' | 'down') => {
+    try {
+      const updatedTopics = [...topics];
+      if (dir === 'up' && i === 0) return;
+      if (dir === 'down' && i === updatedTopics.length - 1) return;
+      const swap = dir === 'up' ? i - 1 : i + 1;
+      [updatedTopics[i], updatedTopics[swap]] = [updatedTopics[swap], updatedTopics[i]];
+      // Update order_index for both swapped topics
+      await editTopic(updatedTopics[i].id, { order_index: i });
+      await editTopic(updatedTopics[swap].id, { order_index: swap });
+      // Re-fetch to ensure UI is consistent with DB order
+      fetchTopics();
+    } catch (err) {
+      console.error('Failed to move topic:', err);
+    }
+  };
+
+  // ── Subtopics ───────────────────────────────────────────────────────────────
+  const handleUpdateSubtopic = async (id: string, field: keyof Subtopic, value: string | number) => {
+    try {
+      await editSubtopic(id, { [field]: value });
+    } catch (err) {
+      console.error('Failed to update subtopic:', err);
+    }
+  };
+
+  const handleAddSubtopic = async () => {
+    try {
+      if (!selectedTopicId) return;
+      const newSubtopic: Omit<Subtopic, "id" | "created_at" | "updated_at"> = { 
+        topic_id: selectedTopicId, 
+        emoji: '📚', 
+        title: 'New Lesson', 
+        description: 'Lesson description', 
+        order_index: subtopics.length 
+      };
+      await addSubtopic(newSubtopic);
+    } catch (err) {
+      console.error('Failed to add subtopic:', err);
+    }
+  };
+
+  const handleDeleteSubtopic = async (id: string) => {
+    try {
+      await removeSubtopic(id);
+    } catch (err) {
+      console.error('Failed to delete subtopic:', err);
+    }
+  };
+
+  const moveSubtopic = async (i: number, dir: 'up' | 'down') => {
+    try {
+      if (!selectedTopicId) return;
+      const updatedSubtopics = [...subtopics];
+      if (dir === 'up' && i === 0) return;
+      if (dir === 'down' && i === updatedSubtopics.length - 1) return;
+      const swap = dir === 'up' ? i - 1 : i + 1;
+      [updatedSubtopics[i], updatedSubtopics[swap]] = [updatedSubtopics[swap], updatedSubtopics[i]];
+      // Update order_index for both swapped subtopics
+      await editSubtopic(updatedSubtopics[i].id, { order_index: i });
+      await editSubtopic(updatedSubtopics[swap].id, { order_index: swap });
+      // Re-fetch to ensure UI is consistent with DB order
+      fetchSubtopics();
+    } catch (err) {
+      console.error('Failed to move subtopic:', err);
+    }
+  };
+
+  // ── Lessons ─────────────────────────────────────────────────────────────────
+  const currentLessonBlocks = lesson?.content_blocks || [];
+
+  const handleSaveLessonBlocks = async (blocks: LessonBlock[]) => {
+    try {
+      if (!selectedSubtopicId) return;
+      const currentSubtopic = subtopics.find(s => s.id === selectedSubtopicId);
+      if (!currentSubtopic) return;
+
+      await saveLesson({
+        subtopic_id: selectedSubtopicId,
+        title: currentSubtopic.title, // Lesson title from subtopic
+        content_blocks: blocks,
+      });
+    } catch (err) {
+      console.error('Failed to save lesson blocks:', err);
+    }
+  };
+
+  const updateLessonBlock = (i: number, content: string) => {
+    const updatedBlocks = [...currentLessonBlocks];
+    updatedBlocks[i] = { ...updatedBlocks[i], content };
+    handleSaveLessonBlocks(updatedBlocks);
+  };
+
+  const addLessonBlock = (type: 'text' | 'image') => {
+    handleSaveLessonBlocks([...currentLessonBlocks, { type, content: '' }]);
+  };
+
+  const removeLessonBlock = (i: number) => {
+    handleSaveLessonBlocks(currentLessonBlocks.filter((_, idx) => idx !== i));
+  };
+
+  const moveLessonBlock = (i: number, dir: 'up' | 'down') => {
+    const updatedBlocks = [...currentLessonBlocks];
+    if (dir === 'up' && i === 0) return;
+    if (dir === 'down' && i === updatedBlocks.length - 1) return;
+    const swap = dir === 'up' ? i - 1 : i + 1;
+    [updatedBlocks[i], updatedBlocks[swap]] = [updatedBlocks[swap], updatedBlocks[i]];
+    handleSaveLessonBlocks(updatedBlocks);
+  };
+
+  // ── About Page ──────────────────────────────────────────────────────────────
+  const updateAboutLocal = (field: keyof AboutContent, value: string) => {
     setAboutLocal(prev => ({ ...prev, [field]: value }));
-    setAboutModified(true);
-  };
-
-  const updateTeamMemberLocal = (category: keyof AboutContent['team'], id: string, field: keyof TeamMember, value: string) => {
-    setAboutLocal(prev => ({
-      ...prev,
-      team: {
-        ...prev.team,
-        [category]: prev.team[category].map(m => m.id === id ? { ...m, [field]: value } : m)
-      }
-    }));
-    setAboutModified(true);
-  };
-
-  const addTeamMemberLocal = (category: keyof AboutContent['team']) => {
-    const newMember: TeamMember = { id: newId(), name: 'New Member', work: 'Role', image_url: '' };
-    setAboutLocal(prev => ({
-      ...prev,
-      team: {
-        ...prev.team,
-        [category]: [...prev.team[category], newMember]
-      }
-    }));
-    setAboutModified(true);
-  };
-
-  const deleteTeamMemberLocal = (category: keyof AboutContent['team'], id: string) => {
-    setAboutLocal(prev => ({
-      ...prev,
-      team: {
-        ...prev.team,
-        [category]: prev.team[category].filter(m => m.id !== id)
-      }
-    }));
     setAboutModified(true);
   };
 
@@ -330,9 +449,41 @@ export default function AdminPage() {
     setAboutModified(false);
   };
 
+  const updateTeamMemberLocal = (
+    category: keyof AboutContent['team'],
+    id: string,
+    field: keyof TeamMember,
+    value: string
+  ) => {
+    const updatedTeam = { ...aboutLocal.team };
+    updatedTeam[category] = updatedTeam[category].map((member) =>
+      member.id === id ? { ...member, [field]: value } : member
+    );
+    setAboutLocal((prev) => ({ ...prev, team: updatedTeam }));
+    setAboutModified(true);
+  };
+
+  const addTeamMemberLocal = (category: keyof AboutContent['team']) => {
+    const updatedTeam = { ...aboutLocal.team };
+    const newMember: TeamMember = { id: newId(), name: 'New Member', work: 'Role/Work', image_url: '' };
+    updatedTeam[category] = [...updatedTeam[category], newMember];
+    setAboutLocal((prev) => ({ ...prev, team: updatedTeam }));
+    setAboutModified(true);
+  };
+
+  const deleteTeamMemberLocal = (category: keyof AboutContent['team'], id: string) => {
+    const updatedTeam = { ...aboutLocal.team };
+    updatedTeam[category] = updatedTeam[category].filter((member) => member.id !== id);
+    setAboutLocal((prev) => ({ ...prev, team: updatedTeam }));
+    setAboutModified(true);
+  };
+
   // ── Materials ───────────────────────────────────────────────────────────────
   const updateGalleryImageLocal = (id: string, field: keyof GalleryImage, value: string) => {
-    setGalleryImagesLocal(prev => prev.map(img => img.id === id ? { ...img, [field]: value } : img));
+    const updated = galleryImagesLocal.map(img => 
+      img.id === id ? { ...img, [field]: value } : img
+    );
+    setGalleryImagesLocal(updated);
     setGalleryImagesModified(true);
   };
 
@@ -351,7 +502,8 @@ export default function AdminPage() {
   };
 
   const addGalleryImageLocal = () => {
-    setGalleryImagesLocal([...galleryImagesLocal, { id: newId(), url: '', title: 'New Image' }]);
+    const newImage: GalleryImage = { id: newId(), url: '', title: 'New Image' };
+    setGalleryImagesLocal([...galleryImagesLocal, newImage]);
     setGalleryImagesModified(true);
   };
 
@@ -361,7 +513,10 @@ export default function AdminPage() {
   };
 
   const updateVideoLocal = (id: string, field: keyof VideoItem, value: string) => {
-    setVideosLocal(prev => prev.map(v => v.id === id ? { ...v, [field]: value } : v));
+    const updated = videosLocal.map(video => 
+      video.id === id ? { ...video, [field]: value } : video
+    );
+    setVideosLocal(updated);
     setVideosModified(true);
   };
 
@@ -380,17 +535,21 @@ export default function AdminPage() {
   };
 
   const addVideoLocal = () => {
-    setVideosLocal([...videosLocal, { id: newId(), url: '', thumbnail: '', title: 'New Video' }]);
+    const newVideo: VideoItem = { id: newId(), url: '', thumbnail: '', title: 'New Video' };
+    setVideosLocal([...videosLocal, newVideo]);
     setVideosModified(true);
   };
 
   const deleteVideoLocal = (id: string) => {
-    setVideosLocal(videosLocal.filter(v => v.id !== id));
+    setVideosLocal(videosLocal.filter(video => video.id !== id));
     setVideosModified(true);
   };
 
   const updatePdfLocal = (id: string, field: keyof PdfItem, value: string) => {
-    setPdfsLocal(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+    const updated = pdfsLocal.map(pdf => 
+      pdf.id === id ? { ...pdf, [field]: value } : pdf
+    );
+    setPdfsLocal(updated);
     setPdfsModified(true);
   };
 
@@ -409,653 +568,527 @@ export default function AdminPage() {
   };
 
   const addPdfLocal = () => {
-    setPdfsLocal([...pdfsLocal, { id: newId(), url: '', title: 'New PDF', label: 'Download' }]);
+    const newPdf: PdfItem = { id: newId(), url: '', title: 'New PDF', label: 'New PDF' };
+    setPdfsLocal([...pdfsLocal, newPdf]);
     setPdfsModified(true);
   };
 
   const deletePdfLocal = (id: string) => {
-    setPdfsLocal(pdfsLocal.filter(p => p.id !== id));
+    setPdfsLocal(pdfsLocal.filter(pdf => pdf.id !== id));
     setPdfsModified(true);
-  };
-
-  // ── Topics ──────────────────────────────────────────────────────────────────
-  const handleAddTopic = async () => {
-    const newTopic: Omit<Topic, "id" | "created_at" | "updated_at"> = {
-      title: 'New Topic',
-      emoji: '🚀',
-      description: 'Topic description',
-      image_url: '',
-      order_index: topics.length
-    };
-    await addTopic(newTopic);
-  };
-
-  const handleUpdateTopic = async (id: string, field: keyof Topic, value: any) => {
-    await editTopic(id, { [field]: value });
-  };
-
-  const handleDeleteTopic = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this topic and all its subtopics?')) {
-      await removeTopic(id);
-      if (selectedTopicId === id) setSelectedTopicId(null);
-    }
-  };
-
-  const moveTopic = async (index: number, direction: 'up' | 'down') => {
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= topics.length) return;
-    
-    const updatedTopics = [...topics];
-    const temp = updatedTopics[index].order_index;
-    updatedTopics[index].order_index = updatedTopics[newIndex].order_index;
-    updatedTopics[newIndex].order_index = temp;
-    
-    await editTopic(updatedTopics[index].id, { order_index: updatedTopics[index].order_index });
-    await editTopic(updatedTopics[newIndex].id, { order_index: updatedTopics[newIndex].order_index });
-    fetchTopics();
-  };
-
-  // ── Subtopics ───────────────────────────────────────────────────────────────
-  const handleAddSubtopic = async () => {
-    if (!selectedTopicId) return;
-    const newSub: Omit<Subtopic, "id" | "created_at" | "updated_at"> = {
-      topic_id: selectedTopicId,
-      title: 'New Subtopic',
-      emoji: '📖',
-      description: 'Subtopic description',
-      order_index: subtopics.length
-    };
-    await addSubtopic(newSub);
-  };
-
-  const handleUpdateSubtopic = async (id: string, field: keyof Subtopic, value: any) => {
-    await editSubtopic(id, { [field]: value });
-  };
-
-  const handleDeleteSubtopic = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this subtopic?')) {
-      await removeSubtopic(id);
-      if (selectedSubtopicId === id) setSelectedSubtopicId(null);
-    }
-  };
-
-  const moveSubtopic = async (index: number, direction: 'up' | 'down') => {
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= subtopics.length) return;
-    
-    const updated = [...subtopics];
-    const temp = updated[index].order_index;
-    updated[index].order_index = updated[newIndex].order_index;
-    updated[newIndex].order_index = temp;
-    
-    await editSubtopic(updated[index].id, { order_index: updated[index].order_index });
-    await editSubtopic(updated[newIndex].id, { order_index: updated[newIndex].order_index });
-    fetchSubtopics();
-  };
-
-  // ── Lessons ─────────────────────────────────────────────────────────────────
-  const currentLessonBlocks = lesson?.content_blocks || [];
-
-  const addLessonBlock = async (type: 'text' | 'image') => {
-    if (!selectedSubtopicId) return;
-    const newBlocks = [...currentLessonBlocks, { type, content: type === 'text' ? 'New text block' : '' }];
-    const lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string } = {
-      subtopic_id: selectedSubtopicId,
-      title: lesson?.title || 'Lesson Title',
-      content_blocks: newBlocks
-    };
-    await saveLesson(lessonData);
-  };
-
-  const updateLessonBlock = async (index: number, content: string) => {
-    if (!selectedSubtopicId) return;
-    const newBlocks = [...currentLessonBlocks];
-    newBlocks[index] = { ...newBlocks[index], content };
-    const lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string } = {
-      subtopic_id: selectedSubtopicId,
-      title: lesson?.title || 'Lesson Title',
-      content_blocks: newBlocks
-    };
-    await saveLesson(lessonData);
-  };
-
-  const removeLessonBlock = async (index: number) => {
-    if (!selectedSubtopicId) return;
-    const newBlocks = currentLessonBlocks.filter((_, i) => i !== index);
-    const lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string } = {
-      subtopic_id: selectedSubtopicId,
-      title: lesson?.title || 'Lesson Title',
-      content_blocks: newBlocks
-    };
-    await saveLesson(lessonData);
-  };
-
-  const moveLessonBlock = async (index: number, direction: 'up' | 'down') => {
-    if (!selectedSubtopicId) return;
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= currentLessonBlocks.length) return;
-    const newBlocks = [...currentLessonBlocks];
-    [newBlocks[index], newBlocks[newIndex]] = [newBlocks[newIndex], newBlocks[index]];
-    const lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string } = {
-      subtopic_id: selectedSubtopicId,
-      title: lesson?.title || 'Lesson Title',
-      content_blocks: newBlocks
-    };
-    await saveLesson(lessonData);
   };
 
   // ── Quizzes ─────────────────────────────────────────────────────────────────
   const handleAddQuiz = async () => {
-    const newQuiz: Omit<Quiz, "id" | "created_at" | "updated_at"> = { title: 'New Quiz', description: 'Quiz description' };
-    await addQuiz(newQuiz);
-  };
-
-  const handleUpdateQuiz = async (id: string, field: keyof Quiz, value: any) => {
-    await editQuiz(id, { [field]: value });
-  };
-
-  const handleDeleteQuiz = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this quiz?')) {
-      await removeQuiz(id);
-      if (selectedQuizId === id) setSelectedQuizId(null);
+    try {
+      const newQuiz: Omit<Quiz, "id" | "created_at" | "updated_at"> = { title: 'New Quiz', description: 'Quiz description' };
+      await addQuiz(newQuiz);
+    } catch (err) {
+      console.error('Failed to add quiz:', err);
     }
   };
 
-  const handleAddQuestion = async () => {
-    if (!selectedQuizId) return;
-    const newQ: Omit<QuizQuestion, "id" | "created_at" | "updated_at"> = {
-      quiz_id: selectedQuizId,
-      question_text: 'New Question',
-      options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
-      correct_answer: 0,
-      order_index: quizQuestions.length
-    };
-    await addQuizQuestion(newQ);
+  const handleUpdateQuiz = async (id: string, field: keyof Quiz, value: string) => {
+    try {
+      await editQuiz(id, { [field]: value });
+    } catch (err) {
+      console.error('Failed to update quiz:', err);
+    }
   };
 
-  const handleUpdateQuestion = async (id: string, field: keyof QuizQuestion, value: any) => {
-    await editQuizQuestion(id, { [field]: value });
+  const handleDeleteQuiz = async (id: string) => {
+    try {
+      await removeQuiz(id);
+    } catch (err) {
+      console.error('Failed to delete quiz:', err);
+    }
   };
 
-  const handleDeleteQuestion = async (id: string) => {
-    await removeQuizQuestion(id);
+  // ── Quiz Questions ──────────────────────────────────────────────────────────
+  const handleAddQuizQuestion = async () => {
+    try {
+      if (!selectedQuizId) return;
+      const newQuestion: Omit<QuizQuestion, "id" | "created_at" | "updated_at"> = {
+        quiz_id: selectedQuizId,
+        question_text: 'New Question',
+        options: ['Option 1', 'Option 2'],
+        correct_answer: 0,
+        order_index: quizQuestions.length,
+      };
+      await addQuizQuestion(newQuestion);
+    } catch (err) {
+      console.error('Failed to add quiz question:', err);
+    }
+  };
+
+  const handleUpdateQuizQuestion = async (
+    id: string,
+    field: keyof QuizQuestion,
+    value: QuizQuestion[keyof QuizQuestion]
+  ) => {
+    try {
+      await editQuizQuestion(id, { [field]: value });
+    } catch (err) {
+      console.error('Failed to update quiz question:', err);
+    }
+  };
+
+  const handleDeleteQuizQuestion = async (id: string) => {
+    try {
+      await removeQuizQuestion(id);
+    } catch (err) {
+      console.error('Failed to delete quiz question:', err);
+    }
   };
 
   return (
     <div className="min-h-screen pt-24 pb-12 bg-[#0a0e1a]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-          <div className="text-sm text-gray-400">
-            Logged in as: <span className="text-orange-400 font-semibold">{user.email}</span>
-          </div>
-        </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
+        <p className="text-gray-400 mb-8">Signed in as {user.email}</p>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-slate-900 border border-white/10 p-1">
-            <TabsTrigger value="homepage" className="data-[state=active]:bg-orange-500">Homepage</TabsTrigger>
-            <TabsTrigger value="topics" className="data-[state=active]:bg-orange-500">Topics</TabsTrigger>
-            <TabsTrigger value="subtopics" className="data-[state=active]:bg-orange-500">Subtopics</TabsTrigger>
-            <TabsTrigger value="lessons" className="data-[state=active]:bg-orange-500">Lessons</TabsTrigger>
-            <TabsTrigger value="about" className="data-[state=active]:bg-orange-500">About</TabsTrigger>
-            <TabsTrigger value="materials" className="data-[state=active]:bg-orange-500">Materials</TabsTrigger>
-            <TabsTrigger value="quizzes" className="data-[state=active]:bg-orange-500">Quizzes</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="bg-slate-900 border border-white/10 mb-8 flex flex-wrap gap-1 h-auto p-1">
+            {['homepage','topics','subtopics','lessons','about','materials', 'quizzes'].map(tab => (
+              <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-orange-500 data-[state=active]:text-white capitalize">
+                {tab}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
-          {/* Homepage Tab */}
+          {/* ── HOMEPAGE TAB ────────────────────────────────────────────── */}
           <TabsContent value="homepage" className="space-y-8">
             {/* Hero Section */}
-            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">Hero Section</h2>
-                <div className="flex gap-2">
-                  {heroModified && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={resetHero}>Reset</Button>
-                      <Button size="sm" onClick={saveHero} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
-                    </>
-                  )}
-                </div>
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Hero Section</h2>
+                {heroModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveHero} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetHero} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1">Hero Title</label>
-                    <Input
-                      value={heroLocal?.heroTitle || ''}
-                      onChange={(e) => updateHeroLocal('heroTitle', e.target.value)}
-                      className="bg-slate-800 border-white/10 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1">Hero Subtitle</label>
-                    <Textarea
-                      value={heroLocal?.heroSubtitle || ''}
-                      onChange={(e) => updateHeroLocal('heroSubtitle', e.target.value)}
-                      className="bg-slate-800 border-white/10 text-white h-24"
-                    />
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Title</label>
+                  <Input value={heroLocal?.heroTitle || ''} onChange={(e) => updateHeroLocal('heroTitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1">Video URL (YouTube/Direct)</label>
-                    <Input
-                      value={heroLocal?.videoUrl || ''}
-                      onChange={(e) => updateHeroLocal('videoUrl', e.target.value)}
-                      placeholder="https://..."
-                      className="bg-slate-800 border-white/10 text-white"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="videoVisible"
-                      checked={heroLocal?.videoVisible || false}
-                      onChange={(e) => updateHeroLocal('videoVisible', e.target.checked)}
-                      className="w-4 h-4 rounded border-white/10 bg-slate-800 text-orange-500"
-                    />
-                    <label htmlFor="videoVisible" className="text-sm text-gray-400">Show Video on Homepage</label>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Subtitle</label>
+                  <Input value={heroLocal?.heroSubtitle || ''} onChange={(e) => updateHeroLocal('heroSubtitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                </div>
+                <div className="border-t border-white/10 pt-4 mt-4">
+                  <h3 className="text-sm font-semibold text-white mb-3">Hero Video</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Video URL</label>
+                      <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..." className="bg-slate-800 border-white/20 text-white" />
+                      <p className="text-xs text-gray-500 mt-1">Supports: Direct video files (MP4, WebM), YouTube links, or Google Drive videos</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="checkbox" 
+                        id="videoVisible" 
+                        checked={heroLocal?.videoVisible || false} 
+                        onChange={(e) => updateHeroLocal('videoVisible', e.target.checked)}
+                        className="w-4 h-4 rounded border-white/20 bg-slate-800 cursor-pointer"
+                      />
+                      <label htmlFor="videoVisible" className="text-sm text-gray-400 cursor-pointer">Show video on homepage</label>
+                    </div>
+                    {heroLocal?.videoUrl && (
+                      <div className="bg-slate-800/50 rounded-lg p-3 border border-white/10">
+                        <p className="text-xs text-gray-400 mb-2">Video Type: <span className="text-orange-400 font-semibold">{getVideoType(heroLocal.videoUrl) === 'youtube' ? 'YouTube' : getVideoType(heroLocal.videoUrl) === 'google-drive' ? 'Google Drive' : getVideoType(heroLocal.videoUrl) === 'direct' ? 'Direct Video' : 'Unknown'}</span></p>
+                        {getVideoType(heroLocal.videoUrl) === 'youtube' ? (
+                          <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
+                            <iframe
+                              width="100%"
+                              height="100%"
+                              src={getEmbedUrl(heroLocal.videoUrl) || ''}
+                              title="Preview"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="absolute inset-0"
+                            />
+                          </div>
+                        ) : getVideoType(heroLocal.videoUrl) === 'google-drive' ? (
+                          <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
+                            <iframe
+                              width="100%"
+                              height="100%"
+                              src={getEmbedUrl(heroLocal.videoUrl) || ''}
+                              title="Preview"
+                              frameBorder="0"
+                              allow="autoplay"
+                              allowFullScreen
+                              className="absolute inset-0"
+                            />
+                          </div>
+                        ) : getVideoType(heroLocal.videoUrl) === 'direct' ? (
+                          <video 
+                            controls 
+                            className="w-full h-auto max-h-48 rounded bg-black"
+                            src={heroLocal.videoUrl}
+                          />
+                        ) : (
+                          <div className="w-full aspect-video bg-black rounded flex items-center justify-center text-gray-500 text-sm">
+                            Invalid video URL
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Feature Cards */}
-            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">Feature Cards</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={addFeatureCardLocal}><Plus size={16} className="mr-2" /> Add Card</Button>
-                  {featureCardsModified && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={resetFeatureCards}>Reset</Button>
-                      <Button size="sm" onClick={saveFeatureCards} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
-                    </>
-                  )}
-                </div>
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Feature Cards</h2>
+                {featureCardsModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveFeatureCards} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetFeatureCards} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-4">
                 {featureCardsLocal.map((card, i) => (
-                  <div key={i} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
-                    <button
-                      onClick={() => deleteFeatureCardLocal(i)}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={14} />
-                    </button>
-                    <div className="space-y-3">
-                      <Input
-                        value={card.icon}
-                        onChange={(e) => updateFeatureCardLocal(i, 'icon', e.target.value)}
-                        className="bg-slate-900 border-white/10 text-2xl w-16 text-center"
-                      />
-                      <Input
-                        value={card.title}
-                        onChange={(e) => updateFeatureCardLocal(i, 'title', e.target.value)}
-                        className="bg-slate-900 border-white/10 text-white font-semibold"
-                      />
-                      <Textarea
-                        value={card.description}
-                        onChange={(e) => updateFeatureCardLocal(i, 'description', e.target.value)}
-                        className="bg-slate-900 border-white/10 text-gray-400 text-sm h-20"
-                      />
+                  <div key={i} className="flex items-end gap-2">
+                    <div className="flex-1 space-y-1">
+                      <label className="block text-sm text-gray-400">Icon (Emoji)</label>
+                      <Input value={card.icon} onChange={(e) => updateFeatureCardLocal(i, 'icon', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Title</label>
+                      <Input value={card.title} onChange={(e) => updateFeatureCardLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Description</label>
+                      <Textarea value={card.description} onChange={(e) => updateFeatureCardLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                     </div>
+                    <Button variant="destructive" size="icon" onClick={() => deleteFeatureCardLocal(i)}>
+                      <Trash2 size={18} />
+                    </Button>
                   </div>
                 ))}
+                <Button onClick={addFeatureCardLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <Plus size={18} className="mr-2" /> Add Feature Card
+                </Button>
               </div>
             </div>
 
             {/* Featured Topics */}
-            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">Featured Topics</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={addFeaturedTopicLocal}><Plus size={16} className="mr-2" /> Add Topic</Button>
-                  {featuredTopicsModified && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={resetFeaturedTopics}>Reset</Button>
-                      <Button size="sm" onClick={saveFeaturedTopics} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
-                    </>
-                  )}
-                </div>
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Featured Topics</h2>
+                {featuredTopicsModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveFeaturedTopics} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetFeaturedTopics} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
                 {featuredTopicsLocal.map((topic, i) => (
-                  <div key={topic.id} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
-                    <button
-                      onClick={() => deleteFeaturedTopicLocal(topic.id)}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={14} />
-                    </button>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <ImageUpload
-                          currentImage={topic.image_url}
-                          onImageUploaded={(url) => updateFeaturedTopicLocal(i, 'image_url', url)}
-                          label="Topic Image"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Input
-                          value={topic.title}
-                          onChange={(e) => updateFeaturedTopicLocal(i, 'title', e.target.value)}
-                          placeholder="Topic Title"
-                          className="bg-slate-900 border-white/10 text-white font-semibold"
-                        />
-                        <Textarea
-                          value={topic.description}
-                          onChange={(e) => updateFeaturedTopicLocal(i, 'description', e.target.value)}
-                          placeholder="Topic Description"
-                          className="bg-slate-900 border-white/10 text-gray-400 text-sm h-24"
-                        />
-                      </div>
+                  <div key={topic.id} className="flex items-end gap-2">
+                    <div className="flex-1 space-y-1">
+                      <label className="block text-sm text-gray-400">Title</label>
+                      <Input value={topic.title} onChange={(e) => updateFeaturedTopicLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Description</label>
+                      <Textarea value={topic.description} onChange={(e) => updateFeaturedTopicLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <ImageUpload 
+                        currentImage={topic.image_url}
+                        onImageUploaded={(url) => updateFeaturedTopicLocal(i, 'image_url', url)}
+                        label="Image URL"
+                      />
                     </div>
+                    <Button variant="destructive" size="icon" onClick={() => deleteFeaturedTopicLocal(i)}>
+                      <Trash2 size={18} />
+                    </Button>
                   </div>
                 ))}
+                <Button onClick={addFeaturedTopicLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <Plus size={18} className="mr-2" /> Add Featured Topic
+                </Button>
               </div>
             </div>
           </TabsContent>
 
-          {/* Topics Tab */}
-          <TabsContent value="topics" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-white">Manage Topics</h2>
-              <Button onClick={handleAddTopic} className="bg-orange-500 hover:bg-orange-600">
-                <Plus size={16} className="mr-2" /> Add New Topic
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 gap-4">
-              {topics.map((topic, index) => (
-                <div
-                  key={topic.id}
-                  className={`bg-slate-900/50 border rounded-xl p-4 transition-colors ${selectedTopicId === topic.id ? 'border-orange-500' : 'border-white/10'}`}
-                >
-                  <div className="flex items-center gap-4">
+          {/* ── TOPICS TAB ──────────────────────────────────────────────── */}
+          <TabsContent value="topics" className="space-y-8">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <h2 className="text-xl font-bold text-white mb-4">Manage Topics</h2>
+              <div className="space-y-4">
+                {topics.map((topic, i) => (
+                  <div key={topic.id} className="flex items-center gap-4 p-3 bg-slate-800 rounded-lg border border-white/10">
                     <div className="flex flex-col gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => moveTopic(index, 'up')} disabled={index === 0}><ArrowUp size={14} /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => moveTopic(index, 'down')} disabled={index === topics.length - 1}><ArrowDown size={14} /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => moveTopic(i, 'up')} disabled={i === 0}><ArrowUp size={16} /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => moveTopic(i, 'down')} disabled={i === topics.length - 1}><ArrowDown size={16} /></Button>
                     </div>
-                    <Input
-                      value={topic.emoji}
-                      onChange={(e) => handleUpdateTopic(topic.id, 'emoji', e.target.value)}
-                      className="w-16 text-center bg-slate-800 border-white/10"
-                    />
-                    <div className="flex-1">
-                      <Input
-                        value={topic.title}
-                        onChange={(e) => handleUpdateTopic(topic.id, 'title', e.target.value)}
-                        className="bg-slate-800 border-white/10 text-white font-semibold mb-2"
-                      />
-                      <Textarea
-                        value={topic.description}
-                        onChange={(e) => handleUpdateTopic(topic.id, 'description', e.target.value)}
-                        className="bg-slate-800 border-white/10 text-gray-400 text-sm h-16"
+                    <div className="flex-1 space-y-1">
+                      <label className="block text-sm text-gray-400">Emoji</label>
+                      <Input value={topic.emoji} onChange={(e) => handleUpdateTopic(topic.id, 'emoji', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Title</label>
+                      <Input value={topic.title} onChange={(e) => handleUpdateTopic(topic.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Description</label>
+                      <Textarea value={topic.description || ''} onChange={(e) => handleUpdateTopic(topic.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                      <ImageUpload 
+                        currentImage={topic.image_url}
+                        onImageUploaded={(url) => handleUpdateTopic(topic.id, 'image_url', url)}
+                        label="Image URL"
                       />
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        variant={selectedTopicId === topic.id ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setSelectedTopicId(topic.id)}
-                        className={selectedTopicId === topic.id ? 'bg-orange-500' : ''}
-                      >
-                        Manage Subtopics
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteTopic(topic.id)}><Trash2 size={16} /></Button>
-                    </div>
+                    <Button variant="destructive" size="icon" onClick={() => handleDeleteTopic(topic.id)}>
+                      <Trash2 size={18} />
+                    </Button>
                   </div>
-                  <div className="mt-4">
-                    <ImageUpload
-                      currentImage={topic.image_url}
-                      onImageUploaded={(url) => handleUpdateTopic(topic.id, 'image_url', url)}
-                      label="Topic Hero Image"
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+                <Button onClick={handleAddTopic} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <Plus size={18} className="mr-2" /> Add Topic
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
-          {/* Subtopics Tab */}
-          <TabsContent value="subtopics" className="space-y-6">
-            {!selectedTopicId ? (
-              <div className="text-center py-12 bg-slate-900/50 border border-white/10 rounded-xl text-gray-400">
-                Please select a topic first from the Topics tab.
+          {/* ── SUBTOPICS TAB ───────────────────────────────────────────── */}
+          <TabsContent value="subtopics" className="space-y-8">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <h2 className="text-xl font-bold text-white mb-4">Manage Subtopics</h2>
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-1">Select Topic</label>
+                <select 
+                  value={selectedTopicId || ''}
+                  onChange={(e) => setSelectedTopicId(e.target.value || null)}
+                  className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
+                >
+                  <option value="">-- Select a Topic --</option>
+                  {topics.map(topic => (
+                    <option key={topic.id} value={topic.id}>{topic.title}</option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-xl font-semibold text-white">Subtopics for {topics.find(t => t.id === selectedTopicId)?.title}</h2>
-                    <p className="text-sm text-gray-400">Manage the learning modules for this topic.</p>
-                  </div>
-                  <Button onClick={handleAddSubtopic} className="bg-orange-500 hover:bg-orange-600">
-                    <Plus size={16} className="mr-2" /> Add Subtopic
+
+              {selectedTopicId && (
+                <div className="space-y-4 mt-4">
+                  {subtopics.map((subtopic, i) => (
+                    <div key={subtopic.id} className="flex items-center gap-4 p-3 bg-slate-800 rounded-lg border border-white/10">
+                      <div className="flex flex-col gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => moveSubtopic(i, 'up')} disabled={i === 0}><ArrowUp size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => moveSubtopic(i, 'down')} disabled={i === subtopics.length - 1}><ArrowDown size={16} /></Button>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <label className="block text-sm text-gray-400">Emoji</label>
+                        <Input value={subtopic.emoji} onChange={(e) => handleUpdateSubtopic(subtopic.id, 'emoji', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                        <label className="block text-sm text-gray-400">Title</label>
+                        <Input value={subtopic.title} onChange={(e) => handleUpdateSubtopic(subtopic.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                        <label className="block text-sm text-gray-400">Description</label>
+                        <Textarea value={subtopic.description || ''} onChange={(e) => handleUpdateSubtopic(subtopic.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                      </div>
+                      <Button variant="destructive" size="icon" onClick={() => handleDeleteSubtopic(subtopic.id)}>
+                        <Trash2 size={18} />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button onClick={handleAddSubtopic} className="bg-orange-500 hover:bg-orange-600 text-white">
+                    <Plus size={18} className="mr-2" /> Add Subtopic
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
-                  {subtopics.map((sub, index) => (
-                    <div
-                      key={sub.id}
-                      className={`bg-slate-900/50 border rounded-xl p-4 transition-colors ${selectedSubtopicId === sub.id ? 'border-orange-500' : 'border-white/10'}`}
+              )}
+            </div>
+          </TabsContent>
+
+          {/* ── LESSONS TAB ─────────────────────────────────────────────── */}
+          <TabsContent value="lessons" className="space-y-8">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <h2 className="text-xl font-bold text-white mb-4">Manage Lessons</h2>
+              <div className="mb-4 flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-400 mb-1">Select Topic</label>
+                  <select 
+                    value={selectedTopicId || ''}
+                    onChange={(e) => {
+                      setSelectedTopicId(e.target.value || null);
+                      setSelectedSubtopicId(null);
+                    }}
+                    className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
+                  >
+                    <option value="">-- Select a Topic --</option>
+                    {topics.map(topic => (
+                      <option key={topic.id} value={topic.id}>{topic.title}</option>
+                    ))}
+                  </select>
+                </div>
+                {selectedTopicId && (
+                  <div className="flex-1">
+                    <label className="block text-sm text-gray-400 mb-1">Select Subtopic</label>
+                    <select 
+                      value={selectedSubtopicId || ''}
+                      onChange={(e) => setSelectedSubtopicId(e.target.value || null)}
+                      className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex flex-col gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => moveSubtopic(index, 'up')} disabled={index === 0}><ArrowUp size={14} /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => moveSubtopic(index, 'down')} disabled={index === subtopics.length - 1}><ArrowDown size={14} /></Button>
-                        </div>
-                        <Input
-                          value={sub.emoji}
-                          onChange={(e) => handleUpdateSubtopic(sub.id, 'emoji', e.target.value)}
-                          className="w-16 text-center bg-slate-800 border-white/10"
-                        />
-                        <div className="flex-1">
-                          <Input
-                            value={sub.title}
-                            onChange={(e) => handleUpdateSubtopic(sub.id, 'title', e.target.value)}
-                            className="bg-slate-800 border-white/10 text-white font-semibold mb-2"
-                          />
-                          <Textarea
-                            value={sub.description}
-                            onChange={(e) => handleUpdateSubtopic(sub.id, 'description', e.target.value)}
-                            className="bg-slate-800 border-white/10 text-gray-400 text-sm h-16"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            variant={selectedSubtopicId === sub.id ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setSelectedSubtopicId(sub.id)}
-                            className={selectedSubtopicId === sub.id ? 'bg-orange-500' : ''}
-                          >
-                            Edit Lesson
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDeleteSubtopic(sub.id)}><Trash2 size={16} /></Button>
-                        </div>
+                      <option value="">-- Select a Subtopic --</option>
+                      {subtopics.map(subtopic => (
+                        <option key={subtopic.id} value={subtopic.id}>{subtopic.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {selectedSubtopicId && (
+                <div className="space-y-4 mt-4">
+                  {currentLessonBlocks.map((block, i) => (
+                    <div key={i} className="flex items-start gap-4 p-3 bg-slate-800 rounded-lg border border-white/10">
+                      <div className="flex flex-col gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => moveLessonBlock(i, 'up')} disabled={i === 0}><ArrowUp size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => moveLessonBlock(i, 'down')} disabled={i === currentLessonBlocks.length - 1}><ArrowDown size={16} /></Button>
                       </div>
+                      <div className="flex-1 space-y-1">
+                        <label className="block text-sm text-gray-400">{block.type === 'image' ? 'Upload image' : `Type: ${block.type}`}</label>
+                        {block.type === 'image' ? (
+                          <div className="mt-2">
+                            <ImageUpload 
+                              currentImage={block.content}
+                              onImageUploaded={(url) => updateLessonBlock(i, url)}
+                            />
+                          </div>
+                        ) : (
+                          <Textarea value={block.content} onChange={(e) => updateLessonBlock(i, e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                        )}
+                      </div>
+                      <Button variant="destructive" size="icon" onClick={() => removeLessonBlock(i)}>
+                        <Trash2 size={18} />
+                      </Button>
                     </div>
                   ))}
-                </div>
-              </>
-            )}
-          </TabsContent>
-
-          {/* Lessons Tab */}
-          <TabsContent value="lessons" className="space-y-6">
-            {!selectedSubtopicId ? (
-              <div className="text-center py-12 bg-slate-900/50 border border-white/10 rounded-xl text-gray-400">
-                Please select a subtopic first from the Subtopics tab.
-              </div>
-            ) : (
-              <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
-                <div className="flex justify-between items-center mb-8">
-                  <div>
-                    <h2 className="text-xl font-semibold text-white">Lesson Content</h2>
-                    <p className="text-sm text-gray-400">Editing: {subtopics.find(s => s.id === selectedSubtopicId)?.title}</p>
-                  </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => addLessonBlock('text')}><Plus size={16} className="mr-2" /> Add Text</Button>
-                    <Button variant="outline" size="sm" onClick={() => addLessonBlock('image')}><Plus size={16} className="mr-2" /> Add Image</Button>
+                    <Button onClick={() => addLessonBlock('text')} className="bg-orange-500 hover:bg-orange-600 text-white">
+                      <Plus size={18} className="mr-2" /> Add Text Block
+                    </Button>
+                    <Button onClick={() => addLessonBlock('image')} className="bg-orange-500 hover:bg-orange-600 text-white">
+                      <Plus size={18} className="mr-2" /> Add Image Block
+                    </Button>
                   </div>
                 </div>
-
-                <div className="space-y-6">
-                  {currentLessonBlocks.map((block, index) => (
-                    <div key={index} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
-                      <div className="absolute -left-12 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="sm" onClick={() => moveLessonBlock(index, 'up')} disabled={index === 0}><ArrowUp size={14} /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => moveLessonBlock(index, 'down')} disabled={index === currentLessonBlocks.length - 1}><ArrowDown size={14} /></Button>
-                      </div>
-                      <button
-                        onClick={() => removeLessonBlock(index)}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={14} />
-                      </button>
-
-                      {block.type === 'text' ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wider">
-                            <Check size={12} /> Text Block
-                          </div>
-                          <Textarea
-                            value={block.content}
-                            onChange={(e) => updateLessonBlock(index, e.target.value)}
-                            className="bg-slate-900 border-white/10 text-white min-h-[150px]"
-                            placeholder="Enter lesson content (Markdown supported)..."
-                          />
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wider">
-                            <Upload size={12} /> Image Block
-                          </div>
-                          <ImageUpload
-                            currentImage={block.content}
-                            onImageUploaded={(url) => updateLessonBlock(index, url)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {currentLessonBlocks.length === 0 && (
-                    <div className="text-center py-12 border-2 border-dashed border-white/5 rounded-xl text-gray-500">
-                      No content blocks yet. Add your first block above.
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </TabsContent>
 
-          {/* About Tab */}
+          {/* ── ABOUT TAB ───────────────────────────────────────────────── */}
           <TabsContent value="about" className="space-y-8">
-            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">About Page Content</h2>
-                <div className="flex gap-2">
-                  {aboutModified && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={resetAbout}>Reset</Button>
-                      <Button size="sm" onClick={saveAbout} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
-                    </>
-                  )}
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">About Page Content</h2>
+                {aboutModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveAbout} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetAbout} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Mission Text</label>
+                  <Textarea value={aboutLocal.missionText} onChange={(e) => updateAboutLocal('missionText', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                 </div>
+                <ImageUpload 
+                  currentImage={aboutLocal.missionImage}
+                  onImageUploaded={(url) => updateAboutLocal('missionImage', url)}
+                  label="Mission Image"
+                />
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Text 1</label>
+                  <Textarea value={aboutLocal.whoWeAreText1} onChange={(e) => updateAboutLocal('whoWeAreText1', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                </div>
+                <ImageUpload 
+                  currentImage={aboutLocal.whoWeAreImage1}
+                  onImageUploaded={(url) => updateAboutLocal('whoWeAreImage1', url)}
+                  label="Who We Are - Image 1"
+                />
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Text 2</label>
+                  <Textarea value={aboutLocal.whoWeAreText2} onChange={(e) => updateAboutLocal('whoWeAreText2', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                </div>
+                <ImageUpload 
+                  currentImage={aboutLocal.whoWeAreImage2}
+                  onImageUploaded={(url) => updateAboutLocal('whoWeAreImage2', url)}
+                  label="Who We Are - Image 2"
+                />
               </div>
 
-              <div className="space-y-8">
-                {/* Mission Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-800/30 rounded-lg">
-                  <div className="space-y-4">
-                    <h3 className="text-orange-400 font-medium">Mission Section</h3>
-                    <Textarea
-                      value={aboutLocal.missionText}
-                      onChange={(e) => updateAboutLocal('missionText', e.target.value)}
-                      placeholder="Mission statement..."
-                      className="bg-slate-900 border-white/10 text-white h-32"
-                    />
-                  </div>
-                  <ImageUpload
-                    currentImage={aboutLocal.missionImage}
-                    onImageUploaded={(url) => updateAboutLocal('missionImage', url)}
-                    label="Mission Image"
-                  />
-                </div>
-
-                {/* Who We Are Section 1 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-800/30 rounded-lg">
-                  <div className="space-y-4">
-                    <h3 className="text-orange-400 font-medium">Who We Are (Part 1)</h3>
-                    <Textarea
-                      value={aboutLocal.whoWeAreText1}
-                      onChange={(e) => updateAboutLocal('whoWeAreText1', e.target.value)}
-                      placeholder="Description..."
-                      className="bg-slate-900 border-white/10 text-white h-32"
-                    />
-                  </div>
-                  <ImageUpload
-                    currentImage={aboutLocal.whoWeAreImage1}
-                    onImageUploaded={(url) => updateAboutLocal('whoWeAreImage1', url)}
-                    label="Section 1 Image"
-                  />
-                </div>
-
-                {/* Who We Are Section 2 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-800/30 rounded-lg">
-                  <div className="space-y-4">
-                    <h3 className="text-orange-400 font-medium">Who We Are (Part 2)</h3>
-                    <Textarea
-                      value={aboutLocal.whoWeAreText2}
-                      onChange={(e) => updateAboutLocal('whoWeAreText2', e.target.value)}
-                      placeholder="Description..."
-                      className="bg-slate-900 border-white/10 text-white h-32"
-                    />
-                  </div>
-                  <ImageUpload
-                    currentImage={aboutLocal.whoWeAreImage2}
-                    onImageUploaded={(url) => updateAboutLocal('whoWeAreImage2', url)}
-                    label="Section 2 Image"
-                  />
-                </div>
-
-                {/* Team Sections */}
+              {/* Team Sections */}
+              <div className="mt-12 space-y-12">
                 {(['platformCreators', 'educationalAdvisors', 'communityMembers'] as const).map((category) => (
-                  <div key={category} className="space-y-4 p-4 bg-slate-800/30 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-orange-400 font-medium capitalize">{category.replace(/([A-Z])/g, ' $1')}</h3>
-                      <Button variant="outline" size="sm" onClick={() => addTeamMemberLocal(category)}><Plus size={14} className="mr-1" /> Add Member</Button>
+                  <div key={category} className="bg-slate-800/50 rounded-xl p-6 border border-white/10">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-bold text-white capitalize">
+                        {category.replace(/([A-Z])/g, ' $1').trim()}
+                      </h3>
+                      <Button 
+                        onClick={() => addTeamMemberLocal(category)} 
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        <Plus size={16} className="mr-2" /> Add Member
+                      </Button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {aboutLocal.team[category].map((member) => (
-                        <div key={member.id} className="bg-slate-900/50 border border-white/10 rounded-lg p-3 relative group">
-                          <button
-                            onClick={() => deleteTeamMemberLocal(category, member.id)}
-                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X size={12} />
-                          </button>
-                          <div className="space-y-3">
-                            <ImageUpload
+                    
+                    <div className="space-y-6">
+                      {(aboutLocal.team?.[category] || []).map((member) => (
+                        <div key={member.id} className="flex items-start gap-4 p-4 bg-slate-900/50 rounded-lg border border-white/5">
+                          <div className="flex-1 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="block text-xs text-gray-400">Name</label>
+                                <Input 
+                                  value={member.name} 
+                                  onChange={(e) => updateTeamMemberLocal(category, member.id, 'name', e.target.value)} 
+                                  className="bg-slate-800 border-white/10 text-white" 
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="block text-xs text-gray-400">Work/Role</label>
+                                <Input 
+                                  value={member.work} 
+                                  onChange={(e) => updateTeamMemberLocal(category, member.id, 'work', e.target.value)} 
+                                  className="bg-slate-800 border-white/10 text-white" 
+                                />
+                              </div>
+                            </div>
+                            <ImageUpload 
                               currentImage={member.image_url}
                               onImageUploaded={(url) => updateTeamMemberLocal(category, member.id, 'image_url', url)}
-                            />
-                            <Input
-                              value={member.name}
-                              onChange={(e) => updateTeamMemberLocal(category, member.id, 'name', e.target.value)}
-                              placeholder="Name"
-                              className="bg-slate-800 border-white/10 text-sm"
-                            />
-                            <Input
-                              value={member.work}
-                              onChange={(e) => updateTeamMemberLocal(category, member.id, 'work', e.target.value)}
-                              placeholder="Role/Work"
-                              className="bg-slate-800 border-white/10 text-sm"
+                              label="Profile Image"
                             />
                           </div>
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            onClick={() => deleteTeamMemberLocal(category, member.id)}
+                            className="mt-6"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
                         </div>
                       ))}
+                      {(aboutLocal.team?.[category] || []).length === 0 && (
+                        <p className="text-gray-500 text-center py-4">No members added yet.</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1063,251 +1096,178 @@ export default function AdminPage() {
             </div>
           </TabsContent>
 
-          {/* Materials Tab */}
+          {/* ── MATERIALS TAB ───────────────────────────────────────────── */}
           <TabsContent value="materials" className="space-y-8">
-            {/* Gallery Section */}
-            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">Gallery Images</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={addGalleryImageLocal}><Plus size={16} className="mr-2" /> Add Image</Button>
-                  {galleryImagesModified && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={resetGalleryImages}>Reset</Button>
-                      <Button size="sm" onClick={saveGalleryImages} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
-                    </>
-                  )}
-                </div>
+            {/* Gallery Images */}
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Gallery Images</h2>
+                {galleryImagesModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveGalleryImages} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetGalleryImages} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {galleryImagesLocal.map((img) => (
-                  <div key={img.id} className="bg-slate-800/50 border border-white/10 rounded-lg p-3 relative group">
-                    <button
-                      onClick={() => deleteGalleryImageLocal(img.id)}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={14} />
-                    </button>
-                    <div className="space-y-3">
-                      <ImageUpload
-                        currentImage={img.url}
-                        onImageUploaded={(url) => updateGalleryImageLocal(img.id, 'url', url)}
-                      />
-                      <Input
-                        value={img.title}
-                        onChange={(e) => updateGalleryImageLocal(img.id, 'title', e.target.value)}
-                        placeholder="Image Title"
-                        className="bg-slate-900 border-white/10 text-sm"
+              <div className="space-y-4">
+                {galleryImagesLocal.map((image) => (
+                  <div key={image.id} className="flex items-end gap-2">
+                    <div className="flex-1 space-y-1">
+                      <label className="block text-sm text-gray-400">Title</label>
+                      <Input value={image.title} onChange={(e) => updateGalleryImageLocal(image.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <ImageUpload 
+                        currentImage={image.url}
+                        onImageUploaded={(url) => updateGalleryImageLocal(image.id, 'url', url)}
+                        label="Image"
                       />
                     </div>
+                    <Button variant="destructive" size="icon" onClick={() => deleteGalleryImageLocal(image.id)}>
+                      <Trash2 size={18} />
+                    </Button>
                   </div>
                 ))}
+                <Button onClick={addGalleryImageLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <Plus size={18} className="mr-2" /> Add Gallery Image
+                </Button>
               </div>
             </div>
 
-            {/* Videos Section */}
-            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">Educational Videos</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={addVideoLocal}><Plus size={16} className="mr-2" /> Add Video</Button>
-                  {videosModified && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={resetVideos}>Reset</Button>
-                      <Button size="sm" onClick={saveVideos} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
-                    </>
-                  )}
-                </div>
+            {/* Videos */}
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Videos</h2>
+                {videosModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={saveVideos} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetVideos} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
                 {videosLocal.map((video) => (
-                  <div key={video.id} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
-                    <button
-                      onClick={() => deleteVideoLocal(video.id)}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={14} />
-                    </button>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <ImageUpload
+                  <div key={video.id} className="flex items-end gap-2">
+                    <div className="flex-1 space-y-1">
+                      <label className="block text-sm text-gray-400">Title</label>
+                      <Input value={video.title} onChange={(e) => updateVideoLocal(video.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Video URL</label>
+                      <Input value={video.url} onChange={(e) => updateVideoLocal(video.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <ImageUpload 
                         currentImage={video.thumbnail}
                         onImageUploaded={(url) => updateVideoLocal(video.id, 'thumbnail', url)}
                         label="Thumbnail"
                       />
-                      <div className="space-y-3">
-                        <Input
-                          value={video.title}
-                          onChange={(e) => updateVideoLocal(video.id, 'title', e.target.value)}
-                          placeholder="Video Title"
-                          className="bg-slate-900 border-white/10"
-                        />
-                        <Input
-                          value={video.url}
-                          onChange={(e) => updateVideoLocal(video.id, 'url', e.target.value)}
-                          placeholder="Video URL (YouTube/Direct)"
-                          className="bg-slate-900 border-white/10 text-sm"
-                        />
-                      </div>
                     </div>
+                    <Button variant="destructive" size="icon" onClick={() => deleteVideoLocal(video.id)}>
+                      <Trash2 size={18} />
+                    </Button>
                   </div>
                 ))}
+                <Button onClick={addVideoLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <Plus size={18} className="mr-2" /> Add Video
+                </Button>
               </div>
             </div>
 
-            {/* PDFs Section */}
-            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">PDF Resources</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={addPdfLocal}><Plus size={16} className="mr-2" /> Add PDF</Button>
-                  {pdfsModified && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={resetPdfs}>Reset</Button>
-                      <Button size="sm" onClick={savePdfs} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
-                    </>
-                  )}
-                </div>
+            {/* PDFs */}
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">PDFs</h2>
+                {pdfsModified && (
+                  <div className="flex gap-2">
+                    <Button onClick={savePdfs} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Check size={16} className="mr-2" /> Save Changes
+                    </Button>
+                    <Button onClick={resetPdfs} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                      <X size={16} className="mr-2" /> Discard
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-4">
                 {pdfsLocal.map((pdf) => (
-                  <div key={pdf.id} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
-                    <button
-                      onClick={() => deletePdfLocal(pdf.id)}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={14} />
-                    </button>
-                    <div className="space-y-3">
-                      <Input
-                        value={pdf.title}
-                        onChange={(e) => updatePdfLocal(pdf.id, 'title', e.target.value)}
-                        placeholder="PDF Title"
-                        className="bg-slate-900 border-white/10 font-medium"
-                      />
-                      <Input
-                        value={pdf.label}
-                        onChange={(e) => updatePdfLocal(pdf.id, 'label', e.target.value)}
-                        placeholder="Button Label (e.g. Download)"
-                        className="bg-slate-900 border-white/10 text-sm"
-                      />
-                      <Input
-                        value={pdf.url}
-                        onChange={(e) => updatePdfLocal(pdf.id, 'url', e.target.value)}
-                        placeholder="PDF URL"
-                        className="bg-slate-900 border-white/10 text-sm"
-                      />
+                  <div key={pdf.id} className="flex items-end gap-2">
+                    <div className="flex-1 space-y-1">
+                      <label className="block text-sm text-gray-400">Title</label>
+                      <Input value={pdf.title} onChange={(e) => updatePdfLocal(pdf.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Label</label>
+                      <Input value={pdf.label} onChange={(e) => updatePdfLocal(pdf.id, 'label', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">PDF URL</label>
+                      <Input value={pdf.url} onChange={(e) => updatePdfLocal(pdf.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                     </div>
+                    <Button variant="destructive" size="icon" onClick={() => deletePdfLocal(pdf.id)}>
+                      <Trash2 size={18} />
+                    </Button>
                   </div>
                 ))}
+                <Button onClick={addPdfLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <Plus size={18} className="mr-2" /> Add PDF
+                </Button>
               </div>
             </div>
           </TabsContent>
 
-          {/* Quizzes Tab */}
-          <TabsContent value="quizzes" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-white">Manage Quizzes</h2>
-              <Button onClick={handleAddQuiz} className="bg-orange-500 hover:bg-orange-600">
-                <Plus size={16} className="mr-2" /> Add New Quiz
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 gap-4">
-              {quizzes.map((quiz) => (
-                <div
-                  key={quiz.id}
-                  className={`bg-slate-900/50 border rounded-xl p-4 transition-colors ${selectedQuizId === quiz.id ? 'border-orange-500' : 'border-white/10'}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Input
-                        value={quiz.title}
-                        onChange={(e) => handleUpdateQuiz(quiz.id, 'title', e.target.value)}
-                        className="bg-slate-800 border-white/10 text-white font-semibold mb-2"
-                      />
-                      <Textarea
-                        value={quiz.description || ''}
-                        onChange={(e) => handleUpdateQuiz(quiz.id, 'description', e.target.value)}
-                        className="bg-slate-800 border-white/10 text-gray-400 text-sm h-16"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        variant={selectedQuizId === quiz.id ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setSelectedQuizId(quiz.id)}
-                        className={selectedQuizId === quiz.id ? 'bg-orange-500' : ''}
-                      >
-                        Manage Questions
+          {/* ── QUIZZES TAB ─────────────────────────────────────────────── */}
+          <TabsContent value="quizzes" className="space-y-8">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <h2 className="text-xl font-bold text-white mb-4">Manage Quizzes</h2>
+              <div className="space-y-4">
+                {quizzes.map((quiz) => (
+                  <div key={quiz.id} className="p-3 bg-slate-800 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="flex-1 space-y-1">
+                        <label className="block text-sm text-gray-400">Title</label>
+                        <Input value={quiz.title} onChange={(e) => handleUpdateQuiz(quiz.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                        <label className="block text-sm text-gray-400">Description</label>
+                        <Textarea value={quiz.description || ''} onChange={(e) => handleUpdateQuiz(quiz.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                      </div>
+                      <Button variant="destructive" size="icon" onClick={() => handleDeleteQuiz(quiz.id)}>
+                        <Trash2 size={18} />
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteQuiz(quiz.id)}><Trash2 size={16} /></Button>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
 
-            {selectedQuizId && (
-              <div className="mt-12 space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-semibold text-white">Questions for {quizzes.find(q => q.id === selectedQuizId)?.title}</h3>
-                  <Button onClick={handleAddQuestion} variant="outline" size="sm">
-                    <Plus size={16} className="mr-2" /> Add Question
-                  </Button>
-                </div>
-                <div className="space-y-6">
-                  {quizQuestions.map((q, qIdx) => (
-                    <div key={q.id} className="bg-slate-800/30 border border-white/10 rounded-xl p-6 relative group">
-                      <button
-                        onClick={() => handleDeleteQuestion(q.id)}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={14} />
-                      </button>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs text-gray-500 uppercase mb-1">Question {qIdx + 1}</label>
-                          <Input
-                            value={q.question_text}
-                            onChange={(e) => handleUpdateQuestion(q.id, 'question_text', e.target.value)}
-                            className="bg-slate-900 border-white/10 text-white"
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {q.options.map((opt, optIdx) => (
-                            <div key={optIdx} className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                name={`correct-${q.id}`}
-                                checked={q.correct_answer === optIdx}
-                                onChange={() => handleUpdateQuestion(q.id, 'correct_answer', optIdx)}
-                                className="w-4 h-4 text-orange-500 bg-slate-900 border-white/10"
-                              />
-                              <Input
-                                value={opt}
-                                onChange={(e) => {
-                                  const newOpts = [...q.options];
-                                  newOpts[optIdx] = e.target.value;
-                                  handleUpdateQuestion(q.id, 'options', newOpts);
-                                }}
-                                className={`bg-slate-900 border-white/10 text-sm ${q.correct_answer === optIdx ? 'border-green-500/50' : ''}`}
-                              />
+                    {/* Quiz Questions */}
+                    {selectedQuizId === quiz.id && (
+                      <div className="mt-4 p-3 bg-slate-700 rounded-lg border border-white/10">
+                        <h3 className="text-white font-semibold mb-3">Questions</h3>
+                        <div className="space-y-3">
+                          {quizQuestions.map((question) => (
+                            <div key={question.id} className="p-2 bg-slate-600 rounded border border-white/10">
+                              <label className="block text-sm text-gray-400 mb-1">Question</label>
+                              <Textarea value={question.question_text} onChange={(e) => handleUpdateQuizQuestion(question.id, 'question_text', e.target.value)} className="bg-slate-700 border-white/20 text-white mb-2" />
+                              <label className="block text-sm text-gray-400 mb-1">Options (comma-separated)</label>
+                              <Input value={question.options.join(', ')} onChange={(e) => handleUpdateQuizQuestion(question.id, 'options', e.target.value.split(', '))} className="bg-slate-700 border-white/20 text-white mb-2" />
+                              <label className="block text-sm text-gray-400 mb-1">Correct Answer Index</label>
+                              <Input type="number" value={question.correct_answer} onChange={(e) => handleUpdateQuizQuestion(question.id, 'correct_answer', parseInt(e.target.value))} className="bg-slate-700 border-white/20 text-white" />
+                              <Button variant="destructive" size="sm" onClick={() => handleDeleteQuizQuestion(question.id)} className="mt-2">
+                                <Trash2 size={14} className="mr-1" /> Delete Question
+                              </Button>
                             </div>
                           ))}
                         </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 uppercase mb-1">Explanation (Optional)</label>
-                          <Textarea
-                            value={q.explanation || ''}
-                            onChange={(e) => handleUpdateQuestion(q.id, 'explanation', e.target.value)}
-                            className="bg-slate-900 border-white/10 text-sm h-20"
-                          />
-                        </div>
+                        <Button onClick={handleAddQuizQuestion} className="mt-3 bg-orange-500 hover:bg-orange-600 text-white">
+                          <Plus size={16} className="mr-2" /> Add Question
+                        </Button>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    )}
+
+                    <Button onClick={() => setSelectedQuizId(selectedQuizId === quiz.id ? null : quiz.id)} className="mt-3 bg-blue-600 hover:bg-blue-700 text-white">
+                      {selectedQuizId === quiz.id ? 'Hide Questions' : 'Manage Questions'}
+                    </Button>
+                  </div>
+                ))}
+                <Button onClick={handleAddQuiz} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <Plus size={18} className="mr-2" /> Add Quiz
+                </Button>
               </div>
-            )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>

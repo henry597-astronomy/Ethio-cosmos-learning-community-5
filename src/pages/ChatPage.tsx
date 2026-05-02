@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Paperclip, Send, Trash2 } from 'lucide-react';
+import { Paperclip, Send } from 'lucide-react';
 import type { ChatMessage } from '@/types';
 
 interface ChatMessageRow {
@@ -96,14 +96,6 @@ export default function ChatPage() {
           ]);
         }
       )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'chat_messages' },
-        (payload) => {
-          const deletedId = payload.old.id;
-          setMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
-        }
-      )
       .subscribe();
 
     return () => {
@@ -176,23 +168,6 @@ export default function ChatPage() {
       hour12: true,
     });
 
-  const deleteMessage = async (messageId: string) => {
-    try {
-      const { error: deleteError } = await supabase
-        .from('chat_messages')
-        .delete()
-        .eq('id', messageId);
-
-      if (deleteError) {
-        console.error('Error deleting message:', deleteError);
-        setError('Failed to delete message. Please try again.');
-      }
-    } catch (err) {
-      console.error('Unexpected error deleting message:', err);
-      setError('An unexpected error occurred.');
-    }
-  };
-
   if (!user) return null;
 
   return (
@@ -223,36 +198,23 @@ export default function ChatPage() {
             messages.map((msg) => {
               const isOwn = msg.user_id === user.id;
               return (
-                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
-                  <div className="flex items-end gap-2">
-                    <div
-                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                        isOwn ? 'bg-orange-500 text-white' : 'bg-slate-800 text-gray-200'
-                      }`}
-                    >
-                      {!isOwn && (
-                        <p className="text-xs font-medium text-gray-400 mb-1">{msg.sender_name}</p>
-                      )}
-                      {msg.image_url ? (
-                        <img src={msg.image_url} alt="Shared" className="max-w-full rounded-lg" />
-                      ) : (
-                        <p>{msg.message_text}</p>
-                      )}
-                      <p className={`text-xs mt-1 ${isOwn ? 'text-orange-200' : 'text-gray-500'}`}>
-                        {formatTime(msg.created_at)}
-                      </p>
-                    </div>
-                    {isOwn && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-400 hover:bg-red-500/10 mb-1"
-                        onClick={() => deleteMessage(msg.id)}
-                        title="Delete message"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                      isOwn ? 'bg-orange-500 text-white' : 'bg-slate-800 text-gray-200'
+                    }`}
+                  >
+                    {!isOwn && (
+                      <p className="text-xs font-medium text-gray-400 mb-1">{msg.sender_name}</p>
                     )}
+                    {msg.image_url ? (
+                      <img src={msg.image_url} alt="Shared" className="max-w-full rounded-lg" />
+                    ) : (
+                      <p>{msg.message_text}</p>
+                    )}
+                    <p className={`text-xs mt-1 ${isOwn ? 'text-orange-200' : 'text-gray-500'}`}>
+                      {formatTime(msg.created_at)}
+                    </p>
                   </div>
                 </div>
               );

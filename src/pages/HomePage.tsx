@@ -88,17 +88,22 @@ export default function HomePage() {
                   </div>
                 ) : getVideoType(homepageHero.hero.videoUrl) === 'google-drive' ? (
                   // Google Drive Embedded Video
-                  <div className="relative w-full aspect-video bg-black">
+                  <div className="relative w-full aspect-video bg-black overflow-hidden rounded-lg">
                     <iframe
                       key={homepageHero.hero.videoUrl}
-                      width="100%"
-                      height="100%"
                       src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
                       title="Hero Video"
                       frameBorder="0"
-                      allow="autoplay"
+                      allow="autoplay; fullscreen"
                       allowFullScreen
-                      className="absolute inset-0"
+                      className="absolute inset-0 w-full h-full"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        margin: 0,
+                        padding: 0,
+                      }}
                     />
                   </div>
                 ) : getVideoType(homepageHero.hero.videoUrl) === 'cloudinary' ? (

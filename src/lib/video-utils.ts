@@ -86,7 +86,7 @@ export function getEmbedUrl(url: string): string | null {
 
   if (type === 'google-drive') {
     const fileId = extractGoogleDriveId(url);
-    return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : null;
+    return fileId ? `https://drive.google.com/file/d/${fileId}/preview?rm=minimal` : null;
   }
 
   if (type === 'cloudinary') {

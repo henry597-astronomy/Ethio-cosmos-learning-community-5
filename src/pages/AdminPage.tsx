@@ -277,8 +277,7 @@ export default function AdminPage() {
   };
 
   const addFeaturedTopicLocal = () => {
-    const newTopic: FeaturedTopic = { id: newId(), title: 'New Topic', description: 'Description', image_url: '/images/topic-fundamentals.jpg' };
-    setFeaturedTopicsLocal([...featuredTopicsLocal, newTopic]);
+    setFeaturedTopicsLocal([...featuredTopicsLocal, { id: newId(), title: 'New Topic', description: 'New description', image_url: '' }]);
     setFeaturedTopicsModified(true);
   };
 
@@ -287,150 +286,8 @@ export default function AdminPage() {
     setFeaturedTopicsModified(true);
   };
 
-  // ── Topics ──────────────────────────────────────────────────────────────────
-  const handleUpdateTopic = async (id: string, field: keyof Topic, value: string | number) => {
-    try {
-      await editTopic(id, { [field]: value });
-    } catch (err) {
-      console.error('Failed to update topic:', err);
-    }
-  };
-
-  const handleAddTopic = async () => {
-    try {
-      const newTopic: Omit<Topic, "id" | "created_at" | "updated_at"> = { 
-        emoji: '🚀', 
-        title: 'New Topic', 
-        description: 'Description', 
-        order_index: topics.length, 
-        image_url: '/images/topic-fundamentals.jpg' 
-      };
-      await addTopic(newTopic);
-    } catch (err) {
-      console.error('Failed to add topic:', err);
-    }
-  };
-
-  const handleDeleteTopic = async (id: string) => {
-    try {
-      await removeTopic(id);
-    } catch (err) {
-      console.error('Failed to delete topic:', err);
-    }
-  };
-
-  const moveTopic = async (i: number, dir: 'up' | 'down') => {
-    try {
-      const updatedTopics = [...topics];
-      if (dir === 'up' && i === 0) return;
-      if (dir === 'down' && i === updatedTopics.length - 1) return;
-      const swap = dir === 'up' ? i - 1 : i + 1;
-      [updatedTopics[i], updatedTopics[swap]] = [updatedTopics[swap], updatedTopics[i]];
-      // Update order_index for both swapped topics
-      await editTopic(updatedTopics[i].id, { order_index: i });
-      await editTopic(updatedTopics[swap].id, { order_index: swap });
-      // Re-fetch to ensure UI is consistent with DB order
-      fetchTopics();
-    } catch (err) {
-      console.error('Failed to move topic:', err);
-    }
-  };
-
-  // ── Subtopics ───────────────────────────────────────────────────────────────
-  const handleUpdateSubtopic = async (id: string, field: keyof Subtopic, value: string | number) => {
-    try {
-      await editSubtopic(id, { [field]: value });
-    } catch (err) {
-      console.error('Failed to update subtopic:', err);
-    }
-  };
-
-  const handleAddSubtopic = async () => {
-    try {
-      if (!selectedTopicId) return;
-      const newSubtopic: Omit<Subtopic, "id" | "created_at" | "updated_at"> = { 
-        topic_id: selectedTopicId, 
-        emoji: '📚', 
-        title: 'New Lesson', 
-        description: 'Lesson description', 
-        order_index: subtopics.length 
-      };
-      await addSubtopic(newSubtopic);
-    } catch (err) {
-      console.error('Failed to add subtopic:', err);
-    }
-  };
-
-  const handleDeleteSubtopic = async (id: string) => {
-    try {
-      await removeSubtopic(id);
-    } catch (err) {
-      console.error('Failed to delete subtopic:', err);
-    }
-  };
-
-  const moveSubtopic = async (i: number, dir: 'up' | 'down') => {
-    try {
-      if (!selectedTopicId) return;
-      const updatedSubtopics = [...subtopics];
-      if (dir === 'up' && i === 0) return;
-      if (dir === 'down' && i === updatedSubtopics.length - 1) return;
-      const swap = dir === 'up' ? i - 1 : i + 1;
-      [updatedSubtopics[i], updatedSubtopics[swap]] = [updatedSubtopics[swap], updatedSubtopics[i]];
-      // Update order_index for both swapped subtopics
-      await editSubtopic(updatedSubtopics[i].id, { order_index: i });
-      await editSubtopic(updatedSubtopics[swap].id, { order_index: swap });
-      // Re-fetch to ensure UI is consistent with DB order
-      fetchSubtopics();
-    } catch (err) {
-      console.error('Failed to move subtopic:', err);
-    }
-  };
-
-  // ── Lessons ─────────────────────────────────────────────────────────────────
-  const currentLessonBlocks = lesson?.content_blocks || [];
-
-  const handleSaveLessonBlocks = async (blocks: LessonBlock[]) => {
-    try {
-      if (!selectedSubtopicId) return;
-      const currentSubtopic = subtopics.find(s => s.id === selectedSubtopicId);
-      if (!currentSubtopic) return;
-
-      await saveLesson({
-        subtopic_id: selectedSubtopicId,
-        title: currentSubtopic.title, // Lesson title from subtopic
-        content_blocks: blocks,
-      });
-    } catch (err) {
-      console.error('Failed to save lesson blocks:', err);
-    }
-  };
-
-  const updateLessonBlock = (i: number, content: string) => {
-    const updatedBlocks = [...currentLessonBlocks];
-    updatedBlocks[i] = { ...updatedBlocks[i], content };
-    handleSaveLessonBlocks(updatedBlocks);
-  };
-
-  const addLessonBlock = (type: 'text' | 'image') => {
-    handleSaveLessonBlocks([...currentLessonBlocks, { type, content: '' }]);
-  };
-
-  const removeLessonBlock = (i: number) => {
-    handleSaveLessonBlocks(currentLessonBlocks.filter((_, idx) => idx !== i));
-  };
-
-  const moveLessonBlock = (i: number, dir: 'up' | 'down') => {
-    const updatedBlocks = [...currentLessonBlocks];
-    if (dir === 'up' && i === 0) return;
-    if (dir === 'down' && i === updatedBlocks.length - 1) return;
-    const swap = dir === 'up' ? i - 1 : i + 1;
-    [updatedBlocks[i], updatedBlocks[swap]] = [updatedBlocks[swap], updatedBlocks[i]];
-    handleSaveLessonBlocks(updatedBlocks);
-  };
-
-  // ── About Page ──────────────────────────────────────────────────────────────
-  const updateAboutLocal = (field: keyof AboutContent, value: string) => {
+  // ── About ───────────────────────────────────────────────────────────────────
+  const updateAboutLocal = (field: keyof AboutContent, value: any) => {
     setAboutLocal(prev => ({ ...prev, [field]: value }));
     setAboutModified(true);
   };
@@ -449,41 +306,43 @@ export default function AdminPage() {
     setAboutModified(false);
   };
 
-  const updateTeamMemberLocal = (
-    category: keyof AboutContent['team'],
-    id: string,
-    field: keyof TeamMember,
-    value: string
-  ) => {
-    const updatedTeam = { ...aboutLocal.team };
-    updatedTeam[category] = updatedTeam[category].map((member) =>
-      member.id === id ? { ...member, [field]: value } : member
-    );
-    setAboutLocal((prev) => ({ ...prev, team: updatedTeam }));
+  const addTeamMemberLocal = (category: keyof AboutContent['team']) => {
+    const newMember: TeamMember = { id: newId(), name: 'New Member', work: 'Role', image_url: '' };
+    setAboutLocal(prev => ({
+      ...prev,
+      team: {
+        ...prev.team,
+        [category]: [...(prev.team?.[category] || []), newMember]
+      }
+    }));
     setAboutModified(true);
   };
 
-  const addTeamMemberLocal = (category: keyof AboutContent['team']) => {
-    const updatedTeam = { ...aboutLocal.team };
-    const newMember: TeamMember = { id: newId(), name: 'New Member', work: 'Role/Work', image_url: '' };
-    updatedTeam[category] = [...updatedTeam[category], newMember];
-    setAboutLocal((prev) => ({ ...prev, team: updatedTeam }));
+  const updateTeamMemberLocal = (category: keyof AboutContent['team'], id: string, field: keyof TeamMember, value: string) => {
+    setAboutLocal(prev => ({
+      ...prev,
+      team: {
+        ...prev.team,
+        [category]: (prev.team?.[category] || []).map(m => m.id === id ? { ...m, [field]: value } : m)
+      }
+    }));
     setAboutModified(true);
   };
 
   const deleteTeamMemberLocal = (category: keyof AboutContent['team'], id: string) => {
-    const updatedTeam = { ...aboutLocal.team };
-    updatedTeam[category] = updatedTeam[category].filter((member) => member.id !== id);
-    setAboutLocal((prev) => ({ ...prev, team: updatedTeam }));
+    setAboutLocal(prev => ({
+      ...prev,
+      team: {
+        ...prev.team,
+        [category]: (prev.team?.[category] || []).filter(m => m.id !== id)
+      }
+    }));
     setAboutModified(true);
   };
 
   // ── Materials ───────────────────────────────────────────────────────────────
   const updateGalleryImageLocal = (id: string, field: keyof GalleryImage, value: string) => {
-    const updated = galleryImagesLocal.map(img => 
-      img.id === id ? { ...img, [field]: value } : img
-    );
-    setGalleryImagesLocal(updated);
+    setGalleryImagesLocal(prev => prev.map(img => img.id === id ? { ...img, [field]: value } : img));
     setGalleryImagesModified(true);
   };
 
@@ -502,8 +361,7 @@ export default function AdminPage() {
   };
 
   const addGalleryImageLocal = () => {
-    const newImage: GalleryImage = { id: newId(), url: '', title: 'New Image' };
-    setGalleryImagesLocal([...galleryImagesLocal, newImage]);
+    setGalleryImagesLocal([...galleryImagesLocal, { id: newId(), url: '', title: 'New Image' }]);
     setGalleryImagesModified(true);
   };
 
@@ -513,10 +371,7 @@ export default function AdminPage() {
   };
 
   const updateVideoLocal = (id: string, field: keyof VideoItem, value: string) => {
-    const updated = videosLocal.map(video => 
-      video.id === id ? { ...video, [field]: value } : video
-    );
-    setVideosLocal(updated);
+    setVideosLocal(prev => prev.map(v => v.id === id ? { ...v, [field]: value } : v));
     setVideosModified(true);
   };
 
@@ -535,21 +390,17 @@ export default function AdminPage() {
   };
 
   const addVideoLocal = () => {
-    const newVideo: VideoItem = { id: newId(), url: '', thumbnail: '', title: 'New Video' };
-    setVideosLocal([...videosLocal, newVideo]);
+    setVideosLocal([...videosLocal, { id: newId(), url: '', thumbnail: '', title: 'New Video' }]);
     setVideosModified(true);
   };
 
   const deleteVideoLocal = (id: string) => {
-    setVideosLocal(videosLocal.filter(video => video.id !== id));
+    setVideosLocal(videosLocal.filter(v => v.id !== id));
     setVideosModified(true);
   };
 
   const updatePdfLocal = (id: string, field: keyof PdfItem, value: string) => {
-    const updated = pdfsLocal.map(pdf => 
-      pdf.id === id ? { ...pdf, [field]: value } : pdf
-    );
-    setPdfsLocal(updated);
+    setPdfsLocal(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
     setPdfsModified(true);
   };
 
@@ -568,92 +419,173 @@ export default function AdminPage() {
   };
 
   const addPdfLocal = () => {
-    const newPdf: PdfItem = { id: newId(), url: '', title: 'New PDF', label: 'New PDF' };
-    setPdfsLocal([...pdfsLocal, newPdf]);
+    setPdfsLocal([...pdfsLocal, { id: newId(), url: '', title: 'New PDF', label: 'Download' }]);
     setPdfsModified(true);
   };
 
   const deletePdfLocal = (id: string) => {
-    setPdfsLocal(pdfsLocal.filter(pdf => pdf.id !== id));
+    setPdfsLocal(pdfsLocal.filter(p => p.id !== id));
     setPdfsModified(true);
+  };
+
+  // ── Topics ──────────────────────────────────────────────────────────────────
+  const handleAddTopic = async () => {
+    const newTopic: Partial<Topic> = {
+      title: 'New Topic',
+      emoji: '🚀',
+      description: 'Topic description',
+      image_url: '',
+      order_index: topics.length
+    };
+    await addTopic(newTopic);
+  };
+
+  const handleUpdateTopic = async (id: string, field: keyof Topic, value: any) => {
+    await editTopic(id, { [field]: value });
+  };
+
+  const handleDeleteTopic = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this topic and all its subtopics?')) {
+      await removeTopic(id);
+      if (selectedTopicId === id) setSelectedTopicId(null);
+    }
+  };
+
+  const moveTopic = async (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= topics.length) return;
+    
+    const updatedTopics = [...topics];
+    const temp = updatedTopics[index].order_index;
+    updatedTopics[index].order_index = updatedTopics[newIndex].order_index;
+    updatedTopics[newIndex].order_index = temp;
+    
+    await editTopic(updatedTopics[index].id, { order_index: updatedTopics[index].order_index });
+    await editTopic(updatedTopics[newIndex].id, { order_index: updatedTopics[newIndex].order_index });
+    fetchTopics();
+  };
+
+  // ── Subtopics ───────────────────────────────────────────────────────────────
+  const handleAddSubtopic = async () => {
+    if (!selectedTopicId) return;
+    const newSub: Partial<Subtopic> = {
+      topic_id: selectedTopicId,
+      title: 'New Subtopic',
+      emoji: '📖',
+      description: 'Subtopic description',
+      order_index: subtopics.length
+    };
+    await addSubtopic(newSub);
+  };
+
+  const handleUpdateSubtopic = async (id: string, field: keyof Subtopic, value: any) => {
+    await editSubtopic(id, { [field]: value });
+  };
+
+  const handleDeleteSubtopic = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this subtopic?')) {
+      await removeSubtopic(id);
+      if (selectedSubtopicId === id) setSelectedSubtopicId(null);
+    }
+  };
+
+  const moveSubtopic = async (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= subtopics.length) return;
+    
+    const updated = [...subtopics];
+    const temp = updated[index].order_index;
+    updated[index].order_index = updated[newIndex].order_index;
+    updated[newIndex].order_index = temp;
+    
+    await editSubtopic(updated[index].id, { order_index: updated[index].order_index });
+    await editSubtopic(updated[newIndex].id, { order_index: updated[newIndex].order_index });
+    fetchSubtopics();
+  };
+
+  // ── Lessons ─────────────────────────────────────────────────────────────────
+  const currentLessonBlocks = lesson?.content_blocks || [];
+
+  const addLessonBlock = async (type: 'text' | 'image') => {
+    const newBlocks = [...currentLessonBlocks, { type, content: type === 'text' ? 'New text block' : '' }];
+    await saveLesson(newBlocks);
+  };
+
+  const updateLessonBlock = async (index: number, content: string) => {
+    const newBlocks = [...currentLessonBlocks];
+    newBlocks[index] = { ...newBlocks[index], content };
+    await saveLesson(newBlocks);
+  };
+
+  const removeLessonBlock = async (index: number) => {
+    const newBlocks = currentLessonBlocks.filter((_, i) => i !== index);
+    await saveLesson(newBlocks);
+  };
+
+  const moveLessonBlock = async (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= currentLessonBlocks.length) return;
+    const newBlocks = [...currentLessonBlocks];
+    [newBlocks[index], newBlocks[newIndex]] = [newBlocks[newIndex], newBlocks[index]];
+    await saveLesson(newBlocks);
   };
 
   // ── Quizzes ─────────────────────────────────────────────────────────────────
   const handleAddQuiz = async () => {
-    try {
-      const newQuiz: Omit<Quiz, "id" | "created_at" | "updated_at"> = { title: 'New Quiz', description: 'Quiz description' };
-      await addQuiz(newQuiz);
-    } catch (err) {
-      console.error('Failed to add quiz:', err);
-    }
+    const newQuiz: Partial<Quiz> = { title: 'New Quiz', description: 'Quiz description' };
+    await addQuiz(newQuiz);
   };
 
-  const handleUpdateQuiz = async (id: string, field: keyof Quiz, value: string) => {
-    try {
-      await editQuiz(id, { [field]: value });
-    } catch (err) {
-      console.error('Failed to update quiz:', err);
-    }
+  const handleUpdateQuiz = async (id: string, field: keyof Quiz, value: any) => {
+    await editQuiz(id, { [field]: value });
   };
 
   const handleDeleteQuiz = async (id: string) => {
-    try {
+    if (window.confirm('Are you sure you want to delete this quiz?')) {
       await removeQuiz(id);
-    } catch (err) {
-      console.error('Failed to delete quiz:', err);
+      if (selectedQuizId === id) setSelectedQuizId(null);
     }
   };
 
-  // ── Quiz Questions ──────────────────────────────────────────────────────────
-  const handleAddQuizQuestion = async () => {
-    try {
-      if (!selectedQuizId) return;
-      const newQuestion: Omit<QuizQuestion, "id" | "created_at" | "updated_at"> = {
-        quiz_id: selectedQuizId,
-        question_text: 'New Question',
-        options: ['Option 1', 'Option 2'],
-        correct_answer: 0,
-        order_index: quizQuestions.length,
-      };
-      await addQuizQuestion(newQuestion);
-    } catch (err) {
-      console.error('Failed to add quiz question:', err);
-    }
+  const handleAddQuestion = async () => {
+    if (!selectedQuizId) return;
+    const newQ: Partial<QuizQuestion> = {
+      quiz_id: selectedQuizId,
+      question_text: 'New Question',
+      options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
+      correct_answer: 0,
+      order_index: quizQuestions.length
+    };
+    await addQuizQuestion(newQ);
   };
 
-  const handleUpdateQuizQuestion = async (
-    id: string,
-    field: keyof QuizQuestion,
-    value: QuizQuestion[keyof QuizQuestion]
-  ) => {
-    try {
-      await editQuizQuestion(id, { [field]: value });
-    } catch (err) {
-      console.error('Failed to update quiz question:', err);
-    }
+  const handleUpdateQuestion = async (id: string, field: keyof QuizQuestion, value: any) => {
+    await editQuizQuestion(id, { [field]: value });
   };
 
-  const handleDeleteQuizQuestion = async (id: string) => {
-    try {
-      await removeQuizQuestion(id);
-    } catch (err) {
-      console.error('Failed to delete quiz question:', err);
-    }
+  const handleDeleteQuestion = async (id: string) => {
+    await removeQuizQuestion(id);
   };
 
   return (
     <div className="min-h-screen pt-24 pb-12 bg-[#0a0e1a]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-        <p className="text-gray-400 mb-8">Signed in as {user.email}</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+          <div className="text-sm text-gray-400">
+            Logged in as: <span className="text-orange-400 font-semibold">{user.email}</span>
+          </div>
+        </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-slate-900 border border-white/10 mb-8 flex flex-wrap gap-1 h-auto p-1">
-            {['homepage','topics','subtopics','lessons','about','materials', 'quizzes'].map(tab => (
-              <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-orange-500 data-[state=active]:text-white capitalize">
-                {tab}
-              </TabsTrigger>
-            ))}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-slate-900 border border-white/10 p-1">
+            <TabsTrigger value="homepage" className="data-[state=active]:bg-orange-500">Homepage</TabsTrigger>
+            <TabsTrigger value="topics" className="data-[state=active]:bg-orange-500">Topics</TabsTrigger>
+            <TabsTrigger value="subtopics" className="data-[state=active]:bg-orange-500">Subtopics</TabsTrigger>
+            <TabsTrigger value="lessons" className="data-[state=active]:bg-orange-500">Lessons</TabsTrigger>
+            <TabsTrigger value="about" className="data-[state=active]:bg-orange-500">About</TabsTrigger>
+            <TabsTrigger value="materials" className="data-[state=active]:bg-orange-500">Materials</TabsTrigger>
+            <TabsTrigger value="quizzes" className="data-[state=active]:bg-orange-500">Quizzes</TabsTrigger>
           </TabsList>
 
           {/* ── HOMEPAGE TAB ────────────────────────────────────────────── */}
@@ -673,154 +605,169 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Title</label>
-                  <Input value={heroLocal?.heroTitle || ''} onChange={(e) => updateHeroLocal('heroTitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Subtitle</label>
-                  <Input value={heroLocal?.heroSubtitle || ''} onChange={(e) => updateHeroLocal('heroSubtitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                </div>
-                <div className="border-t border-white/10 pt-4 mt-4">
-                  <h3 className="text-sm font-semibold text-white mb-3">Hero Video</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm text-gray-400 mb-1">Video URL</label>
-                      <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..." className="bg-slate-800 border-white/20 text-white" />
-                      <p className="text-xs text-gray-500 mt-1">Supports: Direct video files (MP4, WebM), YouTube links, or Google Drive videos</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="checkbox" 
-                        id="videoVisible" 
-                        checked={heroLocal?.videoVisible || false} 
-                        onChange={(e) => updateHeroLocal('videoVisible', e.target.checked)}
-                        className="w-4 h-4 rounded border-white/20 bg-slate-800 cursor-pointer"
-                      />
-                      <label htmlFor="videoVisible" className="text-sm text-gray-400 cursor-pointer">Show video on homepage</label>
-                    </div>
-                    {heroLocal?.videoUrl && (
-                      <div className="bg-slate-800/50 rounded-lg p-3 border border-white/10">
-                        <p className="text-xs text-gray-400 mb-2">Video Type: <span className="text-orange-400 font-semibold">{getVideoType(heroLocal.videoUrl) === 'youtube' ? 'YouTube' : getVideoType(heroLocal.videoUrl) === 'google-drive' ? 'Google Drive' : getVideoType(heroLocal.videoUrl) === 'direct' ? 'Direct Video' : 'Unknown'}</span></p>
-                        {getVideoType(heroLocal.videoUrl) === 'youtube' ? (
-                          <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
-                            <iframe
-                              width="100%"
-                              height="100%"
-                              src={getEmbedUrl(heroLocal.videoUrl) || ''}
-                              title="Preview"
-                              frameBorder="0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              className="absolute inset-0"
-                            />
-                          </div>
-                        ) : getVideoType(heroLocal.videoUrl) === 'google-drive' ? (
-                          <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
-                            <iframe
-                              width="100%"
-                              height="100%"
-                              src={getEmbedUrl(heroLocal.videoUrl) || ''}
-                              title="Preview"
-                              frameBorder="0"
-                              allow="autoplay"
-                              allowFullScreen
-                              className="absolute inset-0"
-                            />
-                          </div>
-                        ) : getVideoType(heroLocal.videoUrl) === 'direct' ? (
-                          <video 
-                            controls 
-                            className="w-full h-auto max-h-48 rounded bg-black"
-                            src={heroLocal.videoUrl}
-                          />
-                        ) : (
-                          <div className="w-full aspect-video bg-black rounded flex items-center justify-center text-gray-500 text-sm">
-                            Invalid video URL
-                          </div>
-                        )}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Title</label>
+                    <Input value={heroLocal?.heroTitle || ''} onChange={(e) => updateHeroLocal('heroTitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Subtitle</label>
+                    <Input value={heroLocal?.heroSubtitle || ''} onChange={(e) => updateHeroLocal('heroSubtitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                  </div>
+                  <div className="border-t border-white/10 pt-4 mt-4">
+                    <h3 className="text-sm font-semibold text-white mb-3">Hero Video</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Video URL</label>
+                        <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..." className="bg-slate-800 border-white/20 text-white" />
+                        <p className="text-xs text-gray-500 mt-1">Supports: Direct video files (MP4, WebM), YouTube links, Google Drive, or Cloudinary</p>
                       </div>
-                    )}
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="checkbox" 
+                          id="videoVisible" 
+                          checked={heroLocal?.videoVisible || false} 
+                          onChange={(e) => updateHeroLocal('videoVisible', e.target.checked)}
+                          className="w-4 h-4 rounded border-white/20 bg-slate-800 cursor-pointer"
+                        />
+                        <label htmlFor="videoVisible" className="text-sm text-gray-400 cursor-pointer">Show video on homepage</label>
+                      </div>
+                      {heroLocal?.videoUrl && (
+                        <div className="bg-slate-800/50 rounded-lg p-3 border border-white/10">
+                          <p className="text-xs text-gray-400 mb-2">Video Type: <span className="text-orange-400 font-semibold">{getVideoType(heroLocal.videoUrl) === 'youtube' ? 'YouTube' : getVideoType(heroLocal.videoUrl) === 'google-drive' ? 'Google Drive' : getVideoType(heroLocal.videoUrl) === 'cloudinary' ? 'Cloudinary' : getVideoType(heroLocal.videoUrl) === 'direct' ? 'Direct Video' : 'Unknown'}</span></p>
+                          {getVideoType(heroLocal.videoUrl) === 'youtube' ? (
+                            <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
+                              <iframe
+                                width="100%"
+                                height="100%"
+                                src={getEmbedUrl(heroLocal.videoUrl) || ''}
+                                title="Preview"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="absolute inset-0"
+                              />
+                            </div>
+                          ) : getVideoType(heroLocal.videoUrl) === 'google-drive' ? (
+                            <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
+                              <iframe
+                                width="100%"
+                                height="100%"
+                                src={getEmbedUrl(heroLocal.videoUrl) || ''}
+                                title="Preview"
+                                frameBorder="0"
+                                allow="autoplay"
+                                allowFullScreen
+                                className="absolute inset-0"
+                              />
+                            </div>
+                          ) : getVideoType(heroLocal.videoUrl) === 'cloudinary' ? (
+                            <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
+                              <iframe
+                                width="100%"
+                                height="100%"
+                                src={getEmbedUrl(heroLocal.videoUrl) || ''}
+                                title="Preview"
+                                frameBorder="0"
+                                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                                allowFullScreen
+                                className="absolute inset-0"
+                              />
+                            </div>
+                          ) : getVideoType(heroLocal.videoUrl) === 'direct' ? (
+                            <video 
+                              controls 
+                              className="w-full h-auto max-h-48 rounded bg-black"
+                              src={heroLocal.videoUrl}
+                            />
+                          ) : (
+                            <div className="w-full aspect-video bg-black rounded flex items-center justify-center text-gray-500 text-sm">
+                              Invalid video URL
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Feature Cards */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Feature Cards</h2>
-                {featureCardsModified && (
-                  <div className="flex gap-2">
-                    <Button onClick={saveFeatureCards} className="bg-green-600 hover:bg-green-700 text-white">
-                      <Check size={16} className="mr-2" /> Save Changes
-                    </Button>
-                    <Button onClick={resetFeatureCards} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                      <X size={16} className="mr-2" /> Discard
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-4">
-                {featureCardsLocal.map((card, i) => (
-                  <div key={i} className="flex items-end gap-2">
-                    <div className="flex-1 space-y-1">
-                      <label className="block text-sm text-gray-400">Icon (Emoji)</label>
-                      <Input value={card.icon} onChange={(e) => updateFeatureCardLocal(i, 'icon', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={card.title} onChange={(e) => updateFeatureCardLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Description</label>
-                      <Textarea value={card.description} onChange={(e) => updateFeatureCardLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+              {/* Feature Cards */}
+              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10 mt-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-white">Feature Cards</h2>
+                  {featureCardsModified && (
+                    <div className="flex gap-2">
+                      <Button onClick={saveFeatureCards} className="bg-green-600 hover:bg-green-700 text-white">
+                        <Check size={16} className="mr-2" /> Save Changes
+                      </Button>
+                      <Button onClick={resetFeatureCards} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                        <X size={16} className="mr-2" /> Discard
+                      </Button>
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => deleteFeatureCardLocal(i)}>
-                      <Trash2 size={18} />
-                    </Button>
-                  </div>
-                ))}
-                <Button onClick={addFeatureCardLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Plus size={18} className="mr-2" /> Add Feature Card
-                </Button>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  {featureCardsLocal.map((card, i) => (
+                    <div key={i} className="flex items-end gap-2">
+                      <div className="flex-1 space-y-1">
+                        <label className="block text-sm text-gray-400">Icon (Emoji)</label>
+                        <Input value={card.icon} onChange={(e) => updateFeatureCardLocal(i, 'icon', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                        <label className="block text-sm text-gray-400">Title</label>
+                        <Input value={card.title} onChange={(e) => updateFeatureCardLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                        <label className="block text-sm text-gray-400">Description</label>
+                        <Textarea value={card.description} onChange={(e) => updateFeatureCardLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      </div>
+                      <Button variant="destructive" size="icon" onClick={() => deleteFeatureCardLocal(i)}>
+                        <Trash2 size={18} />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button onClick={addFeatureCardLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
+                    <Plus size={18} className="mr-2" /> Add Feature Card
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            {/* Featured Topics */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Featured Topics</h2>
-                {featuredTopicsModified && (
-                  <div className="flex gap-2">
-                    <Button onClick={saveFeaturedTopics} className="bg-green-600 hover:bg-green-700 text-white">
-                      <Check size={16} className="mr-2" /> Save Changes
-                    </Button>
-                    <Button onClick={resetFeaturedTopics} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                      <X size={16} className="mr-2" /> Discard
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-4">
-                {featuredTopicsLocal.map((topic, i) => (
-                  <div key={topic.id} className="flex items-end gap-2">
-                    <div className="flex-1 space-y-1">
-                      <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={topic.title} onChange={(e) => updateFeaturedTopicLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Description</label>
-                      <Textarea value={topic.description} onChange={(e) => updateFeaturedTopicLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <ImageUpload 
-                        currentImage={topic.image_url}
-                        onImageUploaded={(url) => updateFeaturedTopicLocal(i, 'image_url', url)}
-                        label="Image URL"
-                      />
+              {/* Featured Topics */}
+              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10 mt-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-white">Featured Topics</h2>
+                  {featuredTopicsModified && (
+                    <div className="flex gap-2">
+                      <Button onClick={saveFeaturedTopics} className="bg-green-600 hover:bg-green-700 text-white">
+                        <Check size={16} className="mr-2" /> Save Changes
+                      </Button>
+                      <Button onClick={resetFeaturedTopics} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                        <X size={16} className="mr-2" /> Discard
+                      </Button>
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => deleteFeaturedTopicLocal(i)}>
-                      <Trash2 size={18} />
-                    </Button>
-                  </div>
-                ))}
-                <Button onClick={addFeaturedTopicLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Plus size={18} className="mr-2" /> Add Featured Topic
-                </Button>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  {featuredTopicsLocal.map((topic, i) => (
+                    <div key={topic.id} className="flex items-end gap-2">
+                      <div className="flex-1 space-y-1">
+                        <label className="block text-sm text-gray-400">Title</label>
+                        <Input value={topic.title} onChange={(e) => updateFeaturedTopicLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                        <label className="block text-sm text-gray-400">Description</label>
+                        <Textarea value={topic.description} onChange={(e) => updateFeaturedTopicLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                        <ImageUpload 
+                          currentImage={topic.image_url}
+                          onImageUploaded={(url) => updateFeaturedTopicLocal(i, 'image_url', url)}
+                          label="Image URL"
+                        />
+                      </div>
+                      <Button variant="destructive" size="icon" onClick={() => deleteFeaturedTopicLocal(i)}>
+                        <Trash2 size={18} />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button onClick={addFeaturedTopicLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
+                    <Plus size={18} className="mr-2" /> Add Featured Topic
+                  </Button>
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -1197,10 +1144,10 @@ export default function AdminPage() {
                     <div className="flex-1 space-y-1">
                       <label className="block text-sm text-gray-400">Title</label>
                       <Input value={pdf.title} onChange={(e) => updatePdfLocal(pdf.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Label</label>
-                      <Input value={pdf.label} onChange={(e) => updatePdfLocal(pdf.id, 'label', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <label className="block text-sm text-gray-400">PDF URL</label>
                       <Input value={pdf.url} onChange={(e) => updatePdfLocal(pdf.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Button Label</label>
+                      <Input value={pdf.label} onChange={(e) => updatePdfLocal(pdf.id, 'label', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                     </div>
                     <Button variant="destructive" size="icon" onClick={() => deletePdfLocal(pdf.id)}>
                       <Trash2 size={18} />
@@ -1220,46 +1167,15 @@ export default function AdminPage() {
               <h2 className="text-xl font-bold text-white mb-4">Manage Quizzes</h2>
               <div className="space-y-4">
                 {quizzes.map((quiz) => (
-                  <div key={quiz.id} className="p-3 bg-slate-800 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="flex-1 space-y-1">
-                        <label className="block text-sm text-gray-400">Title</label>
-                        <Input value={quiz.title} onChange={(e) => handleUpdateQuiz(quiz.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                        <label className="block text-sm text-gray-400">Description</label>
-                        <Textarea value={quiz.description || ''} onChange={(e) => handleUpdateQuiz(quiz.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                      </div>
-                      <Button variant="destructive" size="icon" onClick={() => handleDeleteQuiz(quiz.id)}>
-                        <Trash2 size={18} />
-                      </Button>
+                  <div key={quiz.id} className="flex items-center gap-4 p-3 bg-slate-800 rounded-lg border border-white/10">
+                    <div className="flex-1 space-y-1">
+                      <label className="block text-sm text-gray-400">Title</label>
+                      <Input value={quiz.title} onChange={(e) => handleUpdateQuiz(quiz.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                      <label className="block text-sm text-gray-400">Description</label>
+                      <Textarea value={quiz.description || ''} onChange={(e) => handleUpdateQuiz(quiz.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
                     </div>
-
-                    {/* Quiz Questions */}
-                    {selectedQuizId === quiz.id && (
-                      <div className="mt-4 p-3 bg-slate-700 rounded-lg border border-white/10">
-                        <h3 className="text-white font-semibold mb-3">Questions</h3>
-                        <div className="space-y-3">
-                          {quizQuestions.map((question) => (
-                            <div key={question.id} className="p-2 bg-slate-600 rounded border border-white/10">
-                              <label className="block text-sm text-gray-400 mb-1">Question</label>
-                              <Textarea value={question.question_text} onChange={(e) => handleUpdateQuizQuestion(question.id, 'question_text', e.target.value)} className="bg-slate-700 border-white/20 text-white mb-2" />
-                              <label className="block text-sm text-gray-400 mb-1">Options (comma-separated)</label>
-                              <Input value={question.options.join(', ')} onChange={(e) => handleUpdateQuizQuestion(question.id, 'options', e.target.value.split(', '))} className="bg-slate-700 border-white/20 text-white mb-2" />
-                              <label className="block text-sm text-gray-400 mb-1">Correct Answer Index</label>
-                              <Input type="number" value={question.correct_answer} onChange={(e) => handleUpdateQuizQuestion(question.id, 'correct_answer', parseInt(e.target.value))} className="bg-slate-700 border-white/20 text-white" />
-                              <Button variant="destructive" size="sm" onClick={() => handleDeleteQuizQuestion(question.id)} className="mt-2">
-                                <Trash2 size={14} className="mr-1" /> Delete Question
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                        <Button onClick={handleAddQuizQuestion} className="mt-3 bg-orange-500 hover:bg-orange-600 text-white">
-                          <Plus size={16} className="mr-2" /> Add Question
-                        </Button>
-                      </div>
-                    )}
-
-                    <Button onClick={() => setSelectedQuizId(selectedQuizId === quiz.id ? null : quiz.id)} className="mt-3 bg-blue-600 hover:bg-blue-700 text-white">
-                      {selectedQuizId === quiz.id ? 'Hide Questions' : 'Manage Questions'}
+                    <Button variant="destructive" size="icon" onClick={() => handleDeleteQuiz(quiz.id)}>
+                      <Trash2 size={18} />
                     </Button>
                   </div>
                 ))}
@@ -1267,6 +1183,66 @@ export default function AdminPage() {
                   <Plus size={18} className="mr-2" /> Add Quiz
                 </Button>
               </div>
+            </div>
+
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <h2 className="text-xl font-bold text-white mb-4">Manage Quiz Questions</h2>
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-1">Select Quiz</label>
+                <select 
+                  value={selectedQuizId || ''}
+                  onChange={(e) => setSelectedQuizId(e.target.value || null)}
+                  className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
+                >
+                  <option value="">-- Select a Quiz --</option>
+                  {quizzes.map(quiz => (
+                    <option key={quiz.id} value={quiz.id}>{quiz.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedQuizId && (
+                <div className="space-y-6 mt-4">
+                  {quizQuestions.map((q) => (
+                    <div key={q.id} className="p-4 bg-slate-800 rounded-lg border border-white/10 space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 space-y-1">
+                          <label className="block text-sm text-gray-400">Question Text</label>
+                          <Textarea value={q.question_text} onChange={(e) => handleUpdateQuestion(q.id, 'question_text', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                        </div>
+                        <Button variant="destructive" size="icon" onClick={() => handleDeleteQuestion(q.id)} className="ml-4">
+                          <Trash2 size={18} />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {q.options.map((opt, idx) => (
+                          <div key={idx} className="space-y-1">
+                            <label className="block text-xs text-gray-400">Option {idx + 1} {q.correct_answer === idx && <span className="text-green-400">(Correct)</span>}</label>
+                            <div className="flex gap-2">
+                              <Input value={opt} onChange={(e) => {
+                                const newOpts = [...q.options];
+                                newOpts[idx] = e.target.value;
+                                handleUpdateQuestion(q.id, 'options', newOpts);
+                              }} className="bg-slate-700 border-white/10 text-white" />
+                              <Button 
+                                variant={q.correct_answer === idx ? 'default' : 'outline'} 
+                                size="icon"
+                                onClick={() => handleUpdateQuestion(q.id, 'correct_answer', idx)}
+                                className={q.correct_answer === idx ? 'bg-green-600' : 'border-white/10'}
+                              >
+                                <Check size={16} />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <Button onClick={handleAddQuestion} className="bg-orange-500 hover:bg-orange-600 text-white">
+                    <Plus size={18} className="mr-2" /> Add Question
+                  </Button>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

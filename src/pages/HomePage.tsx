@@ -101,6 +101,21 @@ export default function HomePage() {
                       className="absolute inset-0"
                     />
                   </div>
+                ) : getVideoType(homepageHero.hero.videoUrl) === 'cloudinary' ? (
+                  // Cloudinary Embedded Video
+                  <div className="relative w-full aspect-video bg-black">
+                    <iframe
+                      key={homepageHero.hero.videoUrl}
+                      width="100%"
+                      height="100%"
+                      src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                      title="Hero Video"
+                      frameBorder="0"
+                      allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0"
+                    />
+                  </div>
                 ) : getVideoType(homepageHero.hero.videoUrl) === 'direct' ? (
                   // Direct Video File
                   <video

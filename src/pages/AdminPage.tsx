@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics, useAboutContent, useMaterialsGalleryImages, useMaterialsVideos, useMaterialsPdfs, useTopics, useQuizzes } from '@/hooks/use-cms-data';
 import {
   useSubtopics,
@@ -8,7 +7,7 @@ import {
   useQuizQuestions,
 } from '@/hooks/use-cms-data';
 import { isValidConfig } from '@/supabase';
-import { uploadImage, uploadVideo } from '@/services/cms';
+import { uploadImage } from '@/services/cms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +16,7 @@ import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Check, X } from 'lucide-react
 import type {
   Topic,
   Subtopic,
-  LessonBlock,
+  Lesson,
   FeaturedTopic,
   FeatureCard,
   GalleryImage,
@@ -112,67 +111,6 @@ function ImageUpload({ currentImage, onImageUploaded, label }: ImageUploadProps)
   );
 }
 
-// ─── Video Upload Component ───────────────────────────────────────────────────
-interface VideoUploadProps {
-  currentVideo: string;
-  onVideoUploaded: (url: string) => void;
-  label?: string;
-}
-
-function VideoUpload({ currentVideo, onVideoUploaded, label }: VideoUploadProps) {
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!isValidConfig) {
-      alert('Supabase is not configured. Please add your credentials to the .env file.');
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const publicUrl = await uploadVideo(file, 'uploads');
-      if (publicUrl) {
-        onVideoUploaded(publicUrl);
-      }
-    } catch (error) {
-      console.error('Error uploading video:', error);
-      alert('Failed to upload video. Make sure the "uploads" storage bucket exists in Supabase and RLS policies allow uploads.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      {label && <label className="block text-sm text-gray-400">{label}</label>}
-      <div className="flex items-center gap-4">
-        {currentVideo && (
-          <div className="w-20 h-20 rounded-lg border border-white/10 overflow-hidden bg-black flex items-center justify-center">
-            <video src={currentVideo} className="w-full h-full object-cover" />
-          </div>
-        )}
-        <div className="flex-1">
-          <input type="file" accept="video/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="border-white/20 text-white hover:bg-white/10"
-          >
-            <Upload size={16} className="mr-2" />
-            {uploading ? 'Uploading...' : 'Upload Local Video'}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Admin Page ───────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const { user } = useAuth();
@@ -194,13 +132,6 @@ export default function AdminPage() {
   // Local state for hero section (to avoid auto-save)
   const [heroLocal, setHeroLocal] = useState(homepageHero.hero);
   const [heroModified, setHeroModified] = useState(false);
-
-  // Sync local state when data finishes loading
-  useEffect(() => {
-    if (homepageHero.hero && !heroLocal) {
-      setHeroLocal(homepageHero.hero);
-    }
-  }, [homepageHero.hero, heroLocal]);
 
   // Local state for feature cards
   const [featureCardsLocal, setFeatureCardsLocal] = useState(homepageFeatureCards.featureCards);
@@ -263,10 +194,7 @@ export default function AdminPage() {
 
   // ── Homepage ────────────────────────────────────────────────────────────────
   const updateHeroLocal = (field: 'heroTitle' | 'heroSubtitle' | 'videoUrl' | 'videoVisible', value: string | boolean) => {
-    setHeroLocal(prev => {
-      const current = prev || { heroTitle: '', heroSubtitle: '', videoUrl: '', videoVisible: false };
-      return { ...current, [field]: value };
-    });
+    setHeroLocal(prev => prev ? { ...prev, [field]: value } : null);
     setHeroModified(true);
   };
 
@@ -338,18 +266,53 @@ export default function AdminPage() {
   };
 
   const addFeaturedTopicLocal = () => {
-    setFeaturedTopicsLocal([...featuredTopicsLocal, { id: newId(), title: 'New Topic', description: 'New description', image_url: '' }]);
+    const newTopic: FeaturedTopic = { id: newId(), title: 'New Topic', description: 'New description', image_url: '' };
+    setFeaturedTopicsLocal([...featuredTopicsLocal, newTopic]);
     setFeaturedTopicsModified(true);
   };
 
-  const deleteFeaturedTopicLocal = (i: number) => {
-    setFeaturedTopicsLocal(featuredTopicsLocal.filter((_, idx) => idx !== i));
+  const deleteFeaturedTopicLocal = (id: string) => {
+    setFeaturedTopicsLocal(featuredTopicsLocal.filter(t => t.id !== id));
     setFeaturedTopicsModified(true);
   };
 
   // ── About ───────────────────────────────────────────────────────────────────
   const updateAboutLocal = (field: keyof AboutContent, value: any) => {
     setAboutLocal(prev => ({ ...prev, [field]: value }));
+    setAboutModified(true);
+  };
+
+  const updateTeamMemberLocal = (category: keyof AboutContent['team'], id: string, field: keyof TeamMember, value: string) => {
+    setAboutLocal(prev => ({
+      ...prev,
+      team: {
+        ...prev.team,
+        [category]: prev.team[category].map(m => m.id === id ? { ...m, [field]: value } : m)
+      }
+    }));
+    setAboutModified(true);
+  };
+
+  const addTeamMemberLocal = (category: keyof AboutContent['team']) => {
+    const newMember: TeamMember = { id: newId(), name: 'New Member', work: 'Role', image_url: '' };
+    setAboutLocal(prev => ({
+      ...prev,
+      team: {
+        ...prev.team,
+        [category]: [...prev.team[category], newMember]
+      }
+    }));
+    setAboutModified(true);
+  };
+
+  const deleteTeamMemberLocal = (category: keyof AboutContent['team'], id: string) => {
+    setAboutLocal(prev => ({
+      ...prev,
+      team: {
+        ...prev.team,
+        [category]: prev.team[category].filter(m => m.id !== id)
+      }
+    }));
     setAboutModified(true);
   };
 
@@ -365,40 +328,6 @@ export default function AdminPage() {
   const resetAbout = () => {
     setAboutLocal(aboutContent.aboutContent || DEFAULT_ABOUT);
     setAboutModified(false);
-  };
-
-  const addTeamMemberLocal = (category: keyof AboutContent['team']) => {
-    const newMember: TeamMember = { id: newId(), name: 'New Member', work: 'Role', image_url: '' };
-    setAboutLocal(prev => ({
-      ...prev,
-      team: {
-        ...prev.team,
-        [category]: [...(prev.team?.[category] || []), newMember]
-      }
-    }));
-    setAboutModified(true);
-  };
-
-  const updateTeamMemberLocal = (category: keyof AboutContent['team'], id: string, field: keyof TeamMember, value: string) => {
-    setAboutLocal(prev => ({
-      ...prev,
-      team: {
-        ...prev.team,
-        [category]: (prev.team?.[category] || []).map(m => m.id === id ? { ...m, [field]: value } : m)
-      }
-    }));
-    setAboutModified(true);
-  };
-
-  const deleteTeamMemberLocal = (category: keyof AboutContent['team'], id: string) => {
-    setAboutLocal(prev => ({
-      ...prev,
-      team: {
-        ...prev.team,
-        [category]: (prev.team?.[category] || []).filter(m => m.id !== id)
-      }
-    }));
-    setAboutModified(true);
   };
 
   // ── Materials ───────────────────────────────────────────────────────────────
@@ -491,7 +420,7 @@ export default function AdminPage() {
 
   // ── Topics ──────────────────────────────────────────────────────────────────
   const handleAddTopic = async () => {
-    const newTopic: Partial<Topic> = {
+    const newTopic: Omit<Topic, "id" | "created_at" | "updated_at"> = {
       title: 'New Topic',
       emoji: '🚀',
       description: 'Topic description',
@@ -529,7 +458,7 @@ export default function AdminPage() {
   // ── Subtopics ───────────────────────────────────────────────────────────────
   const handleAddSubtopic = async () => {
     if (!selectedTopicId) return;
-    const newSub: Partial<Subtopic> = {
+    const newSub: Omit<Subtopic, "id" | "created_at" | "updated_at"> = {
       topic_id: selectedTopicId,
       title: 'New Subtopic',
       emoji: '📖',
@@ -568,32 +497,56 @@ export default function AdminPage() {
   const currentLessonBlocks = lesson?.content_blocks || [];
 
   const addLessonBlock = async (type: 'text' | 'image') => {
+    if (!selectedSubtopicId) return;
     const newBlocks = [...currentLessonBlocks, { type, content: type === 'text' ? 'New text block' : '' }];
-    await saveLesson(newBlocks);
+    const lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string } = {
+      subtopic_id: selectedSubtopicId,
+      title: lesson?.title || 'Lesson Title',
+      content_blocks: newBlocks
+    };
+    await saveLesson(lessonData);
   };
 
   const updateLessonBlock = async (index: number, content: string) => {
+    if (!selectedSubtopicId) return;
     const newBlocks = [...currentLessonBlocks];
     newBlocks[index] = { ...newBlocks[index], content };
-    await saveLesson(newBlocks);
+    const lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string } = {
+      subtopic_id: selectedSubtopicId,
+      title: lesson?.title || 'Lesson Title',
+      content_blocks: newBlocks
+    };
+    await saveLesson(lessonData);
   };
 
   const removeLessonBlock = async (index: number) => {
+    if (!selectedSubtopicId) return;
     const newBlocks = currentLessonBlocks.filter((_, i) => i !== index);
-    await saveLesson(newBlocks);
+    const lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string } = {
+      subtopic_id: selectedSubtopicId,
+      title: lesson?.title || 'Lesson Title',
+      content_blocks: newBlocks
+    };
+    await saveLesson(lessonData);
   };
 
   const moveLessonBlock = async (index: number, direction: 'up' | 'down') => {
+    if (!selectedSubtopicId) return;
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= currentLessonBlocks.length) return;
     const newBlocks = [...currentLessonBlocks];
     [newBlocks[index], newBlocks[newIndex]] = [newBlocks[newIndex], newBlocks[index]];
-    await saveLesson(newBlocks);
+    const lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string } = {
+      subtopic_id: selectedSubtopicId,
+      title: lesson?.title || 'Lesson Title',
+      content_blocks: newBlocks
+    };
+    await saveLesson(lessonData);
   };
 
   // ── Quizzes ─────────────────────────────────────────────────────────────────
   const handleAddQuiz = async () => {
-    const newQuiz: Partial<Quiz> = { title: 'New Quiz', description: 'Quiz description' };
+    const newQuiz: Omit<Quiz, "id" | "created_at" | "updated_at"> = { title: 'New Quiz', description: 'Quiz description' };
     await addQuiz(newQuiz);
   };
 
@@ -610,7 +563,7 @@ export default function AdminPage() {
 
   const handleAddQuestion = async () => {
     if (!selectedQuizId) return;
-    const newQ: Partial<QuizQuestion> = {
+    const newQ: Omit<QuizQuestion, "id" | "created_at" | "updated_at"> = {
       quiz_id: selectedQuizId,
       question_text: 'New Question',
       options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
@@ -649,670 +602,712 @@ export default function AdminPage() {
             <TabsTrigger value="quizzes" className="data-[state=active]:bg-orange-500">Quizzes</TabsTrigger>
           </TabsList>
 
-          {/* ── HOMEPAGE TAB ────────────────────────────────────────────── */}
+          {/* Homepage Tab */}
           <TabsContent value="homepage" className="space-y-8">
             {/* Hero Section */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Hero Section</h2>
-                {heroModified && (
-                  <div className="flex gap-2">
-                    <Button onClick={saveHero} className="bg-green-600 hover:bg-green-700 text-white">
-                      <Check size={16} className="mr-2" /> Save Changes
-                    </Button>
-                    <Button onClick={resetHero} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                      <X size={16} className="mr-2" /> Discard
-                    </Button>
-                  </div>
-                )}
+            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-white">Hero Section</h2>
+                <div className="flex gap-2">
+                  {heroModified && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={resetHero}>Reset</Button>
+                      <Button size="sm" onClick={saveHero} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Title</label>
-                    <Input value={heroLocal?.heroTitle || ''} onChange={(e) => updateHeroLocal('heroTitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                    <label className="block text-sm text-gray-400 mb-1">Hero Title</label>
+                    <Input
+                      value={heroLocal?.heroTitle || ''}
+                      onChange={(e) => updateHeroLocal('heroTitle', e.target.value)}
+                      className="bg-slate-800 border-white/10 text-white"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Subtitle</label>
-                    <Input value={heroLocal?.heroSubtitle || ''} onChange={(e) => updateHeroLocal('heroSubtitle', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                    <label className="block text-sm text-gray-400 mb-1">Hero Subtitle</label>
+                    <Textarea
+                      value={heroLocal?.heroSubtitle || ''}
+                      onChange={(e) => updateHeroLocal('heroSubtitle', e.target.value)}
+                      className="bg-slate-800 border-white/10 text-white h-24"
+                    />
                   </div>
-                  <div className="border-t border-white/10 pt-4 mt-4">
-                    <h3 className="text-sm font-semibold text-white mb-3">Hero Video</h3>
-                    <div className="space-y-3">
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm text-gray-400 mb-1">Video Source (URL or Upload)</label>
-                          <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..." className="bg-slate-800 border-white/20 text-white mb-3" />
-                          <div className="text-xs text-gray-500 mb-3 text-center">— OR —</div>
-                          <VideoUpload 
-                            currentVideo={heroLocal?.videoUrl || ''} 
-                            onVideoUploaded={(url) => updateHeroLocal('videoUrl', url)} 
-                            label="Upload Local Video File"
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">Supports: Local upload (recommended), Direct URLs, YouTube, Google Drive, or Cloudinary</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <input 
-                          type="checkbox" 
-                          id="videoVisible" 
-                          checked={heroLocal?.videoVisible || false} 
-                          onChange={(e) => updateHeroLocal('videoVisible', e.target.checked)}
-                          className="w-4 h-4 rounded border-white/20 bg-slate-800 cursor-pointer"
-                        />
-                        <label htmlFor="videoVisible" className="text-sm text-gray-400 cursor-pointer">Show video on homepage</label>
-                      </div>
-                      {heroLocal?.videoUrl && (
-                        <div className="bg-slate-800/50 rounded-lg p-3 border border-white/10">
-                          <p className="text-xs text-gray-400 mb-2">Video Type: <span className="text-orange-400 font-semibold">{getVideoType(heroLocal.videoUrl) === 'youtube' ? 'YouTube' : getVideoType(heroLocal.videoUrl) === 'google-drive' ? 'Google Drive' : getVideoType(heroLocal.videoUrl) === 'cloudinary' ? 'Cloudinary' : getVideoType(heroLocal.videoUrl) === 'direct' ? 'Direct Video' : 'Unknown'}</span></p>
-                          {getVideoType(heroLocal.videoUrl) === 'youtube' ? (
-                            <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
-                              <iframe
-                                width="100%"
-                                height="100%"
-                                src={getEmbedUrl(heroLocal.videoUrl) || ''}
-                                title="Preview"
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                className="absolute inset-0"
-                              />
-                            </div>
-                          ) : getVideoType(heroLocal.videoUrl) === 'google-drive' ? (
-                            <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
-                              <iframe
-                                width="100%"
-                                height="100%"
-                                src={getEmbedUrl(heroLocal.videoUrl) || ''}
-                                title="Preview"
-                                frameBorder="0"
-                                allow="autoplay"
-                                allowFullScreen
-                                className="absolute inset-0"
-                              />
-                            </div>
-                          ) : getVideoType(heroLocal.videoUrl) === 'cloudinary' ? (
-                            <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
-                              <iframe
-                                width="100%"
-                                height="100%"
-                                src={getEmbedUrl(heroLocal.videoUrl) || ''}
-                                title="Preview"
-                                frameBorder="0"
-                                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                                allowFullScreen
-                                className="absolute inset-0"
-                              />
-                            </div>
-                          ) : getVideoType(heroLocal.videoUrl) === 'direct' ? (
-                            <video 
-                              controls 
-                              className="w-full h-auto max-h-48 rounded bg-black"
-                              src={heroLocal.videoUrl}
-                            />
-                          ) : (
-                            <div className="w-full aspect-video bg-black rounded flex items-center justify-center text-gray-500 text-sm">
-                              Invalid video URL
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Video URL (YouTube/Direct)</label>
+                    <Input
+                      value={heroLocal?.videoUrl || ''}
+                      onChange={(e) => updateHeroLocal('videoUrl', e.target.value)}
+                      placeholder="https://..."
+                      className="bg-slate-800 border-white/10 text-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="videoVisible"
+                      checked={heroLocal?.videoVisible || false}
+                      onChange={(e) => updateHeroLocal('videoVisible', e.target.checked)}
+                      className="w-4 h-4 rounded border-white/10 bg-slate-800 text-orange-500"
+                    />
+                    <label htmlFor="videoVisible" className="text-sm text-gray-400">Show Video on Homepage</label>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Feature Cards */}
-              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10 mt-8">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold text-white">Feature Cards</h2>
+            {/* Feature Cards */}
+            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-white">Feature Cards</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={addFeatureCardLocal}><Plus size={16} className="mr-2" /> Add Card</Button>
                   {featureCardsModified && (
-                    <div className="flex gap-2">
-                      <Button onClick={saveFeatureCards} className="bg-green-600 hover:bg-green-700 text-white">
-                        <Check size={16} className="mr-2" /> Save Changes
-                      </Button>
-                      <Button onClick={resetFeatureCards} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                        <X size={16} className="mr-2" /> Discard
-                      </Button>
-                    </div>
+                    <>
+                      <Button variant="outline" size="sm" onClick={resetFeatureCards}>Reset</Button>
+                      <Button size="sm" onClick={saveFeatureCards} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
+                    </>
                   )}
-                </div>
-                <div className="space-y-4">
-                  {featureCardsLocal.map((card, i) => (
-                    <div key={i} className="flex items-end gap-2">
-                      <div className="flex-1 space-y-1">
-                        <label className="block text-sm text-gray-400">Icon (Emoji)</label>
-                        <Input value={card.icon} onChange={(e) => updateFeatureCardLocal(i, 'icon', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                        <label className="block text-sm text-gray-400">Title</label>
-                        <Input value={card.title} onChange={(e) => updateFeatureCardLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                        <label className="block text-sm text-gray-400">Description</label>
-                        <Textarea value={card.description} onChange={(e) => updateFeatureCardLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      </div>
-                      <Button variant="destructive" size="icon" onClick={() => deleteFeatureCardLocal(i)}>
-                        <Trash2 size={18} />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button onClick={addFeatureCardLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
-                    <Plus size={18} className="mr-2" /> Add Feature Card
-                  </Button>
                 </div>
               </div>
-
-              {/* Featured Topics */}
-              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10 mt-8">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold text-white">Featured Topics</h2>
-                  {featuredTopicsModified && (
-                    <div className="flex gap-2">
-                      <Button onClick={saveFeaturedTopics} className="bg-green-600 hover:bg-green-700 text-white">
-                        <Check size={16} className="mr-2" /> Save Changes
-                      </Button>
-                      <Button onClick={resetFeaturedTopics} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                        <X size={16} className="mr-2" /> Discard
-                      </Button>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {featureCardsLocal.map((card, i) => (
+                  <div key={i} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
+                    <button
+                      onClick={() => deleteFeatureCardLocal(i)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="space-y-3">
+                      <Input
+                        value={card.icon}
+                        onChange={(e) => updateFeatureCardLocal(i, 'icon', e.target.value)}
+                        className="bg-slate-900 border-white/10 text-2xl w-16 text-center"
+                      />
+                      <Input
+                        value={card.title}
+                        onChange={(e) => updateFeatureCardLocal(i, 'title', e.target.value)}
+                        className="bg-slate-900 border-white/10 text-white font-semibold"
+                      />
+                      <Textarea
+                        value={card.description}
+                        onChange={(e) => updateFeatureCardLocal(i, 'description', e.target.value)}
+                        className="bg-slate-900 border-white/10 text-gray-400 text-sm h-20"
+                      />
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Featured Topics */}
+            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-white">Featured Topics</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={addFeaturedTopicLocal}><Plus size={16} className="mr-2" /> Add Topic</Button>
+                  {featuredTopicsModified && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={resetFeaturedTopics}>Reset</Button>
+                      <Button size="sm" onClick={saveFeaturedTopics} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
+                    </>
                   )}
                 </div>
-                <div className="space-y-4">
-                  {featuredTopicsLocal.map((topic, i) => (
-                    <div key={topic.id} className="flex items-end gap-2">
-                      <div className="flex-1 space-y-1">
-                        <label className="block text-sm text-gray-400">Title</label>
-                        <Input value={topic.title} onChange={(e) => updateFeaturedTopicLocal(i, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                        <label className="block text-sm text-gray-400">Description</label>
-                        <Textarea value={topic.description} onChange={(e) => updateFeaturedTopicLocal(i, 'description', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                        <ImageUpload 
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {featuredTopicsLocal.map((topic, i) => (
+                  <div key={topic.id} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
+                    <button
+                      onClick={() => deleteFeaturedTopicLocal(topic.id)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <ImageUpload
                           currentImage={topic.image_url}
                           onImageUploaded={(url) => updateFeaturedTopicLocal(i, 'image_url', url)}
-                          label="Image URL"
+                          label="Topic Image"
                         />
                       </div>
-                      <Button variant="destructive" size="icon" onClick={() => deleteFeaturedTopicLocal(i)}>
-                        <Trash2 size={18} />
-                      </Button>
+                      <div className="space-y-3">
+                        <Input
+                          value={topic.title}
+                          onChange={(e) => updateFeaturedTopicLocal(i, 'title', e.target.value)}
+                          placeholder="Topic Title"
+                          className="bg-slate-900 border-white/10 text-white font-semibold"
+                        />
+                        <Textarea
+                          value={topic.description}
+                          onChange={(e) => updateFeaturedTopicLocal(i, 'description', e.target.value)}
+                          placeholder="Topic Description"
+                          className="bg-slate-900 border-white/10 text-gray-400 text-sm h-24"
+                        />
+                      </div>
                     </div>
-                  ))}
-                  <Button onClick={addFeaturedTopicLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
-                    <Plus size={18} className="mr-2" /> Add Featured Topic
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* ── TOPICS TAB ──────────────────────────────────────────────── */}
-          <TabsContent value="topics" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Manage Topics</h2>
-              <div className="space-y-4">
-                {topics.map((topic, i) => (
-                  <div key={topic.id} className="flex items-center gap-4 p-3 bg-slate-800 rounded-lg border border-white/10">
-                    <div className="flex flex-col gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => moveTopic(i, 'up')} disabled={i === 0}><ArrowUp size={16} /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => moveTopic(i, 'down')} disabled={i === topics.length - 1}><ArrowDown size={16} /></Button>
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <label className="block text-sm text-gray-400">Emoji</label>
-                      <Input value={topic.emoji} onChange={(e) => handleUpdateTopic(topic.id, 'emoji', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={topic.title} onChange={(e) => handleUpdateTopic(topic.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Description</label>
-                      <Textarea value={topic.description || ''} onChange={(e) => handleUpdateTopic(topic.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                      <ImageUpload 
-                        currentImage={topic.image_url}
-                        onImageUploaded={(url) => handleUpdateTopic(topic.id, 'image_url', url)}
-                        label="Image URL"
-                      />
-                    </div>
-                    <Button variant="destructive" size="icon" onClick={() => handleDeleteTopic(topic.id)}>
-                      <Trash2 size={18} />
-                    </Button>
                   </div>
                 ))}
-                <Button onClick={handleAddTopic} className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Plus size={18} className="mr-2" /> Add Topic
-                </Button>
               </div>
             </div>
           </TabsContent>
 
-          {/* ── SUBTOPICS TAB ───────────────────────────────────────────── */}
-          <TabsContent value="subtopics" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Manage Subtopics</h2>
-              <div className="mb-4">
-                <label className="block text-sm text-gray-400 mb-1">Select Topic</label>
-                <select 
-                  value={selectedTopicId || ''}
-                  onChange={(e) => setSelectedTopicId(e.target.value || null)}
-                  className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
+          {/* Topics Tab */}
+          <TabsContent value="topics" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-white">Manage Topics</h2>
+              <Button onClick={handleAddTopic} className="bg-orange-500 hover:bg-orange-600">
+                <Plus size={16} className="mr-2" /> Add New Topic
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              {topics.map((topic, index) => (
+                <div
+                  key={topic.id}
+                  className={`bg-slate-900/50 border rounded-xl p-4 transition-colors ${selectedTopicId === topic.id ? 'border-orange-500' : 'border-white/10'}`}
                 >
-                  <option value="">-- Select a Topic --</option>
-                  {topics.map(topic => (
-                    <option key={topic.id} value={topic.id}>{topic.title}</option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedTopicId && (
-                <div className="space-y-4 mt-4">
-                  {subtopics.map((subtopic, i) => (
-                    <div key={subtopic.id} className="flex items-center gap-4 p-3 bg-slate-800 rounded-lg border border-white/10">
-                      <div className="flex flex-col gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => moveSubtopic(i, 'up')} disabled={i === 0}><ArrowUp size={16} /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => moveSubtopic(i, 'down')} disabled={i === subtopics.length - 1}><ArrowDown size={16} /></Button>
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <label className="block text-sm text-gray-400">Emoji</label>
-                        <Input value={subtopic.emoji} onChange={(e) => handleUpdateSubtopic(subtopic.id, 'emoji', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                        <label className="block text-sm text-gray-400">Title</label>
-                        <Input value={subtopic.title} onChange={(e) => handleUpdateSubtopic(subtopic.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                        <label className="block text-sm text-gray-400">Description</label>
-                        <Textarea value={subtopic.description || ''} onChange={(e) => handleUpdateSubtopic(subtopic.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                      </div>
-                      <Button variant="destructive" size="icon" onClick={() => handleDeleteSubtopic(subtopic.id)}>
-                        <Trash2 size={18} />
-                      </Button>
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => moveTopic(index, 'up')} disabled={index === 0}><ArrowUp size={14} /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => moveTopic(index, 'down')} disabled={index === topics.length - 1}><ArrowDown size={14} /></Button>
                     </div>
-                  ))}
-                  <Button onClick={handleAddSubtopic} className="bg-orange-500 hover:bg-orange-600 text-white">
-                    <Plus size={18} className="mr-2" /> Add Subtopic
+                    <Input
+                      value={topic.emoji}
+                      onChange={(e) => handleUpdateTopic(topic.id, 'emoji', e.target.value)}
+                      className="w-16 text-center bg-slate-800 border-white/10"
+                    />
+                    <div className="flex-1">
+                      <Input
+                        value={topic.title}
+                        onChange={(e) => handleUpdateTopic(topic.id, 'title', e.target.value)}
+                        className="bg-slate-800 border-white/10 text-white font-semibold mb-2"
+                      />
+                      <Textarea
+                        value={topic.description}
+                        onChange={(e) => handleUpdateTopic(topic.id, 'description', e.target.value)}
+                        className="bg-slate-800 border-white/10 text-gray-400 text-sm h-16"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant={selectedTopicId === topic.id ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setSelectedTopicId(topic.id)}
+                        className={selectedTopicId === topic.id ? 'bg-orange-500' : ''}
+                      >
+                        Manage Subtopics
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteTopic(topic.id)}><Trash2 size={16} /></Button>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <ImageUpload
+                      currentImage={topic.image_url}
+                      onImageUploaded={(url) => handleUpdateTopic(topic.id, 'image_url', url)}
+                      label="Topic Hero Image"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Subtopics Tab */}
+          <TabsContent value="subtopics" className="space-y-6">
+            {!selectedTopicId ? (
+              <div className="text-center py-12 bg-slate-900/50 border border-white/10 rounded-xl text-gray-400">
+                Please select a topic first from the Topics tab.
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">Subtopics for {topics.find(t => t.id === selectedTopicId)?.title}</h2>
+                    <p className="text-sm text-gray-400">Manage the learning modules for this topic.</p>
+                  </div>
+                  <Button onClick={handleAddSubtopic} className="bg-orange-500 hover:bg-orange-600">
+                    <Plus size={16} className="mr-2" /> Add Subtopic
                   </Button>
                 </div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* ── LESSONS TAB ─────────────────────────────────────────────── */}
-          <TabsContent value="lessons" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Manage Lessons</h2>
-              <div className="mb-4 flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm text-gray-400 mb-1">Select Topic</label>
-                  <select 
-                    value={selectedTopicId || ''}
-                    onChange={(e) => {
-                      setSelectedTopicId(e.target.value || null);
-                      setSelectedSubtopicId(null);
-                    }}
-                    className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
-                  >
-                    <option value="">-- Select a Topic --</option>
-                    {topics.map(topic => (
-                      <option key={topic.id} value={topic.id}>{topic.title}</option>
-                    ))}
-                  </select>
-                </div>
-                {selectedTopicId && (
-                  <div className="flex-1">
-                    <label className="block text-sm text-gray-400 mb-1">Select Subtopic</label>
-                    <select 
-                      value={selectedSubtopicId || ''}
-                      onChange={(e) => setSelectedSubtopicId(e.target.value || null)}
-                      className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
+                <div className="grid grid-cols-1 gap-4">
+                  {subtopics.map((sub, index) => (
+                    <div
+                      key={sub.id}
+                      className={`bg-slate-900/50 border rounded-xl p-4 transition-colors ${selectedSubtopicId === sub.id ? 'border-orange-500' : 'border-white/10'}`}
                     >
-                      <option value="">-- Select a Subtopic --</option>
-                      {subtopics.map(subtopic => (
-                        <option key={subtopic.id} value={subtopic.id}>{subtopic.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {selectedSubtopicId && (
-                <div className="space-y-4 mt-4">
-                  {currentLessonBlocks.map((block, i) => (
-                    <div key={i} className="flex items-start gap-4 p-3 bg-slate-800 rounded-lg border border-white/10">
-                      <div className="flex flex-col gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => moveLessonBlock(i, 'up')} disabled={i === 0}><ArrowUp size={16} /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => moveLessonBlock(i, 'down')} disabled={i === currentLessonBlocks.length - 1}><ArrowDown size={16} /></Button>
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => moveSubtopic(index, 'up')} disabled={index === 0}><ArrowUp size={14} /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => moveSubtopic(index, 'down')} disabled={index === subtopics.length - 1}><ArrowDown size={14} /></Button>
+                        </div>
+                        <Input
+                          value={sub.emoji}
+                          onChange={(e) => handleUpdateSubtopic(sub.id, 'emoji', e.target.value)}
+                          className="w-16 text-center bg-slate-800 border-white/10"
+                        />
+                        <div className="flex-1">
+                          <Input
+                            value={sub.title}
+                            onChange={(e) => handleUpdateSubtopic(sub.id, 'title', e.target.value)}
+                            className="bg-slate-800 border-white/10 text-white font-semibold mb-2"
+                          />
+                          <Textarea
+                            value={sub.description}
+                            onChange={(e) => handleUpdateSubtopic(sub.id, 'description', e.target.value)}
+                            className="bg-slate-800 border-white/10 text-gray-400 text-sm h-16"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant={selectedSubtopicId === sub.id ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSelectedSubtopicId(sub.id)}
+                            className={selectedSubtopicId === sub.id ? 'bg-orange-500' : ''}
+                          >
+                            Edit Lesson
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteSubtopic(sub.id)}><Trash2 size={16} /></Button>
+                        </div>
                       </div>
-                      <div className="flex-1 space-y-1">
-                        <label className="block text-sm text-gray-400">{block.type === 'image' ? 'Upload image' : `Type: ${block.type}`}</label>
-                        {block.type === 'image' ? (
-                          <div className="mt-2">
-                            <ImageUpload 
-                              currentImage={block.content}
-                              onImageUploaded={(url) => updateLessonBlock(i, url)}
-                            />
-                          </div>
-                        ) : (
-                          <Textarea value={block.content} onChange={(e) => updateLessonBlock(i, e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                        )}
-                      </div>
-                      <Button variant="destructive" size="icon" onClick={() => removeLessonBlock(i)}>
-                        <Trash2 size={18} />
-                      </Button>
                     </div>
                   ))}
-                  <div className="flex gap-2">
-                    <Button onClick={() => addLessonBlock('text')} className="bg-orange-500 hover:bg-orange-600 text-white">
-                      <Plus size={18} className="mr-2" /> Add Text Block
-                    </Button>
-                    <Button onClick={() => addLessonBlock('image')} className="bg-orange-500 hover:bg-orange-600 text-white">
-                      <Plus size={18} className="mr-2" /> Add Image Block
-                    </Button>
-                  </div>
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </TabsContent>
 
-          {/* ── ABOUT TAB ───────────────────────────────────────────────── */}
-          <TabsContent value="about" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">About Page Content</h2>
-                {aboutModified && (
-                  <div className="flex gap-2">
-                    <Button onClick={saveAbout} className="bg-green-600 hover:bg-green-700 text-white">
-                      <Check size={16} className="mr-2" /> Save Changes
-                    </Button>
-                    <Button onClick={resetAbout} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                      <X size={16} className="mr-2" /> Discard
-                    </Button>
+          {/* Lessons Tab */}
+          <TabsContent value="lessons" className="space-y-6">
+            {!selectedSubtopicId ? (
+              <div className="text-center py-12 bg-slate-900/50 border border-white/10 rounded-xl text-gray-400">
+                Please select a subtopic first from the Subtopics tab.
+              </div>
+            ) : (
+              <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
+                <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">Lesson Content</h2>
+                    <p className="text-sm text-gray-400">Editing: {subtopics.find(s => s.id === selectedSubtopicId)?.title}</p>
                   </div>
-                )}
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Mission Text</label>
-                  <Textarea value={aboutLocal.missionText} onChange={(e) => updateAboutLocal('missionText', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => addLessonBlock('text')}><Plus size={16} className="mr-2" /> Add Text</Button>
+                    <Button variant="outline" size="sm" onClick={() => addLessonBlock('image')}><Plus size={16} className="mr-2" /> Add Image</Button>
+                  </div>
                 </div>
-                <ImageUpload 
-                  currentImage={aboutLocal.missionImage}
-                  onImageUploaded={(url) => updateAboutLocal('missionImage', url)}
-                  label="Mission Image"
-                />
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Text 1</label>
-                  <Textarea value={aboutLocal.whoWeAreText1} onChange={(e) => updateAboutLocal('whoWeAreText1', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                </div>
-                <ImageUpload 
-                  currentImage={aboutLocal.whoWeAreImage1}
-                  onImageUploaded={(url) => updateAboutLocal('whoWeAreImage1', url)}
-                  label="Who We Are - Image 1"
-                />
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Who We Are - Text 2</label>
-                  <Textarea value={aboutLocal.whoWeAreText2} onChange={(e) => updateAboutLocal('whoWeAreText2', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                </div>
-                <ImageUpload 
-                  currentImage={aboutLocal.whoWeAreImage2}
-                  onImageUploaded={(url) => updateAboutLocal('whoWeAreImage2', url)}
-                  label="Who We Are - Image 2"
-                />
-              </div>
 
-              {/* Team Sections */}
-              <div className="mt-12 space-y-12">
-                {(['platformCreators', 'educationalAdvisors', 'communityMembers'] as const).map((category) => (
-                  <div key={category} className="bg-slate-800/50 rounded-xl p-6 border border-white/10">
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-lg font-bold text-white capitalize">
-                        {category.replace(/([A-Z])/g, ' $1').trim()}
-                      </h3>
-                      <Button 
-                        onClick={() => addTeamMemberLocal(category)} 
-                        size="sm"
-                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                <div className="space-y-6">
+                  {currentLessonBlocks.map((block, index) => (
+                    <div key={index} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
+                      <div className="absolute -left-12 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="sm" onClick={() => moveLessonBlock(index, 'up')} disabled={index === 0}><ArrowUp size={14} /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => moveLessonBlock(index, 'down')} disabled={index === currentLessonBlocks.length - 1}><ArrowDown size={14} /></Button>
+                      </div>
+                      <button
+                        onClick={() => removeLessonBlock(index)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <Plus size={16} className="mr-2" /> Add Member
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-6">
-                      {(aboutLocal.team?.[category] || []).map((member) => (
-                        <div key={member.id} className="flex items-start gap-4 p-4 bg-slate-900/50 rounded-lg border border-white/5">
-                          <div className="flex-1 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <label className="block text-xs text-gray-400">Name</label>
-                                <Input 
-                                  value={member.name} 
-                                  onChange={(e) => updateTeamMemberLocal(category, member.id, 'name', e.target.value)} 
-                                  className="bg-slate-800 border-white/10 text-white" 
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="block text-xs text-gray-400">Work/Role</label>
-                                <Input 
-                                  value={member.work} 
-                                  onChange={(e) => updateTeamMemberLocal(category, member.id, 'work', e.target.value)} 
-                                  className="bg-slate-800 border-white/10 text-white" 
-                                />
-                              </div>
-                            </div>
-                            <ImageUpload 
-                              currentImage={member.image_url}
-                              onImageUploaded={(url) => updateTeamMemberLocal(category, member.id, 'image_url', url)}
-                              label="Profile Image"
-                            />
+                        <X size={14} />
+                      </button>
+
+                      {block.type === 'text' ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wider">
+                            <Check size={12} /> Text Block
                           </div>
-                          <Button 
-                            variant="destructive" 
-                            size="icon" 
-                            onClick={() => deleteTeamMemberLocal(category, member.id)}
-                            className="mt-6"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
+                          <Textarea
+                            value={block.content}
+                            onChange={(e) => updateLessonBlock(index, e.target.value)}
+                            className="bg-slate-900 border-white/10 text-white min-h-[150px]"
+                            placeholder="Enter lesson content (Markdown supported)..."
+                          />
                         </div>
-                      ))}
-                      {(aboutLocal.team?.[category] || []).length === 0 && (
-                        <p className="text-gray-500 text-center py-4">No members added yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wider">
+                            <Upload size={12} /> Image Block
+                          </div>
+                          <ImageUpload
+                            currentImage={block.content}
+                            onImageUploaded={(url) => updateLessonBlock(index, url)}
+                          />
+                        </div>
                       )}
                     </div>
+                  ))}
+
+                  {currentLessonBlocks.length === 0 && (
+                    <div className="text-center py-12 border-2 border-dashed border-white/5 rounded-xl text-gray-500">
+                      No content blocks yet. Add your first block above.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* About Tab */}
+          <TabsContent value="about" className="space-y-8">
+            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-white">About Page Content</h2>
+                <div className="flex gap-2">
+                  {aboutModified && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={resetAbout}>Reset</Button>
+                      <Button size="sm" onClick={saveAbout} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-8">
+                {/* Mission Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-800/30 rounded-lg">
+                  <div className="space-y-4">
+                    <h3 className="text-orange-400 font-medium">Mission Section</h3>
+                    <Textarea
+                      value={aboutLocal.missionText}
+                      onChange={(e) => updateAboutLocal('missionText', e.target.value)}
+                      placeholder="Mission statement..."
+                      className="bg-slate-900 border-white/10 text-white h-32"
+                    />
+                  </div>
+                  <ImageUpload
+                    currentImage={aboutLocal.missionImage}
+                    onImageUploaded={(url) => updateAboutLocal('missionImage', url)}
+                    label="Mission Image"
+                  />
+                </div>
+
+                {/* Who We Are Section 1 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-800/30 rounded-lg">
+                  <div className="space-y-4">
+                    <h3 className="text-orange-400 font-medium">Who We Are (Part 1)</h3>
+                    <Textarea
+                      value={aboutLocal.whoWeAreText1}
+                      onChange={(e) => updateAboutLocal('whoWeAreText1', e.target.value)}
+                      placeholder="Description..."
+                      className="bg-slate-900 border-white/10 text-white h-32"
+                    />
+                  </div>
+                  <ImageUpload
+                    currentImage={aboutLocal.whoWeAreImage1}
+                    onImageUploaded={(url) => updateAboutLocal('whoWeAreImage1', url)}
+                    label="Section 1 Image"
+                  />
+                </div>
+
+                {/* Who We Are Section 2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-800/30 rounded-lg">
+                  <div className="space-y-4">
+                    <h3 className="text-orange-400 font-medium">Who We Are (Part 2)</h3>
+                    <Textarea
+                      value={aboutLocal.whoWeAreText2}
+                      onChange={(e) => updateAboutLocal('whoWeAreText2', e.target.value)}
+                      placeholder="Description..."
+                      className="bg-slate-900 border-white/10 text-white h-32"
+                    />
+                  </div>
+                  <ImageUpload
+                    currentImage={aboutLocal.whoWeAreImage2}
+                    onImageUploaded={(url) => updateAboutLocal('whoWeAreImage2', url)}
+                    label="Section 2 Image"
+                  />
+                </div>
+
+                {/* Team Sections */}
+                {(['platformCreators', 'educationalAdvisors', 'communityMembers'] as const).map((category) => (
+                  <div key={category} className="space-y-4 p-4 bg-slate-800/30 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-orange-400 font-medium capitalize">{category.replace(/([A-Z])/g, ' $1')}</h3>
+                      <Button variant="outline" size="sm" onClick={() => addTeamMemberLocal(category)}><Plus size={14} className="mr-1" /> Add Member</Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {aboutLocal.team[category].map((member) => (
+                        <div key={member.id} className="bg-slate-900/50 border border-white/10 rounded-lg p-3 relative group">
+                          <button
+                            onClick={() => deleteTeamMemberLocal(category, member.id)}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={12} />
+                          </button>
+                          <div className="space-y-3">
+                            <ImageUpload
+                              currentImage={member.image_url}
+                              onImageUploaded={(url) => updateTeamMemberLocal(category, member.id, 'image_url', url)}
+                            />
+                            <Input
+                              value={member.name}
+                              onChange={(e) => updateTeamMemberLocal(category, member.id, 'name', e.target.value)}
+                              placeholder="Name"
+                              className="bg-slate-800 border-white/10 text-sm"
+                            />
+                            <Input
+                              value={member.work}
+                              onChange={(e) => updateTeamMemberLocal(category, member.id, 'work', e.target.value)}
+                              placeholder="Role/Work"
+                              className="bg-slate-800 border-white/10 text-sm"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           </TabsContent>
 
-          {/* ── MATERIALS TAB ───────────────────────────────────────────── */}
+          {/* Materials Tab */}
           <TabsContent value="materials" className="space-y-8">
-            {/* Gallery Images */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Gallery Images</h2>
-                {galleryImagesModified && (
-                  <div className="flex gap-2">
-                    <Button onClick={saveGalleryImages} className="bg-green-600 hover:bg-green-700 text-white">
-                      <Check size={16} className="mr-2" /> Save Changes
-                    </Button>
-                    <Button onClick={resetGalleryImages} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                      <X size={16} className="mr-2" /> Discard
-                    </Button>
-                  </div>
-                )}
+            {/* Gallery Section */}
+            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-white">Gallery Images</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={addGalleryImageLocal}><Plus size={16} className="mr-2" /> Add Image</Button>
+                  {galleryImagesModified && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={resetGalleryImages}>Reset</Button>
+                      <Button size="sm" onClick={saveGalleryImages} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="space-y-4">
-                {galleryImagesLocal.map((image) => (
-                  <div key={image.id} className="flex items-end gap-2">
-                    <div className="flex-1 space-y-1">
-                      <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={image.title} onChange={(e) => updateGalleryImageLocal(image.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <ImageUpload 
-                        currentImage={image.url}
-                        onImageUploaded={(url) => updateGalleryImageLocal(image.id, 'url', url)}
-                        label="Image"
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {galleryImagesLocal.map((img) => (
+                  <div key={img.id} className="bg-slate-800/50 border border-white/10 rounded-lg p-3 relative group">
+                    <button
+                      onClick={() => deleteGalleryImageLocal(img.id)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="space-y-3">
+                      <ImageUpload
+                        currentImage={img.url}
+                        onImageUploaded={(url) => updateGalleryImageLocal(img.id, 'url', url)}
+                      />
+                      <Input
+                        value={img.title}
+                        onChange={(e) => updateGalleryImageLocal(img.id, 'title', e.target.value)}
+                        placeholder="Image Title"
+                        className="bg-slate-900 border-white/10 text-sm"
                       />
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => deleteGalleryImageLocal(image.id)}>
-                      <Trash2 size={18} />
-                    </Button>
                   </div>
                 ))}
-                <Button onClick={addGalleryImageLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Plus size={18} className="mr-2" /> Add Gallery Image
-                </Button>
               </div>
             </div>
 
-            {/* Videos */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Videos</h2>
-                {videosModified && (
-                  <div className="flex gap-2">
-                    <Button onClick={saveVideos} className="bg-green-600 hover:bg-green-700 text-white">
-                      <Check size={16} className="mr-2" /> Save Changes
-                    </Button>
-                    <Button onClick={resetVideos} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                      <X size={16} className="mr-2" /> Discard
-                    </Button>
-                  </div>
-                )}
+            {/* Videos Section */}
+            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-white">Educational Videos</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={addVideoLocal}><Plus size={16} className="mr-2" /> Add Video</Button>
+                  {videosModified && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={resetVideos}>Reset</Button>
+                      <Button size="sm" onClick={saveVideos} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {videosLocal.map((video) => (
-                  <div key={video.id} className="flex items-end gap-2">
-                    <div className="flex-1 space-y-1">
-                      <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={video.title} onChange={(e) => updateVideoLocal(video.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Video URL</label>
-                      <Input value={video.url} onChange={(e) => updateVideoLocal(video.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <ImageUpload 
+                  <div key={video.id} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
+                    <button
+                      onClick={() => deleteVideoLocal(video.id)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <ImageUpload
                         currentImage={video.thumbnail}
                         onImageUploaded={(url) => updateVideoLocal(video.id, 'thumbnail', url)}
                         label="Thumbnail"
                       />
+                      <div className="space-y-3">
+                        <Input
+                          value={video.title}
+                          onChange={(e) => updateVideoLocal(video.id, 'title', e.target.value)}
+                          placeholder="Video Title"
+                          className="bg-slate-900 border-white/10"
+                        />
+                        <Input
+                          value={video.url}
+                          onChange={(e) => updateVideoLocal(video.id, 'url', e.target.value)}
+                          placeholder="Video URL (YouTube/Direct)"
+                          className="bg-slate-900 border-white/10 text-sm"
+                        />
+                      </div>
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => deleteVideoLocal(video.id)}>
-                      <Trash2 size={18} />
-                    </Button>
                   </div>
                 ))}
-                <Button onClick={addVideoLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Plus size={18} className="mr-2" /> Add Video
-                </Button>
               </div>
             </div>
 
-            {/* PDFs */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">PDFs</h2>
-                {pdfsModified && (
-                  <div className="flex gap-2">
-                    <Button onClick={savePdfs} className="bg-green-600 hover:bg-green-700 text-white">
-                      <Check size={16} className="mr-2" /> Save Changes
-                    </Button>
-                    <Button onClick={resetPdfs} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                      <X size={16} className="mr-2" /> Discard
-                    </Button>
-                  </div>
-                )}
+            {/* PDFs Section */}
+            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-white">PDF Resources</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={addPdfLocal}><Plus size={16} className="mr-2" /> Add PDF</Button>
+                  {pdfsModified && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={resetPdfs}>Reset</Button>
+                      <Button size="sm" onClick={savePdfs} className="bg-orange-500 hover:bg-orange-600">Save Changes</Button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pdfsLocal.map((pdf) => (
-                  <div key={pdf.id} className="flex items-end gap-2">
-                    <div className="flex-1 space-y-1">
-                      <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={pdf.title} onChange={(e) => updatePdfLocal(pdf.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">PDF URL</label>
-                      <Input value={pdf.url} onChange={(e) => updatePdfLocal(pdf.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Button Label</label>
-                      <Input value={pdf.label} onChange={(e) => updatePdfLocal(pdf.id, 'label', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                  <div key={pdf.id} className="bg-slate-800/50 border border-white/10 rounded-lg p-4 relative group">
+                    <button
+                      onClick={() => deletePdfLocal(pdf.id)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="space-y-3">
+                      <Input
+                        value={pdf.title}
+                        onChange={(e) => updatePdfLocal(pdf.id, 'title', e.target.value)}
+                        placeholder="PDF Title"
+                        className="bg-slate-900 border-white/10 font-medium"
+                      />
+                      <Input
+                        value={pdf.label}
+                        onChange={(e) => updatePdfLocal(pdf.id, 'label', e.target.value)}
+                        placeholder="Button Label (e.g. Download)"
+                        className="bg-slate-900 border-white/10 text-sm"
+                      />
+                      <Input
+                        value={pdf.url}
+                        onChange={(e) => updatePdfLocal(pdf.id, 'url', e.target.value)}
+                        placeholder="PDF URL"
+                        className="bg-slate-900 border-white/10 text-sm"
+                      />
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => deletePdfLocal(pdf.id)}>
-                      <Trash2 size={18} />
-                    </Button>
                   </div>
                 ))}
-                <Button onClick={addPdfLocal} className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Plus size={18} className="mr-2" /> Add PDF
-                </Button>
               </div>
             </div>
           </TabsContent>
 
-          {/* ── QUIZZES TAB ─────────────────────────────────────────────── */}
-          <TabsContent value="quizzes" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Manage Quizzes</h2>
-              <div className="space-y-4">
-                {quizzes.map((quiz) => (
-                  <div key={quiz.id} className="flex items-center gap-4 p-3 bg-slate-800 rounded-lg border border-white/10">
-                    <div className="flex-1 space-y-1">
-                      <label className="block text-sm text-gray-400">Title</label>
-                      <Input value={quiz.title} onChange={(e) => handleUpdateQuiz(quiz.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                      <label className="block text-sm text-gray-400">Description</label>
-                      <Textarea value={quiz.description || ''} onChange={(e) => handleUpdateQuiz(quiz.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+          {/* Quizzes Tab */}
+          <TabsContent value="quizzes" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-white">Manage Quizzes</h2>
+              <Button onClick={handleAddQuiz} className="bg-orange-500 hover:bg-orange-600">
+                <Plus size={16} className="mr-2" /> Add New Quiz
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              {quizzes.map((quiz) => (
+                <div
+                  key={quiz.id}
+                  className={`bg-slate-900/50 border rounded-xl p-4 transition-colors ${selectedQuizId === quiz.id ? 'border-orange-500' : 'border-white/10'}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Input
+                        value={quiz.title}
+                        onChange={(e) => handleUpdateQuiz(quiz.id, 'title', e.target.value)}
+                        className="bg-slate-800 border-white/10 text-white font-semibold mb-2"
+                      />
+                      <Textarea
+                        value={quiz.description || ''}
+                        onChange={(e) => handleUpdateQuiz(quiz.id, 'description', e.target.value)}
+                        className="bg-slate-800 border-white/10 text-gray-400 text-sm h-16"
+                      />
                     </div>
-                    <Button variant="destructive" size="icon" onClick={() => handleDeleteQuiz(quiz.id)}>
-                      <Trash2 size={18} />
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant={selectedQuizId === quiz.id ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setSelectedQuizId(quiz.id)}
+                        className={selectedQuizId === quiz.id ? 'bg-orange-500' : ''}
+                      >
+                        Manage Questions
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteQuiz(quiz.id)}><Trash2 size={16} /></Button>
+                    </div>
                   </div>
-                ))}
-                <Button onClick={handleAddQuiz} className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Plus size={18} className="mr-2" /> Add Quiz
-                </Button>
-              </div>
+                </div>
+              ))}
             </div>
 
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Manage Quiz Questions</h2>
-              <div className="mb-4">
-                <label className="block text-sm text-gray-400 mb-1">Select Quiz</label>
-                <select 
-                  value={selectedQuizId || ''}
-                  onChange={(e) => setSelectedQuizId(e.target.value || null)}
-                  className="w-full p-2 rounded-lg bg-slate-800 border border-white/20 text-white"
-                >
-                  <option value="">-- Select a Quiz --</option>
-                  {quizzes.map(quiz => (
-                    <option key={quiz.id} value={quiz.id}>{quiz.title}</option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedQuizId && (
-                <div className="space-y-6 mt-4">
-                  {quizQuestions.map((q) => (
-                    <div key={q.id} className="p-4 bg-slate-800 rounded-lg border border-white/10 space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 space-y-1">
-                          <label className="block text-sm text-gray-400">Question Text</label>
-                          <Textarea value={q.question_text} onChange={(e) => handleUpdateQuestion(q.id, 'question_text', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
-                        </div>
-                        <Button variant="destructive" size="icon" onClick={() => handleDeleteQuestion(q.id)} className="ml-4">
-                          <Trash2 size={18} />
-                        </Button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        {q.options.map((opt, idx) => (
-                          <div key={idx} className="space-y-1">
-                            <label className="block text-xs text-gray-400">Option {idx + 1} {q.correct_answer === idx && <span className="text-green-400">(Correct)</span>}</label>
-                            <div className="flex gap-2">
-                              <Input value={opt} onChange={(e) => {
-                                const newOpts = [...q.options];
-                                newOpts[idx] = e.target.value;
-                                handleUpdateQuestion(q.id, 'options', newOpts);
-                              }} className="bg-slate-700 border-white/10 text-white" />
-                              <Button 
-                                variant={q.correct_answer === idx ? 'default' : 'outline'} 
-                                size="icon"
-                                onClick={() => handleUpdateQuestion(q.id, 'correct_answer', idx)}
-                                className={q.correct_answer === idx ? 'bg-green-600' : 'border-white/10'}
-                              >
-                                <Check size={16} />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  <Button onClick={handleAddQuestion} className="bg-orange-500 hover:bg-orange-600 text-white">
-                    <Plus size={18} className="mr-2" /> Add Question
+            {selectedQuizId && (
+              <div className="mt-12 space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-semibold text-white">Questions for {quizzes.find(q => q.id === selectedQuizId)?.title}</h3>
+                  <Button onClick={handleAddQuestion} variant="outline" size="sm">
+                    <Plus size={16} className="mr-2" /> Add Question
                   </Button>
                 </div>
-              )}
-            </div>
+                <div className="space-y-6">
+                  {quizQuestions.map((q, qIdx) => (
+                    <div key={q.id} className="bg-slate-800/30 border border-white/10 rounded-xl p-6 relative group">
+                      <button
+                        onClick={() => handleDeleteQuestion(q.id)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={14} />
+                      </button>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs text-gray-500 uppercase mb-1">Question {qIdx + 1}</label>
+                          <Input
+                            value={q.question_text}
+                            onChange={(e) => handleUpdateQuestion(q.id, 'question_text', e.target.value)}
+                            className="bg-slate-900 border-white/10 text-white"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {q.options.map((opt, optIdx) => (
+                            <div key={optIdx} className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`correct-${q.id}`}
+                                checked={q.correct_answer === optIdx}
+                                onChange={() => handleUpdateQuestion(q.id, 'correct_answer', optIdx)}
+                                className="w-4 h-4 text-orange-500 bg-slate-900 border-white/10"
+                              />
+                              <Input
+                                value={opt}
+                                onChange={(e) => {
+                                  const newOpts = [...q.options];
+                                  newOpts[optIdx] = e.target.value;
+                                  handleUpdateQuestion(q.id, 'options', newOpts);
+                                }}
+                                className={`bg-slate-900 border-white/10 text-sm ${q.correct_answer === optIdx ? 'border-green-500/50' : ''}`}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 uppercase mb-1">Explanation (Optional)</label>
+                          <Textarea
+                            value={q.explanation || ''}
+                            onChange={(e) => handleUpdateQuestion(q.id, 'explanation', e.target.value)}
+                            className="bg-slate-900 border-white/10 text-sm h-20"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

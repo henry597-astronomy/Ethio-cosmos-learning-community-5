@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, email, avatar_url, role, created_at, updated_at')
+        .select('id, username, email, role, created_at, updated_at')
         .eq('id', userId)
         .maybeSingle();
 
@@ -64,12 +64,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (data) {
-        setProfile(data as UserProfile);
+        setProfile({
+          ...data,
+          avatar_url: (user?.user_metadata?.avatar_url as string | undefined) || null
+        } as UserProfile);
       }
     } finally {
       if (mountedRef.current) setProfileLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const applySession = useCallback(
     (session: Session | null) => {
@@ -90,16 +93,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         setProfile(optimisticProfile);
         
-        // If user signed in with Google, immediately update their avatar/name
+        // If user signed in with Google, immediately update their name
         // in the DB so it's always fresh. Use UPDATE only (not upsert) because
         // RLS has no INSERT policy for clients — the trigger handles new inserts.
-        const avatarUrl = metadata?.avatar_url as string | undefined;
         const fullName = metadata?.full_name as string | undefined || metadata?.name as string | undefined;
-        if (avatarUrl || fullName) {
+        if (fullName) {
           supabase
             .from('profiles')
             .update({
-              avatar_url: avatarUrl || null,
               username: fullName || (nextUser.email ? nextUser.email.split('@')[0] : 'User'),
             })
             .eq('id', nextUser.id)

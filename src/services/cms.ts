@@ -468,3 +468,16 @@ export const uploadImage = async (file: File, bucket: string = "uploads"): Promi
   const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(filePath);
   return publicUrl;
 };
+
+export const uploadVideo = async (file: File, bucket: string = "uploads"): Promise<string | null> => {
+  if (!file) return null;
+
+  const filePath = `videos/${Date.now()}-${file.name}`;
+  const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
+  if (uploadError) {
+    console.error("Error uploading video:", uploadError);
+    throw uploadError;
+  }
+  const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(filePath);
+  return publicUrl;
+};

@@ -8,7 +8,7 @@ import {
   useQuizQuestions,
 } from '@/hooks/use-cms-data';
 import { isValidConfig } from '@/supabase';
-import { uploadImage } from '@/services/cms';
+import { uploadImage, uploadVideo } from '@/services/cms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -105,6 +105,67 @@ function ImageUpload({ currentImage, onImageUploaded, label }: ImageUploadProps)
           >
             <Upload size={16} className="mr-2" />
             {uploading ? 'Uploading...' : 'Upload Image'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Video Upload Component ───────────────────────────────────────────────────
+interface VideoUploadProps {
+  currentVideo: string;
+  onVideoUploaded: (url: string) => void;
+  label?: string;
+}
+
+function VideoUpload({ currentVideo, onVideoUploaded, label }: VideoUploadProps) {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!isValidConfig) {
+      alert('Supabase is not configured. Please add your credentials to the .env file.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const publicUrl = await uploadVideo(file, 'uploads');
+      if (publicUrl) {
+        onVideoUploaded(publicUrl);
+      }
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      alert('Failed to upload video. Make sure the "uploads" storage bucket exists in Supabase and RLS policies allow uploads.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {label && <label className="block text-sm text-gray-400">{label}</label>}
+      <div className="flex items-center gap-4">
+        {currentVideo && (
+          <div className="w-20 h-20 rounded-lg border border-white/10 overflow-hidden bg-black flex items-center justify-center">
+            <video src={currentVideo} className="w-full h-full object-cover" />
+          </div>
+        )}
+        <div className="flex-1">
+          <input type="file" accept="video/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="border-white/20 text-white hover:bg-white/10"
+          >
+            <Upload size={16} className="mr-2" />
+            {uploading ? 'Uploading...' : 'Upload Local Video'}
           </Button>
         </div>
       </div>
@@ -618,10 +679,18 @@ export default function AdminPage() {
                   <div className="border-t border-white/10 pt-4 mt-4">
                     <h3 className="text-sm font-semibold text-white mb-3">Hero Video</h3>
                     <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm text-gray-400 mb-1">Video URL</label>
-                        <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..." className="bg-slate-800 border-white/20 text-white" />
-                        <p className="text-xs text-gray-500 mt-1">Supports: Direct video files (MP4, WebM), YouTube links, Google Drive, or Cloudinary</p>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-1">Video Source (URL or Upload)</label>
+                          <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..." className="bg-slate-800 border-white/20 text-white mb-3" />
+                          <div className="text-xs text-gray-500 mb-3 text-center">— OR —</div>
+                          <VideoUpload 
+                            currentVideo={heroLocal?.videoUrl || ''} 
+                            onVideoUploaded={(url) => updateHeroLocal('videoUrl', url)} 
+                            label="Upload Local Video File"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Supports: Local upload (recommended), Direct URLs, YouTube, Google Drive, or Cloudinary</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <input 

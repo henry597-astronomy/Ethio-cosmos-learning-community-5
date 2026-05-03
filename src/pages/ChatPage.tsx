@@ -216,7 +216,13 @@ export default function ChatPage() {
   const deleteMessage = async (messageId: string) => {
     if (!user) return;
 
-    // Optimistic delete
+    // If it's a temporary message, just remove it from state
+    if (messageId.startsWith('temp-')) {
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      return;
+    }
+
+    // Optimistic delete for server messages
     const originalMessages = [...messages];
     setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
     setDeletingMessageId(messageId);
@@ -424,7 +430,7 @@ export default function ChatPage() {
                           {formatTime(msg.created_at)}
                         </span>
                         
-                        {isMe && !msg.id.startsWith('temp-') && (
+                        {isMe && (
                           <button
                             onClick={() => deleteMessage(msg.id)}
                             disabled={deletingMessageId === msg.id}

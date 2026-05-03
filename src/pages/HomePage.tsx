@@ -70,57 +70,59 @@ export default function HomePage() {
             
             {/* Video Section */}
             {homepageHero.hero?.videoVisible && homepageHero.hero?.videoUrl && (
-              <div className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl">
-                {getVideoType(homepageHero.hero.videoUrl) === 'youtube' ? (
-                  // YouTube Embedded Video
-                  <div className="relative w-full aspect-video bg-black">
-                    <iframe
-                      key={homepageHero.hero.videoUrl}
-                      width="100%"
-                      height="100%"
-                      src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
-                      title="Hero Video"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="absolute inset-0"
-                    />
-                  </div>
-                ) : getVideoType(homepageHero.hero.videoUrl) === 'google-drive' ? (
-                  // Google Drive Embedded Video
-                  <div className="relative w-full aspect-video bg-black">
-                    <iframe
-                      key={homepageHero.hero.videoUrl}
-                      width="100%"
-                      height="100%"
-                      src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
-                      title="Hero Video"
-                      frameBorder="0"
-                      allow="autoplay"
-                      allowFullScreen
-                      className="absolute inset-0"
-                    />
-                  </div>
-                ) : getVideoType(homepageHero.hero.videoUrl) === 'direct' ? (
-                  // Direct Video File
-                  <video
-                    key={homepageHero.hero.videoUrl}
-                    controls
-                    className="w-full h-auto aspect-video bg-black"
-                    poster="/images/hero-bg.jpg"
-                  >
-                    <source src={homepageHero.hero.videoUrl} />
-                    Your browser does not support the video tag.
-                  </video>
-                ) : (
-                  // Invalid Video URL
-                  <div className="w-full aspect-video bg-black flex items-center justify-center">
-                    <div className="text-center text-gray-400">
-                      <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Invalid video URL</p>
+              <div className="flex justify-center items-center" style={{ height: '150px' }}>
+                <div className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl" style={{ transform: 'scale(0.25)', transformOrigin: 'top center', width: '100%' }}>
+                  {getVideoType(homepageHero.hero.videoUrl) === 'youtube' ? (
+                    // YouTube Embedded Video
+                    <div className="relative w-full aspect-video bg-black">
+                      <iframe
+                        key={homepageHero.hero.videoUrl}
+                        width="100%"
+                        height="100%"
+                        src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                        title="Hero Video"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0"
+                      />
                     </div>
-                  </div>
-                )}
+                  ) : getVideoType(homepageHero.hero.videoUrl) === 'google-drive' ? (
+                    // Google Drive Embedded Video
+                    <div className="relative w-full aspect-video bg-black">
+                      <iframe
+                        key={homepageHero.hero.videoUrl}
+                        width="100%"
+                        height="100%"
+                        src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                        title="Hero Video"
+                        frameBorder="0"
+                        allow="autoplay"
+                        allowFullScreen
+                        className="absolute inset-0"
+                      />
+                    </div>
+                  ) : getVideoType(homepageHero.hero.videoUrl) === 'direct' ? (
+                    // Direct Video File
+                    <video
+                      key={homepageHero.hero.videoUrl}
+                      controls
+                      className="w-full h-auto aspect-video bg-black"
+                      poster="/images/hero-bg.jpg"
+                    >
+                      <source src={homepageHero.hero.videoUrl} />
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    // Invalid Video URL
+                    <div className="w-full aspect-video bg-black flex items-center justify-center">
+                      <div className="text-center text-gray-400">
+                        <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Invalid video URL</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -12,7 +12,7 @@ interface ChatMessageRow {
   image_url: string | null;
   created_at: string;
   user_id: string;
-  profiles?: { username?: string | null; email?: string | null; avatar_url?: string | null } | null;
+  profiles?: { username?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null;
 }
 
 function rowToMessage(row: ChatMessageRow): ChatMessage {
@@ -29,6 +29,8 @@ function rowToMessage(row: ChatMessageRow): ChatMessage {
     created_at: row.created_at,
     sender_name,
     sender_email: profile?.email ?? undefined,
+    sender_avatar: profile?.avatar_url ?? undefined,
+    sender_role: profile?.role ?? 'user',
   };
 }
 
@@ -71,7 +73,7 @@ export default function ChatPage() {
         const { data, error: fetchError } = await supabase
           .from('chat_messages')
           .select(
-            `id, message_text, image_url, created_at, user_id, profiles ( username, email, avatar_url )`
+            `id, message_text, image_url, created_at, user_id, profiles ( username, email, avatar_url, role )`
           )
           .order('created_at', { ascending: true });
 
@@ -92,9 +94,9 @@ export default function ChatPage() {
 
     fetchMessages();
 
-    // Setup real-time subscription for INSERT events
-    const insertChannel = supabase
-      .channel('messages-insert')
+    // Setup real-time subscription
+    const channel = supabase
+      .channel('chat-realtime')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
@@ -109,25 +111,17 @@ export default function ChatPage() {
 
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('username, email, avatar_url')
+            .select('username, email, avatar_url, role')
             .eq('id', m.user_id)
             .maybeSingle();
 
           const newMsg = rowToMessage({ ...m, profiles: profileData ?? null });
           setMessages((prev) => {
-            // Avoid duplicates
-            if (prev.some((msg) => msg.id === newMsg.id)) {
-              return prev;
-            }
+            if (prev.some((msg) => msg.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
         }
       )
-      .subscribe();
-
-    // Setup real-time subscription for DELETE events
-    const deleteChannel = supabase
-      .channel('messages-delete')
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'chat_messages' },
@@ -139,8 +133,7 @@ export default function ChatPage() {
       .subscribe();
 
     return () => {
-      insertChannel.unsubscribe();
-      deleteChannel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [user]);
 
@@ -159,53 +152,24 @@ export default function ChatPage() {
       return;
     }
 
-    // Optimistic UI update
-    const optimisticMessage: ChatMessage = {
-      id: `temp-${Date.now()}`,
-      user_id: user.id,
-      message_text: text,
-      image_url: null,
-      created_at: new Date().toISOString(),
-      sender_name: 'You',
-      sender_email: user.email,
-    };
-
-    setMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage('');
     setError(null);
 
     try {
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('chat_messages')
         .insert({
           user_id: user.id,
           message_text: text,
-        })
-        .select();
+        });
 
       if (insertError) {
         console.error('Error sending message:', insertError);
         setError('Failed to send message. Please try again.');
-        // Remove optimistic message on error
-        setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id));
-        return;
-      }
-
-      // Replace optimistic message with real one from server
-      if (data && data[0]) {
-        const realMessage = rowToMessage({
-          ...data[0],
-          profiles: { username: user.user_metadata?.name, email: user.email },
-        } as ChatMessageRow);
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === optimisticMessage.id ? realMessage : msg))
-        );
       }
     } catch (err) {
       console.error('Unexpected error sending message:', err);
       setError('An unexpected error occurred.');
-      // Remove optimistic message on error
-      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id));
     }
   };
 
@@ -225,12 +189,7 @@ export default function ChatPage() {
       if (deleteError) {
         console.error('Error deleting message:', deleteError);
         setError('Failed to delete message. Please try again.');
-        setDeletingMessageId(null);
-        return;
       }
-
-      // Remove message from UI immediately
-      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
     } catch (err) {
       console.error('Unexpected error deleting message:', err);
       setError('An unexpected error occurred.');
@@ -255,39 +214,14 @@ export default function ChatPage() {
         data: { publicUrl },
       } = supabase.storage.from('uploads').getPublicUrl(filePath);
 
-      // Optimistic UI update for image
-      const optimisticMessage: ChatMessage = {
-        id: `temp-${Date.now()}`,
-        user_id: user.id,
-        message_text: null,
-        image_url: publicUrl,
-        created_at: new Date().toISOString(),
-        sender_name: 'You',
-        sender_email: user.email,
-      };
-
-      setMessages((prev) => [...prev, optimisticMessage]);
-
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('chat_messages')
         .insert({
           user_id: user.id,
           image_url: publicUrl,
-        })
-        .select();
+        });
 
       if (insertError) throw insertError;
-
-      // Replace optimistic message with real one
-      if (data && data[0]) {
-        const realMessage = rowToMessage({
-          ...data[0],
-          profiles: { username: user.user_metadata?.name, email: user.email },
-        } as ChatMessageRow);
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === optimisticMessage.id ? realMessage : msg))
-        );
-      }
     } catch (err) {
       console.error('Error uploading image:', err);
       setError('Failed to upload image. Please try again.');
@@ -341,7 +275,7 @@ export default function ChatPage() {
           ref={messagesContainerRef}
           className="flex-1 overflow-y-auto p-4"
         >
-          <div className="max-w-4xl mx-auto space-y-3">
+          <div className="max-w-4xl mx-auto space-y-4">
             {messages.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-300">No messages yet. Be the first to say hello! 🌌</p>
@@ -349,70 +283,83 @@ export default function ChatPage() {
             ) : (
               messages.map((msg) => {
                 const isOwn = msg.user_id === user.id;
-                const isTemp = msg.id.startsWith('temp-');
                 const nameColor = getNameColor(msg.user_id);
+                const isAdmin = msg.sender_role === 'admin';
 
                 return (
                   <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
-                    <div className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'} max-w-[85%]`}>
+                    <div className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'} max-w-[85%]`}>
                       {/* Avatar */}
-                      {!isOwn && (
-                        <div className="flex-shrink-0">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm border-2 border-white/20">
+                      <div className="flex-shrink-0 mt-auto">
+                        {msg.sender_avatar ? (
+                          <img 
+                            src={msg.sender_avatar} 
+                            alt={msg.sender_name} 
+                            className="w-10 h-10 rounded-full border-2 border-white/10 object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white font-bold text-sm border-2 border-white/10">
                             {msg.sender_name.charAt(0).toUpperCase()}
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
 
                       {/* Message Bubble */}
                       <div className="relative group/bubble">
                         <div
-                          className={`rounded-lg px-4 py-2 backdrop-blur-sm ${
+                          className={`rounded-2xl px-4 py-2 backdrop-blur-md shadow-lg ${
                             isOwn
-                              ? 'bg-orange-500/90 text-white rounded-br-none'
-                              : 'bg-slate-700/90 text-gray-100 rounded-bl-none'
-                          } ${isTemp ? 'opacity-70' : ''}`}
+                              ? 'bg-[#2b5278]/90 text-white rounded-br-none'
+                              : 'bg-[#182533]/90 text-gray-100 rounded-bl-none'
+                          }`}
                         >
-                          {/* Sender Name - Only for others */}
-                          {!isOwn && (
-                            <p
-                              className="text-xs font-bold mb-1"
-                              style={{ color: nameColor }}
+                          {/* Sender Name & Role */}
+                          <div className="flex items-center justify-between gap-4 mb-1">
+                            <span
+                              className="text-sm font-bold"
+                              style={{ color: isOwn ? '#87CEEB' : nameColor }}
                             >
                               {msg.sender_name}
-                            </p>
-                          )}
+                            </span>
+                            {isAdmin && (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                Owner
+                              </span>
+                            )}
+                          </div>
 
                           {/* Message Content */}
                           {msg.image_url ? (
-                            <img
-                              src={msg.image_url}
-                              alt="Shared"
-                              className="max-w-sm rounded-lg"
-                            />
+                            <div className="mt-1">
+                              <img
+                                src={msg.image_url}
+                                alt="Shared"
+                                className="max-w-sm rounded-lg border border-white/10"
+                              />
+                            </div>
                           ) : (
-                            <p className="text-sm leading-relaxed">{msg.message_text}</p>
+                            <p className="text-[15px] leading-relaxed font-normal italic">
+                              {msg.message_text}
+                            </p>
                           )}
 
                           {/* Timestamp */}
-                          <p
-                            className={`text-xs mt-1 ${
-                              isOwn ? 'text-orange-100' : 'text-gray-400'
-                            }`}
-                          >
-                            {formatTime(msg.created_at)}
-                          </p>
+                          <div className="flex justify-end mt-1">
+                            <span className="text-[10px] text-gray-400/80 font-medium">
+                              {formatTime(msg.created_at)}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Delete Button - Only for own messages */}
-                        {isOwn && !isTemp && (
+                        {isOwn && (
                           <button
                             onClick={() => deleteMessage(msg.id)}
                             disabled={deletingMessageId === msg.id}
-                            className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1 text-gray-300 hover:text-red-400 disabled:opacity-50"
+                            className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-red-400 disabled:opacity-50 bg-black/20 rounded-full backdrop-blur-sm"
                             title="Delete message"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} />
                           </button>
                         )}
                       </div>
@@ -438,7 +385,7 @@ export default function ChatPage() {
             <Button
               variant="outline"
               size="icon"
-              className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 flex-shrink-0"
+              className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 flex-shrink-0 rounded-full"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
@@ -450,15 +397,15 @@ export default function ChatPage() {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-              className="flex-1 bg-slate-800/80 border-white/20 text-white placeholder:text-gray-400"
+              className="flex-1 bg-slate-800/80 border-white/20 text-white placeholder:text-gray-400 rounded-full px-6"
               disabled={uploading}
             />
             <Button
-              className="bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
+              className="bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0 rounded-full w-10 h-10 p-0"
               onClick={sendMessage}
               disabled={!newMessage.trim() || uploading}
             >
-              <Send size={20} />
+              <Send size={18} />
             </Button>
           </div>
         </div>

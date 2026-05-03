@@ -9,11 +9,11 @@ const publicNavLinks = [
   { path: '/learning', label: 'Learning' },
   { path: '/materials', label: 'Materials' },
   { path: '/chat', label: 'Chat' },
+  { path: '/tests', label: 'Tests' },
   { path: '/about', label: 'About' },
 ];
 
 const privateNavLinks = [
-  { path: '/tests', label: 'Tests' },
   { path: '/bookmarks', label: 'Bookmarks' },
   { path: '/progress', label: 'Progress' },
 ];

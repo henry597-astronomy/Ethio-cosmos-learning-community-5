@@ -60,6 +60,7 @@ export default function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const [liveUserCount, setLiveUserCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -84,7 +85,11 @@ export default function ChatPage() {
         }
 
         if (data) {
-          setMessages((data as unknown as ChatMessageRow[]).map(rowToMessage));
+          const mappedMessages = (data as unknown as ChatMessageRow[]).map(rowToMessage);
+          setMessages(mappedMessages);
+          // Count unique users
+          const uniqueUsers = new Set(mappedMessages.map(msg => msg.user_id)).size;
+          setLiveUserCount(uniqueUsers);
         }
       } catch (err) {
         console.error('Unexpected error loading messages:', err);
@@ -126,7 +131,11 @@ export default function ChatPage() {
             // If we have an optimistic message (temp ID), we should replace it
             // But here we'll just filter out any message that looks like a duplicate
             const filtered = prev.filter(msg => !(msg.user_id === newMsg.user_id && msg.message_text === newMsg.message_text && msg.id.startsWith('temp-')));
-            return [...filtered, newMsg].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            const updated = [...filtered, newMsg].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            // Update live user count
+            const uniqueUsers = new Set(updated.map(msg => msg.user_id)).size;
+            setLiveUserCount(uniqueUsers);
+            return updated;
           });
         }
       )
@@ -135,7 +144,13 @@ export default function ChatPage() {
         { event: 'DELETE', schema: 'public', table: 'chat_messages' },
         (payload) => {
           const deletedId = payload.old.id;
-          setMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
+          setMessages((prev) => {
+            const updated = prev.filter((msg) => msg.id !== deletedId);
+            // Update live user count
+            const uniqueUsers = new Set(updated.map(msg => msg.user_id)).size;
+            setLiveUserCount(uniqueUsers);
+            return updated;
+          });
         }
       )
       .subscribe();
@@ -287,7 +302,7 @@ export default function ChatPage() {
             <h1 className="text-xl font-bold text-white">Community Chat</h1>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Live Community
+              Live Community ({liveUserCount})
             </div>
           </div>
         </div>

@@ -8,11 +8,11 @@ const publicNavLinks = [
   { path: '/', label: 'Home' },
   { path: '/learning', label: 'Learning' },
   { path: '/materials', label: 'Materials' },
+  { path: '/chat', label: 'Chat' },
   { path: '/about', label: 'About' },
 ];
 
 const privateNavLinks = [
-  { path: '/chat', label: 'Chat' },
   { path: '/tests', label: 'Tests' },
   { path: '/bookmarks', label: 'Bookmarks' },
   { path: '/progress', label: 'Progress' },

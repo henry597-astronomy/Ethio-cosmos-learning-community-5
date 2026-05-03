@@ -54,7 +54,7 @@ function getNameColor(userId: string): string {
 }
 
 export default function ChatPage() {
-  const { user } = useAuth();
+  const { user, profile, displayName } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -181,8 +181,10 @@ export default function ChatPage() {
       user_id: user.id,
       message_text: text,
       created_at: new Date().toISOString(),
-      sender_name: user.email?.split('@')[0] || 'Me',
-      sender_role: 'user',
+      sender_name: displayName,
+      sender_email: user.email || undefined,
+      sender_avatar: profile?.avatar_url || undefined,
+      sender_role: profile?.role || 'user',
     };
 
     // Optimistic update
@@ -247,6 +249,23 @@ export default function ChatPage() {
     if (!file || !user) return;
     setUploading(true);
     setError(null);
+
+    const tempId = `temp-img-${Date.now()}`;
+    const optimisticMsg: ChatMessage = {
+      id: tempId,
+      user_id: user.id,
+      message_text: null,
+      image_url: URL.createObjectURL(file),
+      created_at: new Date().toISOString(),
+      sender_name: displayName,
+      sender_email: user.email || undefined,
+      sender_avatar: profile?.avatar_url || undefined,
+      sender_role: profile?.role || 'user',
+    };
+
+    // Optimistic update for image
+    setMessages((prev) => [...prev, optimisticMsg]);
+
     try {
       const filePath = `chat-images/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
@@ -269,6 +288,8 @@ export default function ChatPage() {
     } catch (err) {
       console.error('Error uploading image:', err);
       setError('Failed to upload image. Please try again.');
+      // Rollback optimistic update
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -307,150 +328,160 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 mx-4 mt-2 rounded-lg flex-shrink-0">
+          <div className="bg-red-500/20 border-b border-red-500/50 px-4 py-2 text-red-400 text-sm text-center flex-shrink-0">
             {error}
           </div>
         )}
 
-        {/* Messages Container */}
-        <div
+        {/* Messages area */}
+        <div 
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto p-4"
+          className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth"
         >
-          <div className="max-w-4xl mx-auto space-y-4">
-            {messages.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-300">No messages yet. Be the first to say hello! 🌌</p>
-              </div>
-            ) : (
-              messages.map((msg) => {
-                const isOwn = msg.user_id === user.id;
-                const nameColor = getNameColor(msg.user_id);
-                const isAdmin = msg.sender_role === 'admin';
+          <div className="max-w-4xl mx-auto space-y-6">
+            {messages.map((msg, index) => {
+              const isMe = msg.user_id === user.id;
+              const showAvatar = index === 0 || messages[index - 1].user_id !== msg.user_id;
+              const isOwner = msg.sender_role === 'admin';
+              
+              return (
+                <div 
+                  key={msg.id} 
+                  className={`flex items-end gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                >
+                  {/* Avatar */}
+                  <div className="flex-shrink-0 mb-1">
+                    {showAvatar ? (
+                      msg.sender_avatar ? (
+                        <img 
+                          src={msg.sender_avatar} 
+                          alt={msg.sender_name} 
+                          className="w-10 h-10 rounded-full border-2 border-white/10 object-cover"
+                        />
+                      ) : (
+                        <div 
+                          className="w-10 h-10 rounded-full border-2 border-white/10 flex items-center justify-center text-white font-bold"
+                          style={{ backgroundColor: getNameColor(msg.user_id) }}
+                        >
+                          {msg.sender_name.charAt(0).toUpperCase()}
+                        </div>
+                      )
+                    ) : (
+                      <div className="w-10" />
+                    )}
+                  </div>
 
-                return (
-                  <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
-                    <div className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'} max-w-[85%]`}>
-                      {/* Avatar */}
-                      <div className="flex-shrink-0 mt-auto">
-                        {msg.sender_avatar ? (
-                          <img 
-                            src={msg.sender_avatar} 
-                            alt={msg.sender_name} 
-                            className="w-10 h-10 rounded-full border-2 border-white/10 object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white font-bold text-sm border-2 border-white/10">
-                            {msg.sender_name.charAt(0).toUpperCase()}
-                          </div>
+                  {/* Message Bubble */}
+                  <div className={`max-w-[80%] sm:max-w-[70%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                    {showAvatar && (
+                      <div className="flex items-center gap-2 mb-1 px-1">
+                        <span 
+                          className="text-xs font-semibold"
+                          style={{ color: isMe ? '#fff' : getNameColor(msg.user_id) }}
+                        >
+                          {msg.sender_name}
+                        </span>
+                        {isOwner && (
+                          <span className="text-[10px] bg-purple-500/30 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/30 uppercase tracking-wider font-bold">
+                            Owner
+                          </span>
                         )}
                       </div>
-
-                      {/* Message Bubble */}
-                      <div className="relative group/bubble">
-                        <div
-                          className={`rounded-2xl px-4 py-2 backdrop-blur-md shadow-lg ${
-                            isOwn
-                              ? 'bg-[#2b5278]/90 text-white rounded-br-none'
-                              : 'bg-[#182533]/90 text-gray-100 rounded-bl-none'
-                          }`}
-                        >
-                          {/* Sender Name & Role */}
-                          <div className="flex items-center justify-between gap-4 mb-1">
-                            <span 
-                              className="text-xs font-bold"
-                              style={{ color: isOwn ? '#87CEEB' : nameColor }}
-                            >
-                              {msg.sender_name}
-                            </span>
-                            {isAdmin && (
-                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                                Owner
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Message Content */}
-                          {msg.image_url ? (
-                            <div className="mt-1 -mx-2 -mb-1">
-                              <img
-                                src={msg.image_url}
-                                alt="Shared"
-                                className="max-w-full max-h-[400px] w-auto h-auto rounded-lg border border-white/10 object-contain"
-                              />
-                            </div>
-                          ) : (
-                            <p className="text-[15px] leading-relaxed font-normal italic">
-                              {msg.message_text}
-                            </p>
-                          )}
-
-                          {/* Timestamp */}
-                          <div className="flex justify-end mt-1">
-                            <span className="text-[10px] text-gray-400/80 font-medium">
-                              {formatTime(msg.created_at)}
-                            </span>
-                          </div>
+                    )}
+                    
+                    <div 
+                      className={`relative group rounded-2xl px-4 py-2.5 shadow-lg ${
+                        isMe 
+                          ? 'bg-blue-600/80 text-white rounded-br-none' 
+                          : 'bg-slate-800/80 text-gray-100 rounded-bl-none'
+                      } backdrop-blur-sm border border-white/5`}
+                    >
+                      {msg.image_url && (
+                        <div className="mb-2 -mx-1 -mt-1">
+                          <img 
+                            src={msg.image_url} 
+                            alt="Shared image" 
+                            className="rounded-lg max-w-full h-auto border border-white/10"
+                            onLoad={() => {
+                              if (messagesEndRef.current) {
+                                messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                              }
+                            }}
+                          />
                         </div>
+                      )}
+                      
+                      {msg.message_text && (
+                        <p className="text-sm sm:text-base whitespace-pre-wrap break-words leading-relaxed">
+                          {msg.message_text}
+                        </p>
+                      )}
 
-                        {/* Delete Button - Only for own messages */}
-                        {isOwn && (
+                      <div className={`flex items-center gap-2 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <span className="text-[10px] opacity-50 font-medium">
+                          {formatTime(msg.created_at)}
+                        </span>
+                        
+                        {isMe && !msg.id.startsWith('temp-') && (
                           <button
                             onClick={() => deleteMessage(msg.id)}
                             disabled={deletingMessageId === msg.id}
-                            className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-red-400 disabled:opacity-50 bg-black/20 rounded-full backdrop-blur-sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-1"
                             title="Delete message"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         )}
                       </div>
                     </div>
                   </div>
-                );
-              })
-            )}
+                </div>
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         </div>
 
-        {/* Input Area - Fixed at Bottom */}
-        <div className="bg-slate-900/80 backdrop-blur-md border-t border-white/10 p-4 flex-shrink-0">
-          <div className="max-w-4xl mx-auto flex items-center gap-2">
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 flex-shrink-0 rounded-full"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              <Paperclip size={20} />
-            </Button>
-            <Input
-              type="text"
-              placeholder={uploading ? 'Uploading image...' : 'Type a message...'}
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-              className="flex-1 bg-slate-800/80 border-white/20 text-white placeholder:text-gray-400 rounded-full px-6"
-              disabled={uploading}
-            />
-            <Button
-              className="bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0 rounded-full w-10 h-10 p-0"
-              onClick={sendMessage}
-              disabled={!newMessage.trim() || uploading}
-            >
-              <Send size={18} />
-            </Button>
+        {/* Input area */}
+        <div className="bg-slate-900/90 backdrop-blur-xl border-t border-white/10 p-4 flex-shrink-0">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="p-2.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-all disabled:opacity-50"
+                title="Attach image"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              
+              <div className="flex-1 relative">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                  placeholder="Type a message..."
+                  className="bg-slate-800/50 border-white/10 text-white placeholder:text-gray-500 h-11 rounded-full px-5 focus:ring-blue-500/50 focus:border-blue-500/50"
+                />
+              </div>
+
+              <Button
+                onClick={sendMessage}
+                disabled={!newMessage.trim() || uploading}
+                className="bg-orange-500 hover:bg-orange-600 text-white rounded-full w-11 h-11 p-0 flex items-center justify-center shadow-lg shadow-orange-500/20 transition-all active:scale-95 disabled:opacity-50"
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

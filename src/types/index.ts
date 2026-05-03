@@ -41,8 +41,10 @@ export interface ChatMessage {
   image_url?: string | null;
   created_at: string;
   // Optional joined fields (filled client-side from profiles)
-  sender_name?: string;
+  sender_name: string;
   sender_email?: string;
+  sender_avatar?: string;
+  sender_role?: string;
 }
 
 export interface UserProfile {

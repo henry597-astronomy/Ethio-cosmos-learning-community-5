@@ -288,114 +288,125 @@ export default function ChatPage() {
   if (!user) return null;
 
   return (
-    <div className="fixed inset-0 top-28 flex flex-col bg-[#0a0e1a]">
-      {/* Header */}
-      <div className="bg-slate-900 border-b border-white/10 px-4 py-3 flex-shrink-0">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-white">Community Chat</h1>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            Live Community
+    <div 
+      className="fixed inset-0 top-28 flex flex-col bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: 'url(/images/chat-bg.jpg)',
+      }}
+    >
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/60"></div>
+
+      {/* Content wrapper */}
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Header */}
+        <div className="bg-slate-900/80 backdrop-blur-md border-b border-white/10 px-4 py-3 flex-shrink-0">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <h1 className="text-xl font-bold text-white">Community Chat</h1>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              Live Community
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 mx-4 mt-2 rounded-lg flex-shrink-0">
-          {error}
-        </div>
-      )}
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 mx-4 mt-2 rounded-lg flex-shrink-0">
+            {error}
+          </div>
+        )}
 
-      {/* Messages Container */}
-      <div
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4"
-      >
-        <div className="max-w-4xl mx-auto space-y-4">
-          {messages.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-400">No messages yet. Be the first to say hello! 🌌</p>
-            </div>
-          ) : (
-            messages.map((msg) => {
-              const isOwn = msg.user_id === user.id;
-              const isTemp = msg.id.startsWith('temp-');
-              return (
-                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
-                  <div className="relative">
-                    <div
-                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                        isOwn ? 'bg-orange-500 text-white' : 'bg-slate-800 text-gray-200'
-                      } ${isTemp ? 'opacity-70' : ''}`}
-                    >
-                      {!isOwn && (
-                        <p className="text-xs font-medium text-gray-400 mb-1">{msg.sender_name}</p>
-                      )}
-                      {msg.image_url ? (
-                        <img src={msg.image_url} alt="Shared" className="max-w-full rounded-lg" />
-                      ) : (
-                        <p>{msg.message_text}</p>
-                      )}
-                      <p className={`text-xs mt-1 ${isOwn ? 'text-orange-200' : 'text-gray-500'}`}>
-                        {formatTime(msg.created_at)}
-                      </p>
-                    </div>
-                    {/* Delete Button - Only for own messages */}
-                    {isOwn && !isTemp && (
-                      <button
-                        onClick={() => deleteMessage(msg.id)}
-                        disabled={deletingMessageId === msg.id}
-                        className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-400 disabled:opacity-50"
-                        title="Delete message"
+        {/* Messages Container */}
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto p-4"
+        >
+          <div className="max-w-4xl mx-auto space-y-4">
+            {messages.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-300">No messages yet. Be the first to say hello! 🌌</p>
+              </div>
+            ) : (
+              messages.map((msg) => {
+                const isOwn = msg.user_id === user.id;
+                const isTemp = msg.id.startsWith('temp-');
+                return (
+                  <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
+                    <div className="relative">
+                      <div
+                        className={`max-w-[70%] rounded-lg px-4 py-2 backdrop-blur-sm ${
+                          isOwn ? 'bg-orange-500/90 text-white' : 'bg-slate-800/90 text-gray-200'
+                        } ${isTemp ? 'opacity-70' : ''}`}
                       >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                        {!isOwn && (
+                          <p className="text-xs font-medium text-gray-300 mb-1">{msg.sender_name}</p>
+                        )}
+                        {msg.image_url ? (
+                          <img src={msg.image_url} alt="Shared" className="max-w-full rounded-lg" />
+                        ) : (
+                          <p>{msg.message_text}</p>
+                        )}
+                        <p className={`text-xs mt-1 ${isOwn ? 'text-orange-100' : 'text-gray-400'}`}>
+                          {formatTime(msg.created_at)}
+                        </p>
+                      </div>
+                      {/* Delete Button - Only for own messages */}
+                      {isOwn && !isTemp && (
+                        <button
+                          onClick={() => deleteMessage(msg.id)}
+                          disabled={deletingMessageId === msg.id}
+                          className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-300 hover:text-red-400 disabled:opacity-50"
+                          title="Delete message"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
-          <div ref={messagesEndRef} />
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      </div>
 
-      {/* Input Area - Fixed at Bottom */}
-      <div className="bg-slate-900 border-t border-white/10 p-4 flex-shrink-0">
-        <div className="max-w-4xl mx-auto flex items-center gap-2">
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            className="border-white/20 text-gray-400 hover:text-white hover:bg-white/10 flex-shrink-0"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            <Paperclip size={20} />
-          </Button>
-          <Input
-            type="text"
-            placeholder={uploading ? 'Uploading image...' : 'Type a message...'}
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            className="flex-1 bg-slate-800 border-white/20 text-white placeholder:text-gray-500"
-            disabled={uploading}
-          />
-          <Button
-            className="bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
-            onClick={sendMessage}
-            disabled={!newMessage.trim() || uploading}
-          >
-            <Send size={20} />
-          </Button>
+        {/* Input Area - Fixed at Bottom */}
+        <div className="bg-slate-900/80 backdrop-blur-md border-t border-white/10 p-4 flex-shrink-0">
+          <div className="max-w-4xl mx-auto flex items-center gap-2">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              className="border-white/20 text-gray-300 hover:text-white hover:bg-white/10 flex-shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              <Paperclip size={20} />
+            </Button>
+            <Input
+              type="text"
+              placeholder={uploading ? 'Uploading image...' : 'Type a message...'}
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+              className="flex-1 bg-slate-800/80 border-white/20 text-white placeholder:text-gray-400"
+              disabled={uploading}
+            />
+            <Button
+              className="bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
+              onClick={sendMessage}
+              disabled={!newMessage.trim() || uploading}
+            >
+              <Send size={20} />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -12,7 +12,7 @@ interface ChatMessageRow {
   image_url: string | null;
   created_at: string;
   user_id: string;
-  profiles?: { username?: string | null; email?: string | null } | null;
+  profiles?: { username?: string | null; email?: string | null; avatar_url?: string | null } | null;
 }
 
 function rowToMessage(row: ChatMessageRow): ChatMessage {
@@ -30,6 +30,25 @@ function rowToMessage(row: ChatMessageRow): ChatMessage {
     sender_name,
     sender_email: profile?.email ?? undefined,
   };
+}
+
+// Color palette for user names
+const nameColors = [
+  '#FFD700', // Gold
+  '#87CEEB', // Sky Blue
+  '#FF69B4', // Hot Pink
+  '#98FB98', // Pale Green
+  '#DDA0DD', // Plum
+  '#F0E68C', // Khaki
+  '#FFB6C1', // Light Pink
+  '#20B2AA', // Light Sea Green
+  '#FF8C00', // Dark Orange
+  '#9370DB', // Medium Purple
+];
+
+function getNameColor(userId: string): string {
+  const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return nameColors[hash % nameColors.length];
 }
 
 export default function ChatPage() {
@@ -52,7 +71,7 @@ export default function ChatPage() {
         const { data, error: fetchError } = await supabase
           .from('chat_messages')
           .select(
-            `id, message_text, image_url, created_at, user_id, profiles ( username, email )`
+            `id, message_text, image_url, created_at, user_id, profiles ( username, email, avatar_url )`
           )
           .order('created_at', { ascending: true });
 
@@ -90,7 +109,7 @@ export default function ChatPage() {
 
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('username, email')
+            .select('username, email, avatar_url')
             .eq('id', m.user_id)
             .maybeSingle();
 
@@ -322,7 +341,7 @@ export default function ChatPage() {
           ref={messagesContainerRef}
           className="flex-1 overflow-y-auto p-4"
         >
-          <div className="max-w-4xl mx-auto space-y-4">
+          <div className="max-w-4xl mx-auto space-y-3">
             {messages.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-300">No messages yet. Be the first to say hello! 🌌</p>
@@ -331,37 +350,72 @@ export default function ChatPage() {
               messages.map((msg) => {
                 const isOwn = msg.user_id === user.id;
                 const isTemp = msg.id.startsWith('temp-');
+                const nameColor = getNameColor(msg.user_id);
+
                 return (
                   <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}>
-                    <div className="relative">
-                      <div
-                        className={`max-w-[70%] rounded-lg px-4 py-2 backdrop-blur-sm ${
-                          isOwn ? 'bg-orange-500/90 text-white' : 'bg-slate-800/90 text-gray-200'
-                        } ${isTemp ? 'opacity-70' : ''}`}
-                      >
-                        {!isOwn && (
-                          <p className="text-xs font-medium text-gray-300 mb-1">{msg.sender_name}</p>
-                        )}
-                        {msg.image_url ? (
-                          <img src={msg.image_url} alt="Shared" className="max-w-full rounded-lg" />
-                        ) : (
-                          <p>{msg.message_text}</p>
-                        )}
-                        <p className={`text-xs mt-1 ${isOwn ? 'text-orange-100' : 'text-gray-400'}`}>
-                          {formatTime(msg.created_at)}
-                        </p>
-                      </div>
-                      {/* Delete Button - Only for own messages */}
-                      {isOwn && !isTemp && (
-                        <button
-                          onClick={() => deleteMessage(msg.id)}
-                          disabled={deletingMessageId === msg.id}
-                          className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-300 hover:text-red-400 disabled:opacity-50"
-                          title="Delete message"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                    <div className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'} max-w-[85%]`}>
+                      {/* Avatar */}
+                      {!isOwn && (
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm border-2 border-white/20">
+                            {msg.sender_name.charAt(0).toUpperCase()}
+                          </div>
+                        </div>
                       )}
+
+                      {/* Message Bubble */}
+                      <div className="relative group/bubble">
+                        <div
+                          className={`rounded-lg px-4 py-2 backdrop-blur-sm ${
+                            isOwn
+                              ? 'bg-orange-500/90 text-white rounded-br-none'
+                              : 'bg-slate-700/90 text-gray-100 rounded-bl-none'
+                          } ${isTemp ? 'opacity-70' : ''}`}
+                        >
+                          {/* Sender Name - Only for others */}
+                          {!isOwn && (
+                            <p
+                              className="text-xs font-bold mb-1"
+                              style={{ color: nameColor }}
+                            >
+                              {msg.sender_name}
+                            </p>
+                          )}
+
+                          {/* Message Content */}
+                          {msg.image_url ? (
+                            <img
+                              src={msg.image_url}
+                              alt="Shared"
+                              className="max-w-sm rounded-lg"
+                            />
+                          ) : (
+                            <p className="text-sm leading-relaxed">{msg.message_text}</p>
+                          )}
+
+                          {/* Timestamp */}
+                          <p
+                            className={`text-xs mt-1 ${
+                              isOwn ? 'text-orange-100' : 'text-gray-400'
+                            }`}
+                          >
+                            {formatTime(msg.created_at)}
+                          </p>
+                        </div>
+
+                        {/* Delete Button - Only for own messages */}
+                        {isOwn && !isTemp && (
+                          <button
+                            onClick={() => deleteMessage(msg.id)}
+                            disabled={deletingMessageId === msg.id}
+                            className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1 text-gray-300 hover:text-red-400 disabled:opacity-50"
+                            title="Delete message"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

@@ -109,6 +109,8 @@ export default function ChatPage() {
             created_at: string;
           };
 
+          // If it's our own message, we might have already added it optimistically
+          // But we need the real ID and timestamp from the server
           const { data: profileData } = await supabase
             .from('profiles')
             .select('username, email, avatar_url, role')
@@ -117,8 +119,14 @@ export default function ChatPage() {
 
           const newMsg = rowToMessage({ ...m, profiles: profileData ?? null });
           setMessages((prev) => {
+            // Remove any optimistic message with the same content/temp state if needed
+            // For simplicity, we just check by ID
             if (prev.some((msg) => msg.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
+            
+            // If we have an optimistic message (temp ID), we should replace it
+            // But here we'll just filter out any message that looks like a duplicate
+            const filtered = prev.filter(msg => !(msg.user_id === newMsg.user_id && msg.message_text === newMsg.message_text && msg.id.startsWith('temp-')));
+            return [...filtered, newMsg].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
           });
         }
       )
@@ -152,6 +160,18 @@ export default function ChatPage() {
       return;
     }
 
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg: ChatMessage = {
+      id: tempId,
+      user_id: user.id,
+      message_text: text,
+      created_at: new Date().toISOString(),
+      sender_name: user.email?.split('@')[0] || 'Me',
+      sender_role: 'user',
+    };
+
+    // Optimistic update
+    setMessages((prev) => [...prev, optimisticMsg]);
     setNewMessage('');
     setError(null);
 
@@ -166,16 +186,22 @@ export default function ChatPage() {
       if (insertError) {
         console.error('Error sending message:', insertError);
         setError('Failed to send message. Please try again.');
+        // Rollback optimistic update
+        setMessages((prev) => prev.filter(m => m.id !== tempId));
       }
     } catch (err) {
       console.error('Unexpected error sending message:', err);
       setError('An unexpected error occurred.');
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
     }
   };
 
   const deleteMessage = async (messageId: string) => {
     if (!user) return;
 
+    // Optimistic delete
+    const originalMessages = [...messages];
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
     setDeletingMessageId(messageId);
     setError(null);
 
@@ -189,10 +215,13 @@ export default function ChatPage() {
       if (deleteError) {
         console.error('Error deleting message:', deleteError);
         setError('Failed to delete message. Please try again.');
+        // Rollback optimistic delete
+        setMessages(originalMessages);
       }
     } catch (err) {
       console.error('Unexpected error deleting message:', err);
       setError('An unexpected error occurred.');
+      setMessages(originalMessages);
     } finally {
       setDeletingMessageId(null);
     }
@@ -315,8 +344,8 @@ export default function ChatPage() {
                         >
                           {/* Sender Name & Role */}
                           <div className="flex items-center justify-between gap-4 mb-1">
-                            <span
-                              className="text-sm font-bold"
+                            <span 
+                              className="text-xs font-bold"
                               style={{ color: isOwn ? '#87CEEB' : nameColor }}
                             >
                               {msg.sender_name}

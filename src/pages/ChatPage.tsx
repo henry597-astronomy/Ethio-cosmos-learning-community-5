@@ -359,11 +359,11 @@ export default function ChatPage() {
 
                           {/* Message Content */}
                           {msg.image_url ? (
-                            <div className="mt-1">
+                            <div className="mt-1 -mx-2 -mb-1">
                               <img
                                 src={msg.image_url}
                                 alt="Shared"
-                                className="max-w-sm rounded-lg border border-white/10"
+                                className="max-w-full max-h-[400px] w-auto h-auto rounded-lg border border-white/10 object-contain"
                               />
                             </div>
                           ) : (

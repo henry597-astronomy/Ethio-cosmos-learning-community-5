@@ -124,14 +124,27 @@ export default function ChatPage() {
 
           const newMsg = rowToMessage({ ...m, profiles: profileData ?? null });
           setMessages((prev) => {
-            // Remove any optimistic message with the same content/temp state if needed
-            // For simplicity, we just check by ID
+            // Check if message already exists by ID
             if (prev.some((msg) => msg.id === newMsg.id)) return prev;
             
-            // If we have an optimistic message (temp ID), we should replace it
-            // But here we'll just filter out any message that looks like a duplicate
-            const filtered = prev.filter(msg => !(msg.user_id === newMsg.user_id && msg.message_text === newMsg.message_text && msg.id.startsWith('temp-')));
-            const updated = [...filtered, newMsg].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            // Handle optimistic updates:
+            // If we find a message from the same user with the same text/image that has a temp ID, replace it
+            const optimisticIndex = prev.findIndex(msg => 
+              msg.id.startsWith('temp-') && 
+              msg.user_id === newMsg.user_id && 
+              (newMsg.message_text ? msg.message_text === newMsg.message_text : msg.image_url === newMsg.image_url)
+            );
+
+            let updated;
+            if (optimisticIndex !== -1) {
+              updated = [...prev];
+              updated[optimisticIndex] = newMsg;
+            } else {
+              updated = [...prev, newMsg];
+            }
+
+            updated.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            
             // Update live user count
             const uniqueUsers = new Set(updated.map(msg => msg.user_id)).size;
             setLiveUserCount(uniqueUsers);

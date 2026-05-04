@@ -18,7 +18,6 @@ interface AuthContextType {
   authReady: boolean;        // true once session is confirmed (near-instant)
   profileLoading: boolean;   // true while fetching DB profile
   isAdmin: boolean;
-  isSuperAdmin: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (
@@ -48,7 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     'User';
 
   const isAdmin = profile?.role === 'admin';
-  const isSuperAdmin = profile?.role === 'admin' && user?.email === 'henokgirma648@gmail.com';
 
   const fetchProfile = useCallback(async (userId: string) => {
     setProfileLoading(true);
@@ -211,7 +209,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authReady,
         profileLoading,
         isAdmin,
-        isSuperAdmin,
         displayName,
         signInWithGoogle,
         signInWithEmail,

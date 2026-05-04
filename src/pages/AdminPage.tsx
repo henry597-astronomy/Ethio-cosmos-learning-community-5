@@ -114,7 +114,7 @@ function ImageUpload({ currentImage, onImageUploaded, label }: ImageUploadProps)
 
 // ─── Admin Page ───────────────────────────────────────────────────────────────
 export default function AdminPage() {
-  const { user, isSuperAdmin } = useAuth();
+  const { user } = useAuth();
   const homepageHero = useHomepageHero();
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
@@ -125,7 +125,7 @@ export default function AdminPage() {
   const topicsHook = useTopics();
   const quizzesHook = useQuizzes();
 
-  const [activeTab, setActiveTab] = useState(isSuperAdmin ? 'homepage' : 'topics');
+  const [activeTab, setActiveTab] = useState('homepage');
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [selectedSubtopicId, setSelectedSubtopicId] = useState<string | null>(null);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
@@ -151,13 +151,6 @@ export default function AdminPage() {
   };
 
   const handleToggleRole = async (userId: string, currentRole: string) => {
-    // Guard: do not allow changing the Super Admin's role under any circumstance
-    const targetUser = users.find(u => u.id === userId);
-    if (targetUser?.email === 'henokgirma648@gmail.com') {
-      alert('The Super Admin role cannot be changed.');
-      return;
-    }
-
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     try {
       const { error } = await supabase
@@ -170,51 +163,6 @@ export default function AdminPage() {
       );
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed to update role');
-    }
-  };
-
-  const handleForceLogout = async (userId: string, userEmail: string) => {
-    // Safety guard: Super Admin cannot force-logout themselves
-    if (userId === user?.id) {
-      alert('You cannot force-logout yourself.');
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Are you sure you want to force-logout "${userEmail}"? They will be immediately signed out of all sessions.`
-    );
-    if (!confirmed) return;
-
-    try {
-      // Get the current session token to authenticate the Edge Function call
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) {
-        alert('Could not retrieve your session. Please refresh and try again.');
-        return;
-      }
-
-      // Call the Edge Function
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-      const response = await fetch(`${supabaseUrl}/functions/v1/force-logout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ userId }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        alert(`Force logout failed: ${result.error || 'Unknown error'}`);
-        return;
-      }
-
-      alert(`User "${userEmail}" has been successfully logged out from all sessions.`);
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Force logout failed. Please try again.');
     }
   };
 
@@ -743,29 +691,17 @@ export default function AdminPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-slate-900 border border-white/10 mb-8 flex flex-wrap gap-1 h-auto p-1">
-            {(() => {
-              const superAdminTabs = ['homepage', 'topics', 'subtopics', 'lessons', 'about', 'materials', 'quizzes', 'users'];
-              const regularAdminTabs = ['topics', 'subtopics', 'lessons', 'quizzes'];
-              const visibleTabs = isSuperAdmin ? superAdminTabs : regularAdminTabs;
-              return visibleTabs.map(tab => (
-                <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-orange-500 data-[state=active]:text-white capitalize">
-                  {tab}
-                </TabsTrigger>
-              ));
-            })()}
+            {['homepage','topics','subtopics','lessons','about','materials', 'quizzes', 'users'].map(tab => (
+              <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-orange-500 data-[state=active]:text-white capitalize">
+                {tab}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           {/* ── HOMEPAGE TAB ────────────────────────────────────────────── */}
           <TabsContent value="homepage" className="space-y-8">
-            {!isSuperAdmin ? (
-              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10 text-center">
-                <p className="text-red-400 text-lg font-semibold">Access Denied</p>
-                <p className="text-gray-400 mt-2">You do not have permission to access this section.</p>
-              </div>
-            ) : (
-              <>
-                {/* Hero Section */}
-                <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            {/* Hero Section */}
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Hero Section</h2>
                 {heroModified && (
@@ -1088,20 +1024,12 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
-                </div>
-              </>
-            )}
+            </div>
           </TabsContent>
 
           {/* ── ABOUT TAB ───────────────────────────────────────────────── */}
           <TabsContent value="about" className="space-y-8">
-            {!isSuperAdmin ? (
-              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10 text-center">
-                <p className="text-red-400 text-lg font-semibold">Access Denied</p>
-                <p className="text-gray-400 mt-2">You do not have permission to access this section.</p>
-              </div>
-            ) : (
-              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">About Page Content</h2>
                 {aboutModified && (
@@ -1212,15 +1140,8 @@ export default function AdminPage() {
 
           {/* ── MATERIALS TAB ───────────────────────────────────────────── */}
           <TabsContent value="materials" className="space-y-8">
-            {!isSuperAdmin ? (
-              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10 text-center">
-                <p className="text-red-400 text-lg font-semibold">Access Denied</p>
-                <p className="text-gray-400 mt-2">You do not have permission to access this section.</p>
-              </div>
-            ) : (
-              <>
-                {/* Gallery Images */}
-                <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            {/* Gallery Images */}
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Gallery Images</h2>
                 {galleryImagesModified && (
@@ -1332,9 +1253,7 @@ export default function AdminPage() {
                   <Plus size={18} className="mr-2" /> Add PDF
                 </Button>
               </div>
-                </div>
-              </>
-            )}
+            </div>
           </TabsContent>
 
           {/* ── QUIZZES TAB ─────────────────────────────────────────────── */}
@@ -1395,13 +1314,7 @@ export default function AdminPage() {
 
           {/* ── USERS TAB ─────────────────────────────────────────────── */}
           <TabsContent value="users" className="space-y-8">
-            {!isSuperAdmin ? (
-              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10 text-center">
-                <p className="text-red-400 text-lg font-semibold">Access Denied</p>
-                <p className="text-gray-400 mt-2">You do not have permission to access this section.</p>
-              </div>
-            ) : (
-              <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Manage Users</h2>
                 <Button
@@ -1429,42 +1342,17 @@ export default function AdminPage() {
                         <p className="text-white font-medium">{u.username || '(no username)'}</p>
                         <p className="text-gray-400 text-sm">{u.email}</p>
                       </div>
-                      <div className="flex items-center gap-3 flex-wrap justify-end">
-                        {/* Role badge */}
+                      <div className="flex items-center gap-3">
                         <span className={`text-sm font-semibold px-2 py-1 rounded ${u.role === 'admin' ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-700 text-gray-400'}`}>
                           {u.role}
                         </span>
-
-                        {/* Make Admin / Remove Admin button
-                            - Do not show this button for the Super Admin's own row to prevent accidental demotion */}
-                        {u.email !== 'henokgirma648@gmail.com' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleToggleRole(u.id, u.role)}
-                            className={u.role === 'admin' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}
-                          >
-                            {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-                          </Button>
-                        )}
-
-                        {/* Force Logout button
-                            - Only show for users OTHER than the Super Admin themselves */}
-                        {u.email !== 'henokgirma648@gmail.com' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleForceLogout(u.id, u.email)}
-                            className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                          >
-                            Force Logout
-                          </Button>
-                        )}
-
-                        {/* Label for Super Admin's own row */}
-                        {u.email === 'henokgirma648@gmail.com' && (
-                          <span className="text-xs text-orange-300 font-semibold px-2 py-1 bg-orange-500/10 rounded border border-orange-500/30">
-                            Super Admin
-                          </span>
-                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => handleToggleRole(u.id, u.role)}
+                          className={u.role === 'admin' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}
+                        >
+                          {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                        </Button>
                       </div>
                     </div>
                   ))}

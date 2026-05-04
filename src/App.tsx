@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -20,6 +21,18 @@ import ProgressPage from '@/pages/ProgressPage';
 
 
 function AppRoutes() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Force redirect to home on initial load if not already there
+  useEffect(() => {
+    const hasRedirected = sessionStorage.getItem('initial-home-redirect');
+    if (!hasRedirected && location.pathname !== '/') {
+      navigate('/', { replace: true });
+      sessionStorage.setItem('initial-home-redirect', 'true');
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0a0e1a] flex flex-col">
       <Navbar />

@@ -162,11 +162,14 @@ export default function AdminPage() {
         .from('profiles')
         .update({ role: newRole })
         .eq('id', userId);
-      if (error) throw error;
-      setUsers(prev =>
-        prev.map(u => u.id === userId ? { ...u, role: newRole } : u)
-      );
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw new Error(`Failed to update role: ${error.message}`);
+      }
+      // Refetch users to ensure we have the latest data from the database
+      await fetchUsers();
     } catch (err: unknown) {
+      console.error('Error updating role:', err);
       alert(err instanceof Error ? err.message : 'Failed to update role');
     }
   };

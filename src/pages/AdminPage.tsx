@@ -7,7 +7,7 @@ import {
   useLesson,
   useQuizQuestions,
 } from '@/hooks/use-cms-data';
-import { isValidConfig } from '@/supabase';
+import { supabase, isValidConfig } from '@/supabase';
 import { uploadImage } from '@/services/cms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -129,6 +129,42 @@ export default function AdminPage() {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [selectedSubtopicId, setSelectedSubtopicId] = useState<string | null>(null);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
+  const [users, setUsers] = useState<{ id: string; email: string; username: string; role: string }[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, username, role')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (err: unknown) {
+      setUsersError(err instanceof Error ? err.message : 'Failed to load users');
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleToggleRole = async (userId: string, currentRole: string) => {
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+      if (error) throw error;
+      setUsers(prev =>
+        prev.map(u => u.id === userId ? { ...u, role: newRole } : u)
+      );
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to update role');
+    }
+  };
 
   // Local state for hero section (to avoid auto-save)
   const [heroLocal, setHeroLocal] = useState(homepageHero.hero);
@@ -140,6 +176,12 @@ export default function AdminPage() {
       setHeroLocal(homepageHero.hero);
     }
   }, [homepageHero.hero, heroLocal]);
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab]);
 
   // Local state for feature cards
   const [featureCardsLocal, setFeatureCardsLocal] = useState(homepageFeatureCards.featureCards);
@@ -649,7 +691,7 @@ export default function AdminPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-slate-900 border border-white/10 mb-8 flex flex-wrap gap-1 h-auto p-1">
-            {['homepage','topics','subtopics','lessons','about','materials', 'quizzes'].map(tab => (
+            {['homepage','topics','subtopics','lessons','about','materials', 'quizzes', 'users'].map(tab => (
               <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-orange-500 data-[state=active]:text-white capitalize">
                 {tab}
               </TabsTrigger>
@@ -1267,6 +1309,58 @@ export default function AdminPage() {
                   <Plus size={18} className="mr-2" /> Add Quiz
                 </Button>
               </div>
+            </div>
+          </TabsContent>
+
+          {/* ── USERS TAB ─────────────────────────────────────────────── */}
+          <TabsContent value="users" className="space-y-8">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Manage Users</h2>
+                <Button
+                  onClick={fetchUsers}
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10"
+                >
+                  Refresh
+                </Button>
+              </div>
+              {usersLoading && (
+                <p className="text-gray-400">Loading users...</p>
+              )}
+              {usersError && (
+                <p className="text-red-400">Error: {usersError}</p>
+              )}
+              {!usersLoading && !usersError && (
+                <div className="space-y-3">
+                  {users.map(u => (
+                    <div
+                      key={u.id}
+                      className="flex items-center justify-between p-3 bg-slate-800 rounded-lg border border-white/10"
+                    >
+                      <div>
+                        <p className="text-white font-medium">{u.username || '(no username)'}</p>
+                        <p className="text-gray-400 text-sm">{u.email}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-sm font-semibold px-2 py-1 rounded ${u.role === 'admin' ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-700 text-gray-400'}`}>
+                          {u.role}
+                        </span>
+                        <Button
+                          size="sm"
+                          onClick={() => handleToggleRole(u.id, u.role)}
+                          className={u.role === 'admin' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}
+                        >
+                          {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {users.length === 0 && (
+                    <p className="text-gray-500 text-center py-4">No users found.</p>
+                  )}
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

@@ -151,6 +151,11 @@ export default function AdminPage() {
   };
 
   const handleToggleRole = async (userId: string, currentRole: string) => {
+    // Only henokgirma648@gmail.com can change user roles
+    if (user?.email !== 'henokgirma648@gmail.com') {
+      alert('Only the super admin can manage user roles.');
+      return;
+    }
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     try {
       const { error } = await supabase
@@ -221,6 +226,19 @@ export default function AdminPage() {
   // Auth guarding (login + admin role check) is handled by <ProtectedRoute>.
   // We only need the user here for display.
   if (!user) return null;
+
+  // Determine if current user is the super admin
+  const isSuperAdmin = user.email === 'henokgirma648@gmail.com';
+
+  // Define which tabs are available for regular admins vs super admin
+  const regularAdminTabs = ['topics', 'subtopics', 'lessons', 'quizzes'];
+  const allTabs = ['homepage', 'topics', 'subtopics', 'lessons', 'about', 'materials', 'quizzes', 'users'];
+  const availableTabs = isSuperAdmin ? allTabs : regularAdminTabs;
+
+  // If user tries to access a restricted tab, reset to first available tab
+  if (!availableTabs.includes(activeTab)) {
+    setActiveTab(availableTabs[0]);
+  }
 
   // Only block on initial load errors, not on save errors
   const allLoading = topicsLoading || subtopicsLoading || lessonLoading || quizzesLoading || quizQuestionsLoading || homepageHero.loading || homepageFeatureCards.loading || homepageFeaturedTopics.loading || aboutContent.loading || materialsGalleryImages.loading || materialsVideos.loading || materialsPdfs.loading;
@@ -691,7 +709,7 @@ export default function AdminPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-slate-900 border border-white/10 mb-8 flex flex-wrap gap-1 h-auto p-1">
-            {['homepage','topics','subtopics','lessons','about','materials', 'quizzes', 'users'].map(tab => (
+            {availableTabs.map(tab => (
               <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-orange-500 data-[state=active]:text-white capitalize">
                 {tab}
               </TabsTrigger>

@@ -3,6 +3,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
+import InstallPrompt from '@/components/InstallPrompt';
 
 import HomePage from '@/pages/HomePage';
 import LearningPage from '@/pages/LearningPage';
@@ -22,6 +23,7 @@ function AppRoutes() {
   return (
     <div className="min-h-screen bg-[#0a0e1a] flex flex-col">
       <Navbar />
+      <InstallPrompt />
       <main className="flex-1 pt-28">
         <Routes>
           {/* Public Routes */}

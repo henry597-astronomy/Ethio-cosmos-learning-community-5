@@ -2,7 +2,7 @@
   "name": "EthioCosmos Learning Community",
   "short_name": "EthioCosmos",
   "description": "Astronomy education platform for Ethiopian and African learners.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

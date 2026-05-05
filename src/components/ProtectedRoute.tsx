@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { user, isAdmin, authReady, profileLoading } = useAuth();
+  const { user, isAdmin, isBlocked, authReady, profileLoading } = useAuth();
   const location = useLocation();
 
   // Wait for the initial session check to complete.
@@ -26,6 +26,15 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   // If no user is logged in, redirect to login page (preserve intended destination).
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Check if user is blocked - show blank page
+  if (profileLoading === false && isBlocked) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a]">
+        {/* Blank page for blocked users */}
+      </div>
+    );
   }
 
   // For admin-gated routes we MUST wait until the real profile (with the

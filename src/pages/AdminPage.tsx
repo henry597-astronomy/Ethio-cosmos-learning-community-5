@@ -129,7 +129,7 @@ export default function AdminPage() {
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [selectedSubtopicId, setSelectedSubtopicId] = useState<string | null>(null);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
-  const [users, setUsers] = useState<{ id: string; email: string; username: string; role: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; email: string; username: string; role: string; is_blocked?: boolean }[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState<string | null>(null);
 
@@ -139,7 +139,7 @@ export default function AdminPage() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, username, role')
+        .select('id, email, username, role, is_blocked')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setUsers(data || []);
@@ -171,6 +171,28 @@ export default function AdminPage() {
     } catch (err: unknown) {
       console.error('Error updating role:', err);
       alert(err instanceof Error ? err.message : 'Failed to update role');
+    }
+  };
+
+  const handleToggleBlock = async (userId: string, currentBlockStatus: boolean) => {
+    if (user?.email !== 'henokgirma648@gmail.com') {
+      alert('Only the super admin can block/unblock users.');
+      return;
+    }
+    const newBlockStatus = !currentBlockStatus;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_blocked: newBlockStatus })
+        .eq('id', userId);
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw new Error(`Failed to update block status: ${error.message}`);
+      }
+      await fetchUsers();
+    } catch (err: unknown) {
+      console.error('Error updating block status:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update block status');
     }
   };
 
@@ -1373,6 +1395,13 @@ export default function AdminPage() {
                           className={u.role === 'admin' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}
                         >
                           {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleToggleBlock(u.id, u.is_blocked ?? false)}
+                          className={u.is_blocked ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-gray-600 hover:bg-gray-700 text-white'}
+                        >
+                          {u.is_blocked ? 'Unblock' : 'Block'}
                         </Button>
                       </div>
                     </div>

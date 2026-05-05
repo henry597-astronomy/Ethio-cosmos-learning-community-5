@@ -53,6 +53,7 @@ export interface UserProfile {
   email: string | null;
   avatar_url: string | null;
   role: 'user' | 'admin';
+  is_blocked?: boolean;
   created_at?: string;
   updated_at?: string;
 }

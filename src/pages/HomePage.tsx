@@ -33,7 +33,7 @@ export default function HomePage() {
       <section 
         className="min-h-screen flex items-center relative overflow-hidden"
         style={{
-          backgroundImage: 'url(/images/hero-bg.jpg)',
+          backgroundImage: 'url(/images/hero-bg-new.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed',
@@ -112,7 +112,7 @@ export default function HomePage() {
                     key={homepageHero.hero.videoUrl}
                     controls
                     className="w-full h-auto aspect-video bg-black"
-                    poster="/images/hero-bg.jpg"
+                    poster="/images/hero-bg-new.jpg"
                   >
                     <source src={homepageHero.hero.videoUrl} />
                     Your browser does not support the video tag.

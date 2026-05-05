@@ -246,7 +246,7 @@ export default function LessonPage() {
                   <SafeImage
                     src={block.content}
                     alt="Lesson illustration"
-                    className="w-full rounded-lg"
+                    className="w-full rounded-lg max-h-[50vh] object-cover"
                     fallbackText="Lesson image not available"
                   />
                 </div>

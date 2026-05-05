@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 interface NotificationContextType {
   unreadCount: number;
   resetUnreadCount: () => void;
+  setUnreadCount: (count: number) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -17,6 +18,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { user } = useAuth();
   const location = useLocation();
   const isChatPage = location.pathname === '/chat';
+
+  // Update app badge when unread count changes
+  useEffect(() => {
+    if ('setAppBadge' in navigator) {
+      if (unreadCount > 0) {
+        (navigator as any).setAppBadge(unreadCount);
+      } else {
+        (navigator as any).clearAppBadge();
+      }
+    }
+  }, [unreadCount]);
 
   // Reset unread count when entering chat page
   useEffect(() => {
@@ -30,7 +42,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (Notification.permission === 'granted' && document.visibilityState !== 'visible') {
       new Notification(`New message from ${senderName}`, {
         body: messageText || 'Sent an image',
-        icon: '/manifest.json', // Use app icon
+        icon: '/images/icon-192.png', // Use app icon
+        badge: '/images/icon-192.png',
+        tag: 'chat-notification',
       });
     }
 
@@ -45,6 +59,31 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
     }
   }, [isChatPage]);
+
+  // Load initial unread count when user logs in
+  useEffect(() => {
+    if (!user) return;
+
+    const loadUnreadCount = async () => {
+      try {
+        // Count messages from other users
+        const { data: messages, error } = await supabase
+          .from('chat_messages')
+          .select('user_id')
+          .neq('user_id', user.id);
+
+        if (!error && messages) {
+          // For now, count all messages from other users as unread
+          // In a production app, you'd track last_read_at per user
+          setUnreadCount(messages.length);
+        }
+      } catch (err) {
+        console.error('Error loading unread count:', err);
+      }
+    };
+
+    loadUnreadCount();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -91,8 +130,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setUnreadCount(0);
   }, []);
 
+  const updateUnreadCount = useCallback((count: number) => {
+    setUnreadCount(count);
+  }, []);
+
   return (
-    <NotificationContext.Provider value={{ unreadCount, resetUnreadCount }}>
+    <NotificationContext.Provider value={{ unreadCount, resetUnreadCount, setUnreadCount: updateUnreadCount }}>
       {children}
     </NotificationContext.Provider>
   );

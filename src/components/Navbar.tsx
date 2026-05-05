@@ -97,7 +97,7 @@ export default function Navbar() {
                 >
                   {link.label}
                   {link.path === '/chat' && unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-slate-950" />
+                    <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-950 shadow-lg shadow-red-500/50 animate-pulse" title={`${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`} />
                   )}
                 </Link>
               ))}
@@ -242,7 +242,7 @@ export default function Navbar() {
                 >
                   {link.label}
                   {link.path === '/chat' && unreadCount > 0 && (
-                    <span className="absolute top-2 -right-1 w-2 h-2 bg-red-500 rounded-full border border-slate-950" />
+                    <span className="absolute top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-950 shadow-lg shadow-red-500/50 animate-pulse" title={`${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`} />
                   )}
                   {isActive(link.path) && (
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />
@@ -261,7 +261,7 @@ export default function Navbar() {
                 >
                   {link.label}
                   {link.path === '/chat' && unreadCount > 0 && (
-                    <span className="absolute top-2 -right-1 w-2 h-2 bg-red-500 rounded-full border border-slate-950" />
+                    <span className="absolute top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-950 shadow-lg shadow-red-500/50 animate-pulse" title={`${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`} />
                   )}
                   {isActive(link.path) && (
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />

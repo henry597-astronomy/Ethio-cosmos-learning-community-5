@@ -29,7 +29,7 @@ function AppRoutes() {
   // Force redirect to home on initial load if not already there
   useEffect(() => {
     const hasRedirected = sessionStorage.getItem('initial-home-redirect');
-    if (!hasRedirected && location.pathname !== '/') {
+    if (!hasRedirected && location.pathname !== '/' && location.pathname !== '/login') {
       navigate('/', { replace: true });
       sessionStorage.setItem('initial-home-redirect', 'true');
     }
@@ -41,14 +41,17 @@ function AppRoutes() {
       <InstallPrompt />
       <main className="flex-1 pt-28">
         <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/learning" element={<LearningPage />} />
-          <Route path="/learning/:topicId" element={<TopicDetailPage />} />
-          <Route path="/learning/:topicId/:subtopicId" element={<LessonPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/materials" element={<MaterialsPage />} />
+          {/* Login is always accessible */}
           <Route path="/login" element={<LoginPage />} />
+
+          {/* All other routes require authentication and check block status */}
+          {/* Public content routes - still require login check and block status check */}
+          <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />
+          <Route path="/learning/:topicId" element={<ProtectedRoute><TopicDetailPage /></ProtectedRoute>} />
+          <Route path="/learning/:topicId/:subtopicId" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
+          <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
+          <Route path="/materials" element={<ProtectedRoute><MaterialsPage /></ProtectedRoute>} />
 
           {/* Protected Routes */}
           <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />

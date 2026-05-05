@@ -48,14 +48,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     'User';
 
   const isAdmin = profile?.role === 'admin';
-  const isBlocked = profile?.is_blocked ?? false;
+  const isBlocked = profile?.is_blocked === true;
 
   const fetchProfile = useCallback(async (userId: string) => {
     setProfileLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, email, avatar_url, role, created_at, updated_at')
+        .select('id, username, email, avatar_url, role, created_at, updated_at, is_blocked')
         .eq('id', userId)
         .maybeSingle();
 
@@ -89,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: 'user', // Default to user until DB confirms
           created_at: nextUser.created_at,
           updated_at: new Date().toISOString(),
+          is_blocked: false, // Default to not blocked until DB confirms
         };
         setProfile(optimisticProfile);
         

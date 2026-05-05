@@ -63,16 +63,7 @@ export default function AboutPage() {
                 {about.missionText || 
                   'Our mission is to democratize astronomy education in Ethiopia, making the wonders of the universe accessible to everyone through innovative digital learning and community engagement.'}
               </p>
-              <div className="flex flex-wrap gap-4">
-                <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
-                  <span className="text-orange-500 font-bold">1000+</span>
-                  <span className="text-gray-400 ml-2 text-sm">Active Learners</span>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
-                  <span className="text-orange-500 font-bold">50+</span>
-                  <span className="text-gray-400 ml-2 text-sm">Expert Lessons</span>
-                </div>
-              </div>
+
             </div>
             <div className="relative">
               <div className="aspect-video rounded-2xl overflow-hidden border border-white/10">

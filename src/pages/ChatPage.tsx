@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +56,7 @@ function getNameColor(userId: string): string {
 
 export default function ChatPage() {
   const { user, profile, displayName } = useAuth();
+  const { resetUnreadCount } = useNotifications();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -68,6 +70,9 @@ export default function ChatPage() {
   // Fetch initial messages and setup real-time subscription
   useEffect(() => {
     if (!user) return;
+    
+    // Reset unread count when entering chat
+    resetUnreadCount();
 
     const fetchMessages = async () => {
       try {

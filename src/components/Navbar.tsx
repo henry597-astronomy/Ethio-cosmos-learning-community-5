@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogOut, BookOpen, BarChart3, Settings } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, isAdmin, logout, displayName } = useAuth();
+  const { unreadCount } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -87,13 +89,16 @@ export default function Navbar() {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`px-3 py-2 text-sm font-medium transition-colors rounded-md ${
+                  className={`px-3 py-2 text-sm font-medium transition-colors rounded-md relative ${
                     isActive(link.path)
                       ? 'text-orange-500 bg-orange-500/10'
                       : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   {link.label}
+                  {link.path === '/chat' && unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-slate-950" />
+                  )}
                 </Link>
               ))}
               {user && (
@@ -236,6 +241,9 @@ export default function Navbar() {
                   }`}
                 >
                   {link.label}
+                  {link.path === '/chat' && unreadCount > 0 && (
+                    <span className="absolute top-2 -right-1 w-2 h-2 bg-red-500 rounded-full border border-slate-950" />
+                  )}
                   {isActive(link.path) && (
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />
                   )}
@@ -252,6 +260,9 @@ export default function Navbar() {
                   }`}
                 >
                   {link.label}
+                  {link.path === '/chat' && unreadCount > 0 && (
+                    <span className="absolute top-2 -right-1 w-2 h-2 bg-red-500 rounded-full border border-slate-950" />
+                  )}
                   {isActive(link.path) && (
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />
                   )}
@@ -270,7 +281,7 @@ export default function Navbar() {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`px-3 py-2 text-sm font-medium transition-colors rounded-md ${
+                className={`px-3 py-2 text-sm font-medium transition-colors rounded-md relative ${
                   isActive(link.path)
                     ? 'text-orange-500 bg-orange-500/10'
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
@@ -278,13 +289,16 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
+                {link.path === '/chat' && unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-slate-950" />
+                )}
               </Link>
             ))}
             {user && privateNavLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`px-3 py-2 text-sm font-medium transition-colors rounded-md ${
+                className={`px-3 py-2 text-sm font-medium transition-colors rounded-md relative ${
                   isActive(link.path)
                     ? 'text-orange-500 bg-orange-500/10'
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
@@ -292,6 +306,9 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
+                {link.path === '/chat' && unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-slate-950" />
+                )}
               </Link>
             ))}
             {isAdmin && (

@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from
 import { useEffect } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
+import { NotificationProvider } from '@/context/NotificationContext';
+import { Toaster } from 'sonner';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import InstallPrompt from '@/components/InstallPrompt';
@@ -67,7 +69,10 @@ function App() {
     <AuthProvider>
       <CmsProvider>
         <Router>
-          <AppRoutes />
+          <NotificationProvider>
+            <AppRoutes />
+            <Toaster position="top-right" theme="dark" />
+          </NotificationProvider>
         </Router>
       </CmsProvider>
     </AuthProvider>

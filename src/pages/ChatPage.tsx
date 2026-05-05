@@ -363,7 +363,8 @@ export default function ChatPage() {
             {messages.map((msg, index) => {
               const isMe = msg.user_id === user.id;
               const showAvatar = index === 0 || messages[index - 1].user_id !== msg.user_id;
-              const isOwner = msg.sender_role === 'admin';
+              const isAdmin = msg.sender_role === 'admin';
+              const isActualOwner = msg.sender_email === 'henokgirma648@gmail.com';
               
               return (
                 <div 
@@ -402,9 +403,9 @@ export default function ChatPage() {
                         >
                           {msg.sender_name}
                         </span>
-                        {isOwner && (
+                        {isAdmin && (
                           <span className="text-[10px] bg-purple-500/30 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/30 uppercase tracking-wider font-bold">
-                            Owner
+                            {isActualOwner ? 'Owner' : 'Admin'}
                           </span>
                         )}
                       </div>

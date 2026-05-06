@@ -4,10 +4,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } from '@/hooks/use-cms-data';
 import { Button } from '@/components/ui/button';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
-import { AlertCircle } from 'lucide-react';
+import { uploadVideo } from '@/services/cms';
+import { AlertCircle, Upload } from 'lucide-react';
+import { isValidConfig } from '@/supabase';
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const homepageHero = useHomepageHero();
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
@@ -18,6 +20,39 @@ export default function HomePage() {
   const [isSecondaryVideo, setIsSecondaryVideo] = useState(false);
   const youtubePlayerRef = useRef<any>(null);
   const googleDriveIframeRef = useRef<HTMLIFrameElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!isValidConfig) {
+      alert('Supabase is not configured. Please add your credentials to the .env file.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const publicUrl = await uploadVideo(file, 'uploads');
+      if (publicUrl && homepageHero.hero) {
+        await homepageHero.saveHero({
+          ...homepageHero.hero,
+          videoUrl: publicUrl,
+          videoVisible: true,
+        });
+        alert('Video uploaded and set as homepage hero video!');
+      }
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      alert('Failed to upload video. Make sure the "uploads" storage bucket exists in Supabase and RLS policies allow uploads.');
+    } finally {
+      setIsUploading(false);
+      if (videoFileInputRef.current) {
+        videoFileInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     if (homepageHero.hero) {
@@ -155,6 +190,25 @@ export default function HomePage() {
                 >
                   Learn More
                 </Button>
+                {isSuperAdmin && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 px-8"
+                    onClick={() => videoFileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    <Upload size={18} className="mr-2" />
+                    {isUploading ? 'Uploading...' : 'Upload Video'}
+                  </Button>
+                )}
+                <input 
+                  type="file" 
+                  accept="video/*" 
+                  className="hidden" 
+                  ref={videoFileInputRef} 
+                  onChange={handleVideoUpload}
+                />
               </div>
             </div>
             

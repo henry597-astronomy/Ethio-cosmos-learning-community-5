@@ -22,7 +22,7 @@ const privateNavLinks = [
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, isAdmin, isSuperAdmin, logout, displayName } = useAuth();
+  const { user, profile, isAdmin, isSuperAdmin, isBlocked, logout, displayName } = useAuth();
   const { unreadCount } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -195,13 +195,15 @@ export default function Navbar() {
                           {isSuperAdmin ? 'Admin Panel' : 'Manage Lessons'}
                         </Link>
                       )}
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors mt-2 border-t border-white/5 pt-2"
-                      >
-                        <LogOut size={16} />
-                        Sign Out
-                      </button>
+                      {!isBlocked && (
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors mt-2 border-t border-white/5 pt-2"
+                        >
+                          <LogOut size={16} />
+                          Sign Out
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -325,13 +327,15 @@ export default function Navbar() {
               </Link>
             )}
             {user ? (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-md mt-2 border-t border-white/5 pt-4"
-              >
-                <LogOut size={16} />
-                Sign Out
-              </button>
+              !isBlocked && (
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-md mt-2 border-t border-white/5 pt-4"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
+              )
             ) : (
               <Link
                 to="/login"

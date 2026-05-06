@@ -9,7 +9,7 @@ import {
   getMaterialsPdfs, updateMaterialsPdfs,
   getTopics, createTopic, updateTopic, deleteTopic,
   getSubtopicsByTopicId, createSubtopic, updateSubtopic, deleteSubtopic,
-  getLessonBySubtopicId, createLesson, updateLesson, deleteLesson,
+  getLessonBySubtopicId, createLesson, updateLesson,
   getQuizzes, createQuiz, updateQuiz, deleteQuiz,
   getQuizQuestionsByQuizId, createQuizQuestion, updateQuizQuestion, deleteQuizQuestion,
 } from '@/services/cms';

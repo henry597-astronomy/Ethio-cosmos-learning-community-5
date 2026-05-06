@@ -4,12 +4,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } from '@/hooks/use-cms-data';
 import { Button } from '@/components/ui/button';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
-import { uploadVideo } from '@/services/cms';
-import { AlertCircle, Upload } from 'lucide-react';
-import { isValidConfig } from '@/supabase';
+import { AlertCircle } from 'lucide-react';
 
 export default function HomePage() {
-  const { user, isSuperAdmin } = useAuth();
+  const { user } = useAuth();
   const homepageHero = useHomepageHero();
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
@@ -20,39 +18,6 @@ export default function HomePage() {
   const [isSecondaryVideo, setIsSecondaryVideo] = useState(false);
   const youtubePlayerRef = useRef<any>(null);
   const googleDriveIframeRef = useRef<HTMLIFrameElement>(null);
-  const videoFileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!isValidConfig) {
-      alert('Supabase is not configured. Please add your credentials to the .env file.');
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const publicUrl = await uploadVideo(file, 'uploads');
-      if (publicUrl && homepageHero.hero) {
-        await homepageHero.saveHero({
-          ...homepageHero.hero,
-          videoUrl: publicUrl,
-          videoVisible: true,
-        });
-        alert('Video uploaded and set as homepage hero video!');
-      }
-    } catch (error) {
-      console.error('Error uploading video:', error);
-      alert('Failed to upload video. Make sure the "uploads" storage bucket exists in Supabase and RLS policies allow uploads.');
-    } finally {
-      setIsUploading(false);
-      if (videoFileInputRef.current) {
-        videoFileInputRef.current.value = '';
-      }
-    }
-  };
 
   useEffect(() => {
     if (homepageHero.hero) {
@@ -190,25 +155,6 @@ export default function HomePage() {
                 >
                   Learn More
                 </Button>
-                {isSuperAdmin && (
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 px-8"
-                    onClick={() => videoFileInputRef.current?.click()}
-                    disabled={isUploading}
-                  >
-                    <Upload size={18} className="mr-2" />
-                    {isUploading ? 'Uploading...' : 'Upload Video'}
-                  </Button>
-                )}
-                <input 
-                  type="file" 
-                  accept="video/*" 
-                  className="hidden" 
-                  ref={videoFileInputRef} 
-                  onChange={handleVideoUpload}
-                />
               </div>
             </div>
             
@@ -287,27 +233,26 @@ export default function HomePage() {
                   key={i}
                   className="bg-white/10 rounded-xl p-8 shadow-xl animate-pulse h-48"
                 >
-                  <div className="w-12 h-12 bg-white/20 rounded mb-4" />
-                  <div className="h-6 bg-white/20 rounded mb-3 w-2/3" />
-                  <div className="h-4 bg-white/10 rounded w-full" />
-                  <div className="h-4 bg-white/10 rounded w-5/6 mt-2" />
+                  <div className="w-12 h-12 bg-white/10 rounded-lg mb-4" />
+                  <div className="w-24 h-4 bg-white/10 rounded mb-2" />
+                  <div className="w-full h-12 bg-white/10 rounded" />
                 </div>
               ))}
             </div>
-          ) : homepageFeatureCards.error ? (
-            <div className="text-red-400 text-sm text-center py-4">
-              {homepageFeatureCards.error}
-            </div>
           ) : (
             <div className="grid md:grid-cols-3 gap-6 -mt-32 relative z-10">
-              {homepageFeatureCards.featureCards.map((card, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-xl p-8 shadow-xl"
+              {homepageFeatureCards.featureCards.map((card, i) => (
+                <div 
+                  key={i}
+                  className="bg-[#151c2c] rounded-xl p-8 shadow-xl border border-white/5 hover:border-orange-500/30 transition-all duration-300 group"
                 >
-                  <div className="text-4xl mb-4">{card.icon}</div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{card.title}</h3>
-                  <p className="text-gray-600">{card.description}</p>
+                  <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                    {card.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{card.title}</h3>
+                  <p className="text-gray-400 leading-relaxed">
+                    {card.description}
+                  </p>
                 </div>
               ))}
             </div>
@@ -315,74 +260,71 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Learning Topics Section */}
-      <section className="py-20 bg-[#050810]">
+      {/* Featured Topics Section */}
+      <section className="py-24 bg-[#0a0e1a]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Featured Learning Topics
-            </h2>
-            <p className="text-gray-400 text-lg">
-              Essential Lessons & Guides
-            </p>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Featured Topics</h2>
+            <div className="w-24 h-1 bg-orange-500 mx-auto rounded-full" />
           </div>
 
-          {homepageFeaturedTopics.loading ? (
-            <div className="grid md:grid-cols-3 gap-8">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="bg-slate-900/50 rounded-xl overflow-hidden border border-white/10 animate-pulse"
-                >
-                  <div className="h-48 bg-white/10" />
-                  <div className="p-6">
-                    <div className="h-6 bg-white/10 rounded mb-3 w-2/3" />
-                    <div className="h-4 bg-white/5 rounded w-full" />
-                    <div className="h-4 bg-white/5 rounded w-5/6 mt-2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : homepageFeaturedTopics.error ? (
-            <div className="text-red-400 text-sm text-center py-4">
-              {homepageFeaturedTopics.error}
-            </div>
-          ) : homepageFeaturedTopics.featuredTopics.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-400">No featured topics yet</p>
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-3 gap-8">
-              {homepageFeaturedTopics.featuredTopics.map((topic) => (
-                <div
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {homepageFeaturedTopics.loading ? (
+              [0, 1, 2, 3].map((i) => (
+                <div key={i} className="rounded-xl overflow-hidden bg-white/5 animate-pulse h-64" />
+              ))
+            ) : (
+              homepageFeaturedTopics.featuredTopics.map((topic) => (
+                <div 
                   key={topic.id}
-                  className="bg-slate-900/50 rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 transition-all group"
+                  className="group relative rounded-xl overflow-hidden aspect-[4/5] cursor-pointer"
+                  onClick={() => navigate('/learning')}
                 >
-                  <div className="h-48 overflow-hidden">
-                    <img
-                      src={topic.image_url || (topic as any).image || '/images/topic-fundamentals.jpg'}
-                      alt={topic.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-6">
+                  <img 
+                    src={topic.image_url} 
+                    alt={topic.title}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
                     <h3 className="text-xl font-bold text-white mb-2">{topic.title}</h3>
-                    <p className="text-gray-400">{topic.description}</p>
+                    <p className="text-sm text-gray-300 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {topic.description}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
+
+          <div className="text-center mt-12">
+            <Button 
+              onClick={() => navigate('/learning')}
+              className="bg-transparent border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8"
+            >
+              View All Topics
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-orange-500/10" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">Ready to Start Your Journey?</h2>
+          <p className="text-xl text-gray-300 mb-10">
+            Join thousands of students and space enthusiasts in Ethiopia exploring the wonders of the universe.
+          </p>
+          <Button 
+            size="lg" 
+            className="bg-orange-500 hover:bg-orange-600 text-white px-12 text-lg h-14"
+            onClick={handleBeginJourney}
+          >
+            Join the Community
+          </Button>
         </div>
       </section>
     </div>
   );
-}
-
-// Extend Window interface for YouTube API
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: () => void;
-  }
 }

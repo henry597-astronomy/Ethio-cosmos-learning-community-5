@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } from '@/hooks/use-cms-data';
@@ -16,6 +16,8 @@ export default function HomePage() {
   // Video sequencing state
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
   const [isSecondaryVideo, setIsSecondaryVideo] = useState(false);
+  const youtubePlayerRef = useRef<any>(null);
+  const googleDriveIframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (homepageHero.hero) {
@@ -39,6 +41,45 @@ export default function HomePage() {
       }
     }
   }, [homepageHero.hero]);
+
+  // Setup YouTube API
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+      
+      window.onYouTubeIframeAPIReady = () => {
+        initializeYouTubePlayer();
+      };
+    } else {
+      initializeYouTubePlayer();
+    }
+  }, [currentVideoUrl, isSecondaryVideo]);
+
+  const initializeYouTubePlayer = () => {
+    const iframes = document.querySelectorAll('iframe[src*="youtube"]');
+    iframes.forEach((iframe) => {
+      if (window.YT && window.YT.Player) {
+        try {
+          const player = new window.YT.Player(iframe as HTMLIFrameElement, {
+            events: {
+              onStateChange: (event: any) => {
+                // YT.PlayerState.ENDED = 0
+                if (event.data === 0) {
+                  handleVideoEnd();
+                }
+              }
+            }
+          });
+          youtubePlayerRef.current = player;
+        } catch (e) {
+          // Player might already be initialized
+        }
+      }
+    });
+  };
 
   const handleVideoEnd = () => {
     if (homepageHero.hero?.enableVideoSequence && !isSecondaryVideo && homepageHero.hero.secondaryVideoUrl) {
@@ -143,6 +184,7 @@ export default function HomePage() {
                   <div className="relative w-full aspect-video bg-black">
                     <iframe
                       key={currentVideoUrl}
+                      ref={googleDriveIframeRef}
                       width="100%"
                       height="100%"
                       src={getEmbedUrl(currentVideoUrl) || ''}
@@ -281,4 +323,12 @@ export default function HomePage() {
       </section>
     </div>
   );
+}
+
+// Extend Window interface for YouTube API
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
 }

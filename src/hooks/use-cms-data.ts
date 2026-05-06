@@ -20,7 +20,14 @@ import type {
 
 // --- Homepage Hooks ---
 export function useHomepageHero() {
-  const [hero, setHero] = useState<{ heroTitle: string; heroSubtitle: string; videoUrl?: string; videoVisible?: boolean } | null>(null);
+  const [hero, setHero] = useState<{ 
+    heroTitle: string; 
+    heroSubtitle: string; 
+    videoUrl?: string; 
+    videoVisible?: boolean;
+    secondaryVideoUrl?: string;
+    enableVideoSequence?: boolean;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +40,9 @@ export function useHomepageHero() {
           heroTitle:    'Explore the Cosmos with Ethiopia',
           heroSubtitle: 'Join the EthioCosmos Learning Community — learn astronomy from Ethiopia to the universe',
           videoUrl: '',
-          videoVisible: false
+          videoVisible: false,
+          secondaryVideoUrl: '',
+          enableVideoSequence: false
         });
       } catch (err) {
         setError("Failed to load homepage hero.");
@@ -45,7 +54,14 @@ export function useHomepageHero() {
     fetchHero();
   }, []);
 
-  const saveHero = useCallback(async (newHero: { heroTitle: string; heroSubtitle: string; videoUrl?: string; videoVisible?: boolean }) => {
+  const saveHero = useCallback(async (newHero: { 
+    heroTitle: string; 
+    heroSubtitle: string; 
+    videoUrl?: string; 
+    videoVisible?: boolean;
+    secondaryVideoUrl?: string;
+    enableVideoSequence?: boolean;
+  }) => {
     try {
       await updateHomepageHero(newHero);
       setHero(newHero);
@@ -343,19 +359,18 @@ export function useTopics() {
     }
   }, []);
 
-  return { topics, loading, error, fetchTopics, addTopic, editTopic, removeTopic };
+  return { topics, loading, error, addTopic, editTopic, removeTopic, fetchTopics };
 }
 
 // --- Subtopics Hooks ---
 export function useSubtopics(topicId: string | null) {
   const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSubtopics = useCallback(async () => {
     if (!topicId) {
       setSubtopics([]);
-      setLoading(false);
       return;
     }
     try {
@@ -412,71 +427,56 @@ export function useSubtopics(topicId: string | null) {
     }
   }, []);
 
-  return { subtopics, loading, error, fetchSubtopics, addSubtopic, editSubtopic, removeSubtopic };
+  return { subtopics, loading, error, addSubtopic, editSubtopic, removeSubtopic, fetchSubtopics };
 }
 
-// --- Lessons Hooks ---
+// --- Lesson Hooks ---
 export function useLesson(subtopicId: string | null) {
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLesson = useCallback(async () => {
-    if (!subtopicId) {
-      setLesson(null);
-      setLoading(false);
-      return;
-    }
-    try {
-      setLoading(true);
-      const data = await getLessonBySubtopicId(subtopicId);
-      setLesson(data);
-    } catch (err) {
-      setError("Failed to load lesson.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    const fetchLesson = async () => {
+      if (!subtopicId) {
+        setLesson(null);
+        return;
+      }
+      try {
+        setLoading(true);
+        const data = await getLessonBySubtopicId(subtopicId);
+        setLesson(data);
+      } catch (err) {
+        setError("Failed to load lesson.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLesson();
   }, [subtopicId]);
 
-  useEffect(() => {
-    fetchLesson();
-  }, [fetchLesson]);
-
-  const saveLesson = useCallback(async (newLesson: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string }) => {
+  const saveLesson = useCallback(async (lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string }) => {
     try {
-      let resultLesson;
+      let savedLesson;
       if (lesson?.id) {
-        resultLesson = await updateLesson(lesson.id, newLesson);
+        savedLesson = await updateLesson(lesson.id, lessonData);
       } else {
-        resultLesson = await createLesson(newLesson);
+        savedLesson = await createLesson(lessonData);
       }
-      if (resultLesson) setLesson(resultLesson);
+      if (savedLesson) setLesson(savedLesson);
       setError(null);
     } catch (err) {
       setError("Failed to save lesson.");
       console.error(err);
       throw err;
     }
-  }, [lesson]);
+  }, [lesson, subtopicId]);
 
-  const removeLesson = useCallback(async () => {
-    if (!lesson?.id) return;
-    try {
-      await deleteLesson(lesson.id);
-      setLesson(null);
-      setError(null);
-    } catch (err) {
-      setError("Failed to delete lesson.");
-      console.error(err);
-      throw err;
-    }
-  }, [lesson]);
-
-  return { lesson, loading, error, fetchLesson, saveLesson, removeLesson };
+  return { lesson, loading, error, saveLesson };
 }
 
-// --- Quizzes Hooks ---
+// --- Quiz Hooks ---
 export function useQuizzes() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
@@ -537,19 +537,18 @@ export function useQuizzes() {
     }
   }, []);
 
-  return { quizzes, loading, error, fetchQuizzes, addQuiz, editQuiz, removeQuiz };
+  return { quizzes, loading, error, addQuiz, editQuiz, removeQuiz, fetchQuizzes };
 }
 
-// --- Quiz Questions Hooks ---
+// --- Quiz Question Hooks ---
 export function useQuizQuestions(quizId: string | null) {
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchQuizQuestions = useCallback(async () => {
+  const fetchQuestions = useCallback(async () => {
     if (!quizId) {
       setQuizQuestions([]);
-      setLoading(false);
       return;
     }
     try {
@@ -565,8 +564,8 @@ export function useQuizQuestions(quizId: string | null) {
   }, [quizId]);
 
   useEffect(() => {
-    fetchQuizQuestions();
-  }, [fetchQuizQuestions]);
+    fetchQuestions();
+  }, [fetchQuestions]);
 
   const addQuizQuestion = useCallback(async (newQuestion: Omit<QuizQuestion, "id" | "created_at" | "updated_at">) => {
     try {
@@ -606,5 +605,5 @@ export function useQuizQuestions(quizId: string | null) {
     }
   }, []);
 
-  return { quizQuestions, loading, error, fetchQuizQuestions, addQuizQuestion, editQuizQuestion, removeQuizQuestion };
+  return { quizQuestions, loading, error, addQuizQuestion, editQuizQuestion, removeQuizQuestion, fetchQuestions };
 }

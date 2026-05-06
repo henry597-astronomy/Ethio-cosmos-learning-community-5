@@ -42,8 +42,22 @@ async function updateSiteContent<T>(key: string, value: T): Promise<void> {
 
 // --- Homepage Content ---
 export const getHomepageHero = () =>
-  getSiteContent<{ heroTitle: string; heroSubtitle: string; videoUrl?: string; videoVisible?: boolean }>("homepage_hero");
-export const updateHomepageHero = (data: { heroTitle: string; heroSubtitle: string; videoUrl?: string; videoVisible?: boolean }) =>
+  getSiteContent<{ 
+    heroTitle: string; 
+    heroSubtitle: string; 
+    videoUrl?: string; 
+    videoVisible?: boolean;
+    secondaryVideoUrl?: string;
+    enableVideoSequence?: boolean;
+  }>("homepage_hero");
+export const updateHomepageHero = (data: { 
+  heroTitle: string; 
+  heroSubtitle: string; 
+  videoUrl?: string; 
+  videoVisible?: boolean;
+  secondaryVideoUrl?: string;
+  enableVideoSequence?: boolean;
+}) =>
   updateSiteContent("homepage_hero", data);
 
 export const getHomepageFeatureCards = () =>

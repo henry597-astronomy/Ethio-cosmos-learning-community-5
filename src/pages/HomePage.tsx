@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } from '@/hooks/use-cms-data';
@@ -11,6 +12,49 @@ export default function HomePage() {
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
   const navigate = useNavigate();
+
+  // Video sequencing state
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
+  const [isSecondaryVideo, setIsSecondaryVideo] = useState(false);
+
+  useEffect(() => {
+    if (homepageHero.hero) {
+      const { videoUrl, secondaryVideoUrl, enableVideoSequence } = homepageHero.hero;
+      
+      // If sequence is enabled and we have both videos
+      if (enableVideoSequence && videoUrl && secondaryVideoUrl) {
+        // Check if user has already finished the first video in this session
+        const hasFinishedIntro = sessionStorage.getItem('homepage-intro-finished');
+        if (hasFinishedIntro) {
+          setCurrentVideoUrl(secondaryVideoUrl);
+          setIsSecondaryVideo(true);
+        } else {
+          setCurrentVideoUrl(videoUrl);
+          setIsSecondaryVideo(false);
+        }
+      } else {
+        // Normal single video mode
+        setCurrentVideoUrl(videoUrl || '');
+        setIsSecondaryVideo(false);
+      }
+    }
+  }, [homepageHero.hero]);
+
+  const handleVideoEnd = () => {
+    if (homepageHero.hero?.enableVideoSequence && !isSecondaryVideo && homepageHero.hero.secondaryVideoUrl) {
+      setCurrentVideoUrl(homepageHero.hero.secondaryVideoUrl);
+      setIsSecondaryVideo(true);
+      sessionStorage.setItem('homepage-intro-finished', 'true');
+    }
+  };
+
+  const handleVideoTouch = () => {
+    if (homepageHero.hero?.enableVideoSequence && !isSecondaryVideo && homepageHero.hero.secondaryVideoUrl) {
+      setCurrentVideoUrl(homepageHero.hero.secondaryVideoUrl);
+      setIsSecondaryVideo(true);
+      sessionStorage.setItem('homepage-intro-finished', 'true');
+    }
+  };
 
   const scrollToFeatures = () => {
     const element = document.getElementById('feature-cards');
@@ -74,16 +118,19 @@ export default function HomePage() {
             </div>
             
             {/* Video Section */}
-            {homepageHero.hero?.videoVisible && homepageHero.hero?.videoUrl && (
-              <div className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl">
-                {getVideoType(homepageHero.hero.videoUrl) === 'youtube' ? (
+            {homepageHero.hero?.videoVisible && currentVideoUrl && (
+              <div 
+                className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl cursor-pointer"
+                onClick={handleVideoTouch}
+              >
+                {getVideoType(currentVideoUrl) === 'youtube' ? (
                   // YouTube Embedded Video
                   <div className="relative w-full aspect-video bg-black">
                     <iframe
-                      key={homepageHero.hero.videoUrl}
+                      key={currentVideoUrl}
                       width="100%"
                       height="100%"
-                      src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                      src={`${getEmbedUrl(currentVideoUrl)}?autoplay=1&enablejsapi=1`}
                       title="Hero Video"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -91,14 +138,14 @@ export default function HomePage() {
                       className="absolute inset-0"
                     />
                   </div>
-                ) : getVideoType(homepageHero.hero.videoUrl) === 'google-drive' ? (
+                ) : getVideoType(currentVideoUrl) === 'google-drive' ? (
                   // Google Drive Embedded Video
                   <div className="relative w-full aspect-video bg-black">
                     <iframe
-                      key={homepageHero.hero.videoUrl}
+                      key={currentVideoUrl}
                       width="100%"
                       height="100%"
-                      src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                      src={getEmbedUrl(currentVideoUrl) || ''}
                       title="Hero Video"
                       frameBorder="0"
                       allow="autoplay"
@@ -106,15 +153,17 @@ export default function HomePage() {
                       className="absolute inset-0"
                     />
                   </div>
-                ) : getVideoType(homepageHero.hero.videoUrl) === 'direct' ? (
+                ) : getVideoType(currentVideoUrl) === 'direct' ? (
                   // Direct Video File
                   <video
-                    key={homepageHero.hero.videoUrl}
+                    key={currentVideoUrl}
                     controls
+                    autoPlay
+                    onEnded={handleVideoEnd}
                     className="w-full h-auto aspect-video bg-black"
                     poster="/images/hero-bg-new.jpg"
                   >
-                    <source src={homepageHero.hero.videoUrl} />
+                    <source src={currentVideoUrl} />
                     Your browser does not support the video tag.
                   </video>
                 ) : (

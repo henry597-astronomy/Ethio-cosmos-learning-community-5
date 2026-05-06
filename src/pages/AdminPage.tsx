@@ -286,9 +286,16 @@ export default function AdminPage() {
   }
 
   // ── Homepage ────────────────────────────────────────────────────────────────
-  const updateHeroLocal = (field: 'heroTitle' | 'heroSubtitle' | 'videoUrl' | 'videoVisible', value: string | boolean) => {
+  const updateHeroLocal = (field: 'heroTitle' | 'heroSubtitle' | 'videoUrl' | 'videoVisible' | 'secondaryVideoUrl' | 'enableVideoSequence', value: string | boolean) => {
     setHeroLocal(prev => {
-      const current = prev || { heroTitle: '', heroSubtitle: '', videoUrl: '', videoVisible: false };
+      const current = prev || { 
+        heroTitle: '', 
+        heroSubtitle: '', 
+        videoUrl: '', 
+        videoVisible: false,
+        secondaryVideoUrl: '',
+        enableVideoSequence: false
+      };
       return { ...current, [field]: value };
     });
     setHeroModified(true);
@@ -819,6 +826,63 @@ export default function AdminPage() {
                             controls 
                             className="w-full h-auto max-h-48 rounded bg-black"
                             src={heroLocal.videoUrl}
+                          />
+                        ) : (
+                          <div className="w-full aspect-video bg-black rounded flex items-center justify-center text-gray-500 text-sm">
+                            Invalid video URL
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-white/10 pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-white">Secondary Video (Sequence)</h3>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="enableVideoSequence" 
+                        checked={heroLocal?.enableVideoSequence || false} 
+                        onChange={(e) => updateHeroLocal('enableVideoSequence', e.target.checked)}
+                        className="w-4 h-4 rounded border-white/20 bg-slate-800 cursor-pointer"
+                      />
+                      <label htmlFor="enableVideoSequence" className="text-xs text-gray-400 cursor-pointer">Enable Sequence</label>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Secondary Video URL</label>
+                      <Input 
+                        value={heroLocal?.secondaryVideoUrl || ''} 
+                        onChange={(e) => updateHeroLocal('secondaryVideoUrl', e.target.value)} 
+                        placeholder="https://example.com/secondary-video.mp4" 
+                        className="bg-slate-800 border-white/20 text-white" 
+                        disabled={!heroLocal?.enableVideoSequence}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">This video will play automatically after the first one finishes.</p>
+                    </div>
+                    {heroLocal?.secondaryVideoUrl && (
+                      <div className="bg-slate-800/50 rounded-lg p-3 border border-white/10">
+                        <p className="text-xs text-gray-400 mb-2">Secondary Video Type: <span className="text-orange-400 font-semibold">{getVideoType(heroLocal.secondaryVideoUrl) === 'youtube' ? 'YouTube' : getVideoType(heroLocal.secondaryVideoUrl) === 'google-drive' ? 'Google Drive' : getVideoType(heroLocal.secondaryVideoUrl) === 'direct' ? 'Direct Video' : 'Unknown'}</span></p>
+                        {getVideoType(heroLocal.secondaryVideoUrl) === 'youtube' ? (
+                          <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
+                            <iframe
+                              width="100%"
+                              height="100%"
+                              src={getEmbedUrl(heroLocal.secondaryVideoUrl) || ''}
+                              title="Secondary Preview"
+                              frameBorder="0"
+                              allowFullScreen
+                              className="absolute inset-0"
+                            />
+                          </div>
+                        ) : getVideoType(heroLocal.secondaryVideoUrl) === 'direct' ? (
+                          <video 
+                            controls 
+                            className="w-full h-auto max-h-48 rounded bg-black"
+                            src={heroLocal.secondaryVideoUrl}
                           />
                         ) : (
                           <div className="w-full aspect-video bg-black rounded flex items-center justify-center text-gray-500 text-sm">

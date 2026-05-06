@@ -196,6 +196,41 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    if (user?.email !== 'henokgirma648@gmail.com') {
+      alert('Only the super admin can delete users.');
+      return;
+    }
+
+    // Prevent deletion of super admin
+    if (userEmail === 'henokgirma648@gmail.com') {
+      alert('Cannot delete the super admin account.');
+      return;
+    }
+
+    // Confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete the account for ${userEmail}? This action cannot be undone and will remove all associated data.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const { data, error } = await supabase.rpc('delete_user', { user_id: userId });
+      if (error) {
+        console.error('Supabase RPC error:', error);
+        throw new Error(`Failed to delete user: ${error.message}`);
+      }
+      if (data && !data.success) {
+        throw new Error(data.message || 'Failed to delete user');
+      }
+      alert(`User ${userEmail} has been successfully deleted.`);
+      await fetchUsers();
+    } catch (err: unknown) {
+      console.error('Error deleting user:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete user');
+    }
+  };
+
   // Local state for hero section (to avoid auto-save)
   const [heroLocal, setHeroLocal] = useState(homepageHero.hero);
   const [heroModified, setHeroModified] = useState(false);
@@ -1463,6 +1498,15 @@ export default function AdminPage() {
                           className={u.is_blocked ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-gray-600 hover:bg-gray-700 text-white'}
                         >
                           {u.is_blocked ? 'Unblock' : 'Block'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteUser(u.id, u.email)}
+                          className="bg-red-700 hover:bg-red-800 text-white"
+                          title="Permanently delete this user account"
+                        >
+                          <Trash2 size={16} className="mr-1" /> Delete
                         </Button>
                       </div>
                     </div>

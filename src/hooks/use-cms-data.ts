@@ -176,8 +176,21 @@ export function useAboutContent() {
 
   const saveAboutContent = useCallback(async (newContent: AboutContent) => {
     try {
-      await updateAboutContent(newContent);
-      setAboutContent(newContent);
+      // Fetch current content from database to merge with new changes
+      const currentContent = await getAboutContent();
+      // Merge current content with new content, preserving any fields not being updated
+      const mergedContent: AboutContent = {
+        ...currentContent,
+        ...newContent,
+        // Ensure team object is properly merged
+        team: {
+          platformCreators: newContent.team?.platformCreators ?? currentContent?.team?.platformCreators ?? [],
+          educationalAdvisors: newContent.team?.educationalAdvisors ?? currentContent?.team?.educationalAdvisors ?? [],
+          communityMembers: newContent.team?.communityMembers ?? currentContent?.team?.communityMembers ?? [],
+        },
+      };
+      await updateAboutContent(mergedContent);
+      setAboutContent(mergedContent);
       setError(null);
     } catch (err) {
       setError("Failed to save about content.");

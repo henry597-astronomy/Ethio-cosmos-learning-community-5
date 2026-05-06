@@ -114,7 +114,7 @@ function ImageUpload({ currentImage, onImageUploaded, label }: ImageUploadProps)
 
 // ─── Admin Page ───────────────────────────────────────────────────────────────
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const homepageHero = useHomepageHero();
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
@@ -252,11 +252,8 @@ export default function AdminPage() {
   // We only need the user here for display.
   if (!user) return null;
 
-  // Determine if current user is the super admin
-  const isSuperAdmin = user.email === 'henokgirma648@gmail.com';
-
   // Define which tabs are available for regular admins vs super admin
-  const regularAdminTabs = ['topics', 'subtopics', 'lessons', 'quizzes'];
+  const regularAdminTabs = ['lessons'];
   const allTabs = ['homepage', 'topics', 'subtopics', 'lessons', 'about', 'materials', 'quizzes', 'users'];
   const availableTabs = isSuperAdmin ? allTabs : regularAdminTabs;
 

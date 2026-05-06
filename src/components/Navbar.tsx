@@ -22,7 +22,7 @@ const privateNavLinks = [
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, isAdmin, logout, displayName } = useAuth();
+  const { user, profile, isAdmin, isSuperAdmin, logout, displayName } = useAuth();
   const { unreadCount } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -125,7 +125,7 @@ export default function Navbar() {
                           : 'text-gray-300 hover:text-white hover:bg-white/5'
                       }`}
                     >
-                      Admin
+                      {isSuperAdmin ? 'Admin' : 'Lessons'}
                     </Link>
                   )}
                 </>
@@ -192,7 +192,7 @@ export default function Navbar() {
                           onClick={() => setProfileMenuOpen(false)}
                         >
                           <Settings size={16} />
-                          Admin Panel
+                          {isSuperAdmin ? 'Admin Panel' : 'Manage Lessons'}
                         </Link>
                       )}
                       <button
@@ -321,7 +321,7 @@ export default function Navbar() {
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Admin
+                {isSuperAdmin ? 'Admin' : 'Lessons'}
               </Link>
             )}
             {user ? (

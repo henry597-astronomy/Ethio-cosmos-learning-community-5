@@ -18,6 +18,7 @@ interface AuthContextType {
   authReady: boolean;        // true once session is confirmed (near-instant)
   profileLoading: boolean;   // true while fetching DB profile
   isAdmin: boolean;
+  isSuperAdmin: boolean;     // true if user is henokgirma648@gmail.com (super admin)
   isBlocked: boolean;        // true if user is blocked
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     'User';
 
   const isAdmin = profile?.role === 'admin';
+  const isSuperAdmin = user?.email === 'henokgirma648@gmail.com';
   const isBlocked = profile?.is_blocked === true;
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -212,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authReady,
         profileLoading,
         isAdmin,
+        isSuperAdmin,
         isBlocked,
         displayName,
         signInWithGoogle,

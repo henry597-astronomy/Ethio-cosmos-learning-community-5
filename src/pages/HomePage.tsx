@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
 import { AlertCircle } from 'lucide-react';
 
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
 export default function HomePage() {
   const { user } = useAuth();
   const homepageHero = useHomepageHero();

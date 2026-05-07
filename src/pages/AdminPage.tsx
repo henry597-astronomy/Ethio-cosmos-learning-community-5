@@ -8,7 +8,7 @@ import {
   useQuizQuestions,
 } from '@/hooks/use-cms-data';
 import { supabase, isValidConfig } from '@/supabase';
-import { uploadImage, uploadVideo } from '@/services/cms';
+import { uploadImage } from '@/services/cms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';

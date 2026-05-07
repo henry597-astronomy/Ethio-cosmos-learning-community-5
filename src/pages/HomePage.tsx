@@ -284,18 +284,17 @@ export default function HomePage() {
               homepageFeaturedTopics.featuredTopics.map((topic) => (
                 <div 
                   key={topic.id}
-                  className="group relative rounded-xl overflow-hidden aspect-[4/5] cursor-pointer"
+                  className="group rounded-xl overflow-hidden cursor-pointer bg-[#151c2c] border border-white/10 hover:border-orange-500/30 transition-all duration-300 flex flex-col h-full"
                   onClick={() => navigate('/learning')}
                 >
                   <img 
                     src={topic.image_url} 
                     alt={topic.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <h3 className="text-xl font-bold text-white mb-2">{topic.title}</h3>
-                    <p className="text-sm text-gray-300 line-clamp-2">
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="text-lg font-bold text-white mb-3">{topic.title}</h3>
+                    <p className="text-sm text-gray-300 leading-relaxed flex-1">
                       {topic.description}
                     </p>
                   </div>

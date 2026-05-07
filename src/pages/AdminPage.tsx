@@ -343,8 +343,8 @@ export default function AdminPage() {
   if (!user) return null;
 
   // Define which tabs are available for regular admins vs super admin
-  const regularAdminTabs = ['lessons'];
-  const allTabs = ['homepage', 'topics', 'subtopics', 'lessons', 'about', 'materials', 'quizzes', 'users'];
+  const regularAdminTabs = ['home', 'lessons'];
+  const allTabs = ['home', 'homepage', 'topics', 'subtopics', 'lessons', 'about', 'materials', 'quizzes', 'users'];
   const availableTabs = isSuperAdmin ? allTabs : regularAdminTabs;
 
   // If user tries to access a restricted tab, reset to first available tab
@@ -835,7 +835,155 @@ export default function AdminPage() {
             ))}
           </TabsList>
 
-          {/* ── HOMEPAGE TAB ────────────────────────────────────────────── */}
+          {/* ── HOME TAB (User View) ────────────────────────────────────────────── */}
+          <TabsContent value="home" className="space-y-8">
+            <div className="text-center text-gray-400 mb-8">
+              <p className="text-sm">This is how the homepage appears to all users</p>
+            </div>
+            
+            {/* Hero Section */}
+            <section 
+              className="min-h-screen flex items-center relative overflow-hidden rounded-xl border border-white/10"
+              style={{
+                backgroundImage: 'url(/images/hero-bg-new.jpg)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+                backgroundRepeat: 'no-repeat',
+              }}
+            >
+              {/* Dark overlay for text readability */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
+              
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10 w-full">
+                <div className="grid md:grid-cols-2 gap-12 items-center">
+                  <div className="max-w-2xl">
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                      {homepageHero.hero?.heroTitle || 'Explore the Cosmos with Ethiopia'}
+                    </h1>
+                    <p className="text-xl text-gray-300 mb-8">
+                      {homepageHero.hero?.heroSubtitle || 'Join the EthioCosmos Learning Community'}
+                    </p>
+                  </div>
+                  
+                  {/* Video Section */}
+                  {homepageHero.hero?.videoVisible && homepageHero.hero?.videoUrl && (
+                    <div 
+                      className="rounded-xl overflow-hidden border-2 border-orange-500/50 shadow-2xl"
+                    >
+                      {getVideoType(homepageHero.hero.videoUrl) === 'youtube' ? (
+                        <div className="relative w-full aspect-video bg-black">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            src={`${getEmbedUrl(homepageHero.hero.videoUrl)}?autoplay=0`}
+                            title="Hero Video"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0"
+                          />
+                        </div>
+                      ) : getVideoType(homepageHero.hero.videoUrl) === 'google-drive' ? (
+                        <div className="relative w-full aspect-video bg-black">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            src={getEmbedUrl(homepageHero.hero.videoUrl) || ''}
+                            title="Hero Video"
+                            frameBorder="0"
+                            allow="autoplay"
+                            allowFullScreen
+                            className="absolute inset-0"
+                          />
+                        </div>
+                      ) : getVideoType(homepageHero.hero.videoUrl) === 'direct' ? (
+                        <video
+                          controls
+                          className="w-full h-auto aspect-video bg-black"
+                          poster="/images/hero-bg-new.jpg"
+                        >
+                          <source src={homepageHero.hero.videoUrl} />
+                          Your browser does not support the video tag.
+                        </video>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Feature Cards Section */}
+            <section className="py-16 bg-slate-900/30 rounded-xl border border-white/10">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="grid md:grid-cols-3 gap-6">
+                  {homepageFeatureCards.loading ? (
+                    [0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="bg-white/10 rounded-xl p-8 shadow-xl animate-pulse h-48"
+                      />
+                    ))
+                  ) : (
+                    homepageFeatureCards.featureCards.map((card, i) => (
+                      <div 
+                        key={i}
+                        className="bg-[#151c2c] rounded-xl p-8 shadow-xl border border-white/5 hover:border-orange-500/30 transition-all duration-300 group"
+                      >
+                        <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                          {card.icon}
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">{card.title}</h3>
+                        <p className="text-gray-400 leading-relaxed">
+                          {card.description}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Featured Topics Section */}
+            <section className="py-24 bg-slate-900/30 rounded-xl border border-white/10 px-8">
+              <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-16">
+                  <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Featured Topics</h2>
+                  <div className="w-24 h-1 bg-orange-500 mx-auto rounded-full" />
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {homepageFeaturedTopics.loading ? (
+                    [0, 1, 2, 3].map((i) => (
+                      <div key={i} className="rounded-xl overflow-hidden bg-white/5 animate-pulse h-64" />
+                    ))
+                  ) : (
+                    homepageFeaturedTopics.featuredTopics.map((topic) => (
+                      <div 
+                        key={topic.id}
+                        className="group relative rounded-xl overflow-hidden aspect-[4/5]"
+                      >
+                        <img 
+                          src={topic.image_url} 
+                          alt={topic.title}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-6">
+                          <h3 className="text-xl font-bold text-white mb-2">{topic.title}</h3>
+                          <p className="text-sm text-gray-300 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            {topic.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </section>
+          </TabsContent>
+
+          {/* ── HOMEPAGE TAB (Edit Mode) ────────────────────────────────────────────── */}
           <TabsContent value="homepage" className="space-y-8">
             {/* Hero Section */}
             <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">

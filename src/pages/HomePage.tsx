@@ -295,7 +295,7 @@ export default function HomePage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-6">
                     <h3 className="text-xl font-bold text-white mb-2">{topic.title}</h3>
-                    <p className="text-sm text-gray-300 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <p className="text-sm text-gray-300 line-clamp-2">
                       {topic.description}
                     </p>
                   </div>
@@ -315,23 +315,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-orange-500/10" />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">Ready to Start Your Journey?</h2>
-          <p className="text-xl text-gray-300 mb-10">
-            Join thousands of students and space enthusiasts in Ethiopia exploring the wonders of the universe.
-          </p>
-          <Button 
-            size="lg" 
-            className="bg-orange-500 hover:bg-orange-600 text-white px-12 text-lg h-14"
-            onClick={handleBeginJourney}
-          >
-            Join the Community
-          </Button>
-        </div>
-      </section>
+
     </div>
   );
 }

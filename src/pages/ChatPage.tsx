@@ -333,7 +333,7 @@ export default function ChatPage() {
     <div 
       className="fixed inset-0 top-28 flex flex-col bg-cover bg-center bg-no-repeat"
       style={{
-        backgroundImage: 'url(/images/chat-bg.jpg)',
+        backgroundImage: 'url(/images/chat-bg-new.jpg)',
       }}
     >
       {/* Dark overlay for better text readability */}

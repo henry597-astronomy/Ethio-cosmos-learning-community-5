@@ -1,11 +1,12 @@
 // EthioCosmos Service Worker
 // Strategy: Network-first for API/Supabase calls, Cache-first for static assets
-const CACHE_NAME = 'ethio-cosmos-v4';
+const CACHE_NAME = 'ethio-cosmos-v5';
 
 const STATIC_ASSETS = [
   './index.html',
   './manifest.json',
   './images/school-logo.jpg',
+  './images/chat-bg-new.jpg',
 ];
 
 // These origins must NEVER be intercepted — Supabase & Google OAuth need direct network

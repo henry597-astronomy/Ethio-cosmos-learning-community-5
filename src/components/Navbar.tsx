@@ -74,7 +74,7 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
-              <span className="text-2xl">🔭</span>
+              <img src="/images/school-logo.jpg" alt="Logo" className="w-8 h-8 rounded-full object-cover border border-orange-500/50" />
               <span className="font-bold text-white text-sm sm:text-base hidden sm:inline">
                 Ethio-cosmos-learning-community
               </span>

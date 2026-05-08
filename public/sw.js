@@ -1,8 +1,8 @@
 // EthioCosmos Service Worker
 // Strategy: Network-first for API/Supabase calls, Cache-first for static assets
-// Enhanced: Offline support for learning page, homepage, and about page
+// Enhanced: Offline support for learning page, homepage, about page, and lessons
 
-const CACHE_NAME = 'ethio-cosmos-v6';
+const CACHE_NAME = 'ethio-cosmos-v7';
 const API_CACHE_NAME = 'ethio-cosmos-api-v1';
 
 const STATIC_ASSETS = [
@@ -35,9 +35,10 @@ function shouldBypass(url) {
   return BYPASS_ORIGINS.some(origin => url.includes(origin));
 }
 
-// Check if URL is a CMS API call (site_content or topics endpoint)
+// Check if URL is a CMS API call (site_content, topics, subtopics, or lessons endpoint)
 function isCmsApiCall(url) {
-  return (url.includes('site_content') || url.includes('topics')) && url.includes('supabase');
+  const cmsTables = ['site_content', 'topics', 'subtopics', 'lessons'];
+  return cmsTables.some(table => url.includes(table)) && url.includes('supabase');
 }
 
 // ── Install ──────────────────────────────────────────────────────────────────
@@ -70,7 +71,7 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   // 2. Never intercept Supabase Auth, Google OAuth, or any external API
-  // However, we DO want to intercept Supabase REST calls for CMS data (site_content, topics)
+  // However, we DO want to intercept Supabase REST calls for CMS data
   if (shouldBypass(url) && !isCmsApiCall(url)) return;
 
   // 3. SPA navigation — always serve index.html from cache or network

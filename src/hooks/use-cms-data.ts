@@ -460,9 +460,21 @@ export function useSubtopics(topicId: string | null) {
       setLoading(true);
       const data = await getSubtopicsByTopicId(topicId);
       setSubtopics(data);
+      // Cache for offline access
+      await cacheOfflineData(`subtopics_${topicId}`, data).catch(err => console.warn('Failed to cache subtopics:', err));
     } catch (err) {
       setError("Failed to load subtopics.");
       console.error(err);
+      // Try to load from offline cache if online fetch fails
+      try {
+        const cachedData = await getOfflineData(`subtopics_${topicId}`);
+        if (cachedData) {
+          setSubtopics(cachedData);
+          setError(null);
+        }
+      } catch (cacheErr) {
+        console.warn('Failed to load cached subtopics:', cacheErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -529,9 +541,23 @@ export function useLesson(subtopicId: string | null) {
         setLoading(true);
         const data = await getLessonBySubtopicId(subtopicId);
         setLesson(data);
+        if (data) {
+          // Cache for offline access
+          await cacheOfflineData(`lesson_${subtopicId}`, data).catch(err => console.warn('Failed to cache lesson:', err));
+        }
       } catch (err) {
         setError("Failed to load lesson.");
         console.error(err);
+        // Try to load from offline cache if online fetch fails
+        try {
+          const cachedData = await getOfflineData(`lesson_${subtopicId}`);
+          if (cachedData) {
+            setLesson(cachedData);
+            setError(null);
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to load cached lesson:', cacheErr);
+        }
       } finally {
         setLoading(false);
       }
@@ -547,7 +573,10 @@ export function useLesson(subtopicId: string | null) {
       } else {
         savedLesson = await createLesson(lessonData);
       }
-      if (savedLesson) setLesson(savedLesson);
+      if (savedLesson) {
+        setLesson(savedLesson);
+        await cacheOfflineData(`lesson_${subtopicId}`, savedLesson);
+      }
       setError(null);
     } catch (err) {
       setError("Failed to save lesson.");

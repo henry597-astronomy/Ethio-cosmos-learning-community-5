@@ -26,14 +26,8 @@ function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Force redirect to home on initial load if not already there
-  useEffect(() => {
-    const hasRedirected = sessionStorage.getItem('initial-home-redirect');
-    if (!hasRedirected && location.pathname !== '/' && location.pathname !== '/login') {
-      navigate('/', { replace: true });
-      sessionStorage.setItem('initial-home-redirect', 'true');
-    }
-  }, []);
+  // Removed the unconditional initial-home-redirect that was causing white screens on refresh.
+  // The app now correctly preserves the current URL on hard refresh.
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] flex flex-col">

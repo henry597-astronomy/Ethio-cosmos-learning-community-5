@@ -37,17 +37,30 @@ export function useHomepageHero() {
       try {
         setLoading(true);
         const data = await getHomepageHero();
-        setHero(data ?? {
+        const finalData = data ?? {
           heroTitle:    'Explore the Cosmos with Ethiopia',
           heroSubtitle: 'Join the EthioCosmos Learning Community — learn astronomy from Ethiopia to the universe',
           videoUrl: '',
           videoVisible: false,
           secondaryVideoUrl: '',
           enableVideoSequence: false
-        });
+        };
+        setHero(finalData);
+        // Cache for offline access
+        await cacheOfflineData('homepage_hero', finalData).catch(err => console.warn('Failed to cache hero:', err));
       } catch (err) {
         setError("Failed to load homepage hero.");
         console.error(err);
+        // Try to load from offline cache if online fetch fails
+        try {
+          const cachedData = await getOfflineData('homepage_hero');
+          if (cachedData) {
+            setHero(cachedData);
+            setError(null);
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to load cached hero:', cacheErr);
+        }
       } finally {
         setLoading(false);
       }
@@ -67,6 +80,7 @@ export function useHomepageHero() {
       await updateHomepageHero(newHero);
       setHero(newHero);
       setError(null);
+      await cacheOfflineData('homepage_hero', newHero);
     } catch (err) {
       setError("Failed to save homepage hero.");
       console.error(err);
@@ -87,14 +101,27 @@ export function useHomepageFeatureCards() {
       try {
         setLoading(true);
         const data = await getHomepageFeatureCards();
-        setFeatureCards(data || [
+        const finalData = data || [
           { icon: '🔭', title: 'Astronomy Lessons',  description: 'Structured learning paths from basics to advanced topics'   },
           { icon: '🌍', title: 'Ethiopian Context',  description: 'Explore the night sky from an Ethiopian perspective'         },
           { icon: '🚀', title: 'Community Learning', description: 'Learn, discuss, and grow with fellow astronomy students'     },
-        ]);
+        ];
+        setFeatureCards(finalData);
+        // Cache for offline access
+        await cacheOfflineData('homepage_feature_cards', finalData).catch(err => console.warn('Failed to cache feature cards:', err));
       } catch (err) {
         setError("Failed to load feature cards.");
         console.error(err);
+        // Try to load from offline cache if online fetch fails
+        try {
+          const cachedData = await getOfflineData('homepage_feature_cards');
+          if (cachedData) {
+            setFeatureCards(cachedData);
+            setError(null);
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to load cached feature cards:', cacheErr);
+        }
       } finally {
         setLoading(false);
       }
@@ -107,6 +134,7 @@ export function useHomepageFeatureCards() {
       await updateHomepageFeatureCards(newCards);
       setFeatureCards(newCards);
       setError(null);
+      await cacheOfflineData('homepage_feature_cards', newCards);
     } catch (err) {
       setError("Failed to save feature cards.");
       console.error(err);
@@ -127,10 +155,23 @@ export function useHomepageFeaturedTopics() {
       try {
         setLoading(true);
         const data = await getHomepageFeaturedTopics();
-        setFeaturedTopics(data || []);
+        const finalData = data || [];
+        setFeaturedTopics(finalData);
+        // Cache for offline access
+        await cacheOfflineData('homepage_featured_topics', finalData).catch(err => console.warn('Failed to cache featured topics:', err));
       } catch (err) {
         setError("Failed to load featured topics.");
         console.error(err);
+        // Try to load from offline cache if online fetch fails
+        try {
+          const cachedData = await getOfflineData('homepage_featured_topics');
+          if (cachedData) {
+            setFeaturedTopics(cachedData);
+            setError(null);
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to load cached featured topics:', cacheErr);
+        }
       } finally {
         setLoading(false);
       }
@@ -143,6 +184,7 @@ export function useHomepageFeaturedTopics() {
       await updateHomepageFeaturedTopics(newTopics);
       setFeaturedTopics(newTopics);
       setError(null);
+      await cacheOfflineData('homepage_featured_topics', newTopics);
     } catch (err) {
       setError("Failed to save featured topics.");
       console.error(err);
@@ -165,9 +207,23 @@ export function useAboutContent() {
         setLoading(true);
         const data = await getAboutContent();
         setAboutContent(data);
+        if (data) {
+          // Cache for offline access
+          await cacheOfflineData('about_content', data).catch(err => console.warn('Failed to cache about content:', err));
+        }
       } catch (err) {
         setError("Failed to load about content.");
         console.error(err);
+        // Try to load from offline cache if online fetch fails
+        try {
+          const cachedData = await getOfflineData('about_content');
+          if (cachedData) {
+            setAboutContent(cachedData);
+            setError(null);
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to load cached about content:', cacheErr);
+        }
       } finally {
         setLoading(false);
       }
@@ -193,6 +249,7 @@ export function useAboutContent() {
       await updateAboutContent(mergedContent);
       setAboutContent(mergedContent);
       setError(null);
+      await cacheOfflineData('about_content', mergedContent);
     } catch (err) {
       setError("Failed to save about content.");
       console.error(err);

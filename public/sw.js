@@ -1,13 +1,25 @@
 // EthioCosmos Service Worker
 // Strategy: Network-first for API/Supabase calls, Cache-first for static assets
-// Enhanced: Offline support for learning page with IndexedDB caching
-const CACHE_NAME = 'ethio-cosmos-v5';
+// Enhanced: Offline support for learning page, homepage, and about page
+
+const CACHE_NAME = 'ethio-cosmos-v6';
 const API_CACHE_NAME = 'ethio-cosmos-api-v1';
+
 const STATIC_ASSETS = [
+  './',
   './index.html',
   './manifest.json',
   './images/school-logo.jpg',
   './images/chat-bg-new.jpg',
+  './images/hero-bg-new.jpg',
+  './images/about-hero.jpg',
+  './images/learning-hero.jpg',
+  './images/mission.jpg',
+  './images/who-we-are-1.jpg',
+  './images/who-we-are-2.jpg',
+  './images/topic-fundamentals.jpg',
+  './images/icon-192.png',
+  './images/icon-512.png',
 ];
 
 // These origins must NEVER be intercepted — Supabase & Google OAuth need direct network
@@ -23,9 +35,9 @@ function shouldBypass(url) {
   return BYPASS_ORIGINS.some(origin => url.includes(origin));
 }
 
-// Check if URL is a learning page API call (topics endpoint)
-function isLearningApiCall(url) {
-  return url.includes('topics') && url.includes('supabase');
+// Check if URL is a CMS API call (site_content or topics endpoint)
+function isCmsApiCall(url) {
+  return (url.includes('site_content') || url.includes('topics')) && url.includes('supabase');
 }
 
 // ── Install ──────────────────────────────────────────────────────────────────
@@ -57,8 +69,9 @@ self.addEventListener('fetch', (event) => {
   // 1. Never intercept non-GET requests (POST/PUT/DELETE to Supabase etc.)
   if (request.method !== 'GET') return;
 
-  // 2. Never intercept Supabase, Google OAuth, or any external API
-  if (shouldBypass(url)) return;
+  // 2. Never intercept Supabase Auth, Google OAuth, or any external API
+  // However, we DO want to intercept Supabase REST calls for CMS data (site_content, topics)
+  if (shouldBypass(url) && !isCmsApiCall(url)) return;
 
   // 3. SPA navigation — always serve index.html from cache or network
   if (request.mode === 'navigate') {
@@ -68,13 +81,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Learning API calls (topics data) — network-first with cache fallback
-  if (isLearningApiCall(url)) {
+  // 4. CMS API calls — network-first with cache fallback
+  if (isCmsApiCall(url)) {
     event.respondWith(
       fetch(request)
         .then((response) => {
           // Cache successful responses
-          if (response.ok && response.type === 'basic') {
+          if (response.ok) {
             const clone = response.clone();
             caches.open(API_CACHE_NAME).then((cache) => cache.put(request, clone));
           }
@@ -88,14 +101,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Static assets — cache-first, fall back to network
+  // 5. Static assets & others — cache-first, fall back to network
   event.respondWith(
     caches.match(request).then(
       (cached) => cached || fetch(request).then((response) => {
-        // Only cache successful same-origin responses
+        // Only cache successful same-origin responses or images
         if (
           response.ok &&
-          response.type === 'basic'
+          (response.type === 'basic' || (response.type === 'opaque' && url.match(/\.(jpg|jpeg|png|gif|svg|webp)$/i)))
         ) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));

@@ -873,7 +873,7 @@ export default function AdminPage() {
                     homepageFeatureCards.featureCards.map((card, i) => (
                       <div 
                         key={i}
-                        className="bg-white rounded-xl p-8 shadow-xl border border-white/5 hover:border-orange-500/30 transition-all duration-300 group"
+                        className="bg-[#151c2c] rounded-xl p-8 shadow-xl border border-white/5 hover:border-orange-500/30 transition-all duration-300 group"
                       >
                         <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
                           {card.icon}

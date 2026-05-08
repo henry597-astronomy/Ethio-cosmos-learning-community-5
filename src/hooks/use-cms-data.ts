@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { cacheOfflineData, getOfflineData } from '@/lib/offline-cache';
 import {
   getHomepageHero, updateHomepageHero,
   getHomepageFeatureCards, updateHomepageFeatureCards,
@@ -322,9 +323,21 @@ export function useTopics() {
       setLoading(true);
       const data = await getTopics();
       setTopics(data);
+      // Cache topics for offline access
+      await cacheOfflineData('topics', data).catch(err => console.warn('Failed to cache topics:', err));
     } catch (err) {
       setError("Failed to load topics.");
       console.error(err);
+      // Try to load from offline cache if online fetch fails
+      try {
+        const cachedData = await getOfflineData('topics');
+        if (cachedData) {
+          setTopics(cachedData);
+          setError(null);
+        }
+      } catch (cacheErr) {
+        console.warn('Failed to load cached topics:', cacheErr);
+      }
     } finally {
       setLoading(false);
     }

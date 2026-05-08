@@ -1,7 +1,8 @@
 // EthioCosmos Service Worker
 // Strategy: Network-first for API/Supabase calls, Cache-first for static assets
+// Enhanced: Offline support for learning page with IndexedDB caching
 const CACHE_NAME = 'ethio-cosmos-v5';
-
+const API_CACHE_NAME = 'ethio-cosmos-api-v1';
 const STATIC_ASSETS = [
   './index.html',
   './manifest.json',
@@ -22,6 +23,11 @@ function shouldBypass(url) {
   return BYPASS_ORIGINS.some(origin => url.includes(origin));
 }
 
+// Check if URL is a learning page API call (topics endpoint)
+function isLearningApiCall(url) {
+  return url.includes('topics') && url.includes('supabase');
+}
+
 // ── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -36,7 +42,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key !== CACHE_NAME && key !== API_CACHE_NAME)
           .map((key) => caches.delete(key))
       )
     ).then(() => self.clients.claim())
@@ -62,7 +68,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Static assets — cache-first, fall back to network
+  // 4. Learning API calls (topics data) — network-first with cache fallback
+  if (isLearningApiCall(url)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Cache successful responses
+          if (response.ok && response.type === 'basic') {
+            const clone = response.clone();
+            caches.open(API_CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => {
+          // Fall back to cached response if offline
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // 5. Static assets — cache-first, fall back to network
   event.respondWith(
     caches.match(request).then(
       (cached) => cached || fetch(request).then((response) => {

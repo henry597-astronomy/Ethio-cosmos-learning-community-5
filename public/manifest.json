@@ -4,7 +4,7 @@
   "description": "Astronomy education platform for Ethiopian and African learners.",
   "start_url": "./",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#0a0a1a",
   "theme_color": "#6366f1",

@@ -42,27 +42,37 @@
   html, body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    overflow: hidden;
-    position: fixed;
+    /* Allow normal scrolling - remove overflow: hidden and position: fixed */
+    overflow: auto;
+    position: relative;
     width: 100%;
     height: 100%;
-    /* Disable all default touch actions at the root level */
-    touch-action: none;
+    /* Improve touch performance */
     -webkit-user-select: none;
     user-select: none;
-    overscroll-behavior: none;
+    /* Allow natural scrolling behavior */
+    overscroll-behavior: auto;
     /* Prevent text size adjustment on orientation change */
     -webkit-text-size-adjust: 100%;
+    /* Optimize for mobile performance */
+    -webkit-tap-highlight-color: transparent;
+    /* Enable hardware acceleration */
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
   }
 
   #root {
     width: 100%;
-    height: 100%;
+    min-height: 100vh;
+    /* Allow natural scrolling */
     overflow-y: auto;
     overflow-x: hidden;
+    /* Enable smooth scrolling on iOS */
     -webkit-overflow-scrolling: touch;
-    /* Only allow vertical panning within the root container */
-    touch-action: pan-y;
+    /* Allow default touch actions for scrolling */
+    touch-action: auto;
+    /* Optimize rendering */
+    will-change: scroll-position;
   }
 }
 
@@ -145,8 +155,7 @@ html {
   animation-name: slide-in-from-top;
 }
 
-
-/* Spectrum Rainbow Animation */
+/* Spectrum Rainbow Animation - Optimized for performance */
 @keyframes spectrum-rainbow {
   0% { background-color: #FF0000; }      /* Red */
   14.28% { background-color: #FF7F00; }  /* Orange */
@@ -156,4 +165,13 @@ html {
   71.4% { background-color: #4B0082; }   /* Indigo */
   85.68% { background-color: #9400D3; }  /* Violet */
   100% { background-color: #FF0000; }    /* Back to Red */
+}
+
+/* Performance optimization: Reduce repaints during animations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -13,27 +13,33 @@
         });
       }
 
-      // Prevent multi-touch zoom
+      // Prevent multi-touch zoom while allowing single-touch scrolling
       document.addEventListener('touchstart', function (event) {
         if (event.touches.length > 1) {
           event.preventDefault();
         }
       }, { passive: false });
 
-      // Prevent double-tap zoom
+      // Prevent double-tap zoom with better detection
       let lastTouchEnd = 0;
       document.addEventListener('touchend', function (event) {
         const now = (new Date()).getTime();
         if (now - lastTouchEnd <= 300) {
-          event.preventDefault();
+          // Only prevent if it's truly a double-tap (not a scroll)
+          if (event.touches.length === 0) {
+            event.preventDefault();
+          }
         }
         lastTouchEnd = now;
-      }, false);
+      }, { passive: false });
 
       // Prevent gesture zoom (Safari)
       document.addEventListener('gesturestart', function (event) {
         event.preventDefault();
-      });
+      }, { passive: false });
+
+      // Optimize touch performance with passive listeners for scroll events
+      document.addEventListener('touchmove', function () {}, { passive: true });
     </script>
   </head>
   <body>

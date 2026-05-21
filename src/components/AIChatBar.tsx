@@ -61,10 +61,10 @@ export default function AIChatBar() {
     };
 
     if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleMouseMove);
-      window.addEventListener('touchend', handleMouseUp);
+      window.addEventListener('mousemove', handleMouseMove, { passive: true });
+      window.addEventListener('mouseup', handleMouseUp, { passive: true });
+      window.addEventListener('touchmove', handleMouseMove, { passive: true });
+      window.addEventListener('touchend', handleMouseUp, { passive: true });
     }
 
     return () => {
@@ -165,7 +165,7 @@ export default function AIChatBar() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             {messages.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-center p-6">
                 <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
@@ -252,7 +252,10 @@ export default function AIChatBar() {
                 inset -3px -3px 8px rgba(0, 0, 0, 0.4),
                 inset 3px 3px 8px rgba(255, 255, 255, 0.15),
                 inset -1px -1px 3px rgba(0, 0, 0, 0.5)
-              `
+              `,
+              willChange: 'transform',
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden'
             }}
           >
             {/* Glossy highlight - top left */}

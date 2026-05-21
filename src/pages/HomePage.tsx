@@ -49,19 +49,31 @@ export default function HomePage() {
     }
   }, [homepageHero.hero]);
 
-  // Setup YouTube API
+  // Setup YouTube API - Lazy load only when video is visible
   useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
-      
-      window.onYouTubeIframeAPIReady = () => {
+    if (!currentVideoUrl || getVideoType(currentVideoUrl) !== 'youtube') return;
+    
+    // Use requestIdleCallback to defer YouTube API loading
+    const loadYouTubeAPI = () => {
+      if (!window.YT) {
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.async = true;
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+        
+        window.onYouTubeIframeAPIReady = () => {
+          initializeYouTubePlayer();
+        };
+      } else {
         initializeYouTubePlayer();
-      };
+      }
+    };
+    
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(loadYouTubeAPI);
     } else {
-      initializeYouTubePlayer();
+      setTimeout(loadYouTubeAPI, 1000);
     }
   }, [currentVideoUrl, isSecondaryVideo]);
 
@@ -128,7 +140,7 @@ export default function HomePage() {
           backgroundImage: 'url(/images/hero-bg-new.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundAttachment: 'fixed',
+          backgroundAttachment: 'scroll',
           backgroundRepeat: 'no-repeat',
         }}
       >
@@ -290,6 +302,7 @@ export default function HomePage() {
                   <img 
                     src={topic.image_url} 
                     alt={topic.title}
+                    loading="lazy"
                     className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                   <div className="p-6 flex-1 flex flex-col">

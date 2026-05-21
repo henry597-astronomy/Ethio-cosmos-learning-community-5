@@ -7,6 +7,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import InstallPrompt from '@/components/InstallPrompt';
 import AIChatBar from '@/components/AIChatBar';
+import BottomTaskBar from '@/components/BottomTaskBar';
 
 import HomePage from '@/pages/HomePage';
 import LearningPage from '@/pages/LearningPage';
@@ -31,7 +32,7 @@ function AppRoutes() {
     <div className="min-h-screen bg-[#0a0e1a] flex flex-col">
       <Navbar />
       <InstallPrompt />
-      <main className="flex-1 pt-28">
+      <main className="flex-1 pt-28 pb-12">
         <Routes>
           {/* Login is always accessible */}
           <Route path="/login" element={<LoginPage />} />
@@ -68,6 +69,7 @@ function App() {
             <AppRoutes />
             <Toaster position="top-right" theme="dark" />
             <AIChatBar />
+            <BottomTaskBar />
           </NotificationProvider>
         </Router>
       </CmsProvider>

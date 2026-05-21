@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import InstallPrompt from '@/components/InstallPrompt';
+import AIChatBar from '@/components/AIChatBar';
 
 import HomePage from '@/pages/HomePage';
 import LearningPage from '@/pages/LearningPage';
@@ -69,6 +70,7 @@ function App() {
           <NotificationProvider>
             <AppRoutes />
             <Toaster position="top-right" theme="dark" />
+            <AIChatBar />
           </NotificationProvider>
         </Router>
       </CmsProvider>

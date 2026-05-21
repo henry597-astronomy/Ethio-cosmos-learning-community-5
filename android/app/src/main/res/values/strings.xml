@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ethio-Cosmos</string>
+    <string name="title_activity_main">Ethio-Cosmos</string>
+    <string name="package_name">com.ethiocosmos.app</string>
+    <string name="custom_url_scheme">com.ethiocosmos.app</string>
+</resources>

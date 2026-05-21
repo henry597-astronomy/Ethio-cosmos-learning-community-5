@@ -107,7 +107,7 @@ module.exports = {
         "caret-blink": "caret-blink 1.25s ease-out infinite",
         "float": "float 3s ease-in-out infinite",
         "gradient": "gradient 2s ease infinite",
-        "spectrum-rainbow": "spectrum-rainbow 14s linear infinite",
+        "spectrum-rainbow": "spectrum-rainbow 35s linear infinite",
         "flicker": "flicker 2s infinite",
       },
     },

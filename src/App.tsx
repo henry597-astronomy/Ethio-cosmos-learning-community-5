@@ -1,5 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { NotificationProvider } from '@/context/NotificationContext';
@@ -24,8 +23,6 @@ import ProgressPage from '@/pages/ProgressPage';
 
 
 function AppRoutes() {
-  const location = useLocation();
-  const navigate = useNavigate();
 
   // Removed the unconditional initial-home-redirect that was causing white screens on refresh.
   // The app now correctly preserves the current URL on hard refresh.

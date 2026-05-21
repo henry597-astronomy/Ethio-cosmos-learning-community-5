@@ -80,13 +80,24 @@ module.exports = {
           "0%, 100%": { "background-position": "0% 50%" },
           "50%": { "background-position": "100% 50%" },
         },
+        "flicker": {
+          "0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100%": {
+            opacity: "1",
+            filter: "drop-shadow(0 0 1px rgba(0, 255, 255, 0.1))"
+          },
+          "20%, 21.999%, 63%, 63.999%, 65%, 69.999%": {
+            opacity: "0.4",
+            filter: "none"
+          }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "caret-blink": "caret-blink 1.25s ease-out infinite",
         "float": "float 3s ease-in-out infinite",
-        "gradient": "gradient 6s ease infinite",
+        "gradient": "gradient 15s ease infinite",
+        "flicker": "flicker 2s infinite",
       },
     },
   },

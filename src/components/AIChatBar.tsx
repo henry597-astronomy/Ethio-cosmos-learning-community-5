@@ -11,6 +11,11 @@ export default function AIChatBar() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Draggable state
+  const [position, setPosition] = useState({ x: window.innerWidth - 80, y: window.innerHeight - 80 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -21,6 +26,54 @@ export default function AIChatBar() {
       scrollToBottom();
     }
   }, [messages, isOpen]);
+
+  // Handle dragging
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isOpen) return;
+    setIsDragging(true);
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    dragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      initialX: position.x,
+      initialY: position.y
+    };
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+      if (!isDragging) return;
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+      
+      const deltaX = clientX - dragRef.current.startX;
+      const deltaY = clientY - dragRef.current.startY;
+      
+      const newX = Math.min(Math.max(20, dragRef.current.initialX + deltaX), window.innerWidth - 80);
+      const newY = Math.min(Math.max(20, dragRef.current.initialY + deltaY), window.innerHeight - 80);
+      
+      setPosition({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleMouseMove);
+      window.addEventListener('touchend', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isDragging]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +98,15 @@ export default function AIChatBar() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div 
+      className="fixed z-50"
+      style={{ 
+        left: position.x, 
+        top: position.y,
+        transform: isOpen ? 'translate(-350px, -500px)' : 'none',
+        transition: isDragging ? 'none' : 'transform 0.3s ease, left 0.3s ease, top 0.3s ease'
+      }}
+    >
       {/* Chat Window */}
       {isOpen && (
         <div className="mb-4 w-[350px] sm:w-[400px] h-[500px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
@@ -140,15 +201,26 @@ export default function AIChatBar() {
       {/* Toggle Button */}
       {!isOpen && (
         <Button
-          onClick={() => setIsOpen(true)}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleMouseDown}
+          onClick={() => !isDragging && setIsOpen(true)}
           className={cn(
-            "w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-hidden animate-float",
-            "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-[length:200%_200%] animate-gradient"
+            "w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-hidden animate-float cursor-grab active:cursor-grabbing",
+            "bg-gradient-to-r from-blue-600 via-indigo-600 via-purple-600 via-pink-600 to-red-600 bg-[length:300%_300%] animate-gradient",
+            "hover:animate-flicker"
           )}
         >
           {/* Inner glow effect */}
           <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors" />
-          <Sparkles className="w-7 h-7 text-white group-hover:rotate-12 transition-transform relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
+          <Sparkles 
+            className={cn(
+              "w-7 h-7 text-white group-hover:rotate-12 transition-transform relative z-10",
+              "drop-shadow-[0_0_8px_rgba(0,255,255,0.8)]"
+            )} 
+            style={{
+              filter: 'drop-shadow(0 0 5px cyan)'
+            }}
+          />
         </Button>
       )}
     </div>

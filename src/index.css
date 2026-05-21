@@ -144,3 +144,16 @@ html {
 .slide-in-from-top-4 {
   animation-name: slide-in-from-top;
 }
+
+
+/* Spectrum Rainbow Animation */
+@keyframes spectrum-rainbow {
+  0% { background-color: #FF0000; }      /* Red */
+  14.28% { background-color: #FF7F00; }  /* Orange */
+  28.56% { background-color: #FFFF00; }  /* Yellow */
+  42.84% { background-color: #00FF00; }  /* Green */
+  57.12% { background-color: #0000FF; }  /* Blue */
+  71.4% { background-color: #4B0082; }   /* Indigo */
+  85.68% { background-color: #9400D3; }  /* Violet */
+  100% { background-color: #FF0000; }    /* Back to Red */
+}

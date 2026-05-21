@@ -239,6 +239,9 @@ export default function AIChatBar() {
             "animate-spectrum-rainbow",
             "hover:animate-flicker"
           )}
+          style={{
+            animation: 'spectrum-rainbow 35s linear infinite'
+          }}
         >
           {/* Inner glow effect */}
           <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors" />

@@ -228,33 +228,71 @@ export default function AIChatBar() {
         </div>
       )}
 
-      {/* Toggle Button */}
+      {/* Toggle Button - 3D Ball */}
       {!isOpen && (
-        <Button
+        <div
+          className="relative w-16 h-16 cursor-grab active:cursor-grabbing"
           onMouseDown={handleMouseDown}
           onTouchStart={handleMouseDown}
           onClick={() => !isDragging && setIsOpen(true)}
-          className={cn(
-            "w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-hidden animate-float cursor-grab active:cursor-grabbing",
-            "animate-spectrum-rainbow",
-            "hover:animate-flicker"
-          )}
           style={{
-            animation: 'spectrum-rainbow 35s linear infinite'
+            filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.7)) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5))'
           }}
         >
-          {/* Inner glow effect */}
-          <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors" />
-          <Sparkles 
+          {/* Ball base with spectrum animation */}
+          <div
             className={cn(
-              "w-7 h-7 text-white group-hover:rotate-12 transition-transform relative z-10",
-              "drop-shadow-[0_0_15px_rgba(0,255,255,1)]"
-            )} 
+              "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-visible animate-float",
+              "animate-spectrum-rainbow"
+            )}
             style={{
-              filter: 'drop-shadow(0 0 10px cyan) drop-shadow(0 0 20px cyan)'
+              animation: 'spectrum-rainbow 35s linear infinite',
+              boxShadow: `
+                inset -3px -3px 8px rgba(0, 0, 0, 0.4),
+                inset 3px 3px 8px rgba(255, 255, 255, 0.15),
+                inset -1px -1px 3px rgba(0, 0, 0, 0.5)
+              `
+            }}
+          >
+            {/* Glossy highlight - top left */}
+            <div 
+              className="absolute top-2 left-2 w-5 h-5 rounded-full pointer-events-none opacity-70"
+              style={{
+                background: 'radial-gradient(circle at 40% 40%, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 50%, transparent 70%)',
+                boxShadow: '0 2px 4px rgba(255, 255, 255, 0.2)'
+              }}
+            />
+            
+            {/* Secondary highlight - subtle */}
+            <div 
+              className="absolute top-3 right-3 w-3 h-3 rounded-full pointer-events-none opacity-40"
+              style={{
+                background: 'radial-gradient(circle, rgba(255,255,255,0.4), transparent 70%)'
+              }}
+            />
+
+            {/* Icon */}
+            <Sparkles 
+              className={cn(
+                "w-7 h-7 text-white group-hover:rotate-12 transition-transform relative z-10",
+                "drop-shadow-[0_0_15px_rgba(0,255,255,1)]"
+              )} 
+              style={{
+                filter: 'drop-shadow(0 0 10px cyan) drop-shadow(0 0 20px cyan)',
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+              }}
+            />
+          </div>
+
+          {/* Soft ground shadow */}
+          <div
+            className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-14 h-2 rounded-full pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3), transparent 70%)',
+              filter: 'blur(4px)'
             }}
           />
-        </Button>
+        </div>
       )}
     </div>
   );

@@ -97,28 +97,31 @@ export default function AIChatBar() {
     }
   };
 
-  // Calculate chat window position to stay on screen
+  // Calculate chat window position to stay on screen and be centered
   const getChatWindowStyle = () => {
     const chatWidth = 350;
     const chatHeight = 500;
-    const margin = 20;
-
-    let left = -chatWidth;
-    let top = -chatHeight - 20;
-
-    // Adjust if too close to left edge
-    if (position.x < chatWidth + margin) {
-      left = 0;
-    }
+    const padding = 16;
     
-    // Adjust if too close to top edge
-    if (position.y < chatHeight + margin) {
-      top = 80;
-    }
+    // Calculate available space
+    const availableWidth = window.innerWidth;
+    const availableHeight = window.innerHeight;
+    
+    // Center the chat window on screen
+    const centerLeft = (availableWidth - chatWidth) / 2;
+    const centerTop = (availableHeight - chatHeight) / 2;
+    
+    // Ensure minimum padding from edges
+    const left = Math.max(padding, Math.min(centerLeft, availableWidth - chatWidth - padding));
+    const top = Math.max(padding, Math.min(centerTop, availableHeight - chatHeight - padding));
 
     return {
+      position: 'fixed' as const,
       left: `${left}px`,
       top: `${top}px`,
+      width: `${chatWidth}px`,
+      height: `${chatHeight}px`,
+      zIndex: 50,
     };
   };
 

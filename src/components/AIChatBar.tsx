@@ -141,9 +141,14 @@ export default function AIChatBar() {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 shadow-xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95 group"
+          className={cn(
+            "w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-hidden animate-float",
+            "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-[length:200%_200%] animate-gradient"
+          )}
         >
-          <Sparkles className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
+          {/* Inner glow effect */}
+          <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors" />
+          <Sparkles className="w-7 h-7 text-white group-hover:rotate-12 transition-transform relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
         </Button>
       )}
     </div>

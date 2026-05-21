@@ -89,6 +89,16 @@ module.exports = {
             opacity: "0.4",
             filter: "none"
           }
+        },
+        "spectrum-rainbow": {
+          "0%": { backgroundColor: "#FF0000" },      /* Red */
+          "14.28%": { backgroundColor: "#FF7F00" },  /* Orange */
+          "28.56%": { backgroundColor: "#FFFF00" },  /* Yellow */
+          "42.84%": { backgroundColor: "#00FF00" },  /* Green */
+          "57.12%": { backgroundColor: "#0000FF" },  /* Blue */
+          "71.4%": { backgroundColor: "#4B0082" },   /* Indigo */
+          "85.68%": { backgroundColor: "#9400D3" },  /* Violet */
+          "100%": { backgroundColor: "#FF0000" }     /* Back to Red */
         }
       },
       animation: {
@@ -97,6 +107,7 @@ module.exports = {
         "caret-blink": "caret-blink 1.25s ease-out infinite",
         "float": "float 3s ease-in-out infinite",
         "gradient": "gradient 2s ease infinite",
+        "spectrum-rainbow": "spectrum-rainbow 14s linear infinite",
         "flicker": "flicker 2s infinite",
       },
     },

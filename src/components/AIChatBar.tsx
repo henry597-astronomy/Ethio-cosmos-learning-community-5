@@ -236,7 +236,7 @@ export default function AIChatBar() {
           onClick={() => !isDragging && setIsOpen(true)}
           className={cn(
             "w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-hidden animate-float cursor-grab active:cursor-grabbing",
-            "bg-gradient-to-r from-blue-600 via-indigo-600 via-purple-600 via-pink-600 to-red-600 bg-[length:300%_300%] animate-gradient",
+            "animate-spectrum-rainbow",
             "hover:animate-flicker"
           )}
         >

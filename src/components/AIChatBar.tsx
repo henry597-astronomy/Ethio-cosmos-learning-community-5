@@ -131,7 +131,7 @@ export default function AIChatBar() {
       style={{ 
         left: position.x, 
         top: position.y,
-        transition: isDragging ? 'none' : 'all 0.3s ease'
+        transition: 'none'
       }}
     >
       {/* Chat Window */}
@@ -242,8 +242,9 @@ export default function AIChatBar() {
           {/* Ball base with spectrum animation */}
           <div
             className={cn(
-              "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-visible animate-float",
-              "animate-spectrum-rainbow"
+              "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-visible",
+              "animate-spectrum-rainbow",
+              !isDragging && "animate-float"
             )}
             style={{
               animation: 'spectrum-rainbow 35s linear infinite',

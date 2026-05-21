@@ -13,7 +13,7 @@ export default function AIChatBar() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Draggable state
-  const [position, setPosition] = useState({ x: window.innerWidth - 80, y: window.innerHeight - 80 });
+  const [position, setPosition] = useState({ x: window.innerWidth - 100, y: window.innerHeight - 100 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
 
@@ -97,19 +97,46 @@ export default function AIChatBar() {
     }
   };
 
+  // Calculate chat window position to stay on screen
+  const getChatWindowStyle = () => {
+    const chatWidth = 350;
+    const chatHeight = 500;
+    const margin = 20;
+
+    let left = -chatWidth;
+    let top = -chatHeight - 20;
+
+    // Adjust if too close to left edge
+    if (position.x < chatWidth + margin) {
+      left = 0;
+    }
+    
+    // Adjust if too close to top edge
+    if (position.y < chatHeight + margin) {
+      top = 80;
+    }
+
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+    };
+  };
+
   return (
     <div 
       className="fixed z-50"
       style={{ 
         left: position.x, 
         top: position.y,
-        transform: isOpen ? 'translate(-350px, -500px)' : 'none',
-        transition: isDragging ? 'none' : 'transform 0.3s ease, left 0.3s ease, top 0.3s ease'
+        transition: isDragging ? 'none' : 'all 0.3s ease'
       }}
     >
       {/* Chat Window */}
       {isOpen && (
-        <div className="mb-4 w-[350px] sm:w-[400px] h-[500px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+        <div 
+          className="absolute w-[350px] sm:w-[400px] h-[500px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
+          style={getChatWindowStyle()}
+        >
           {/* Header */}
           <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -215,10 +242,10 @@ export default function AIChatBar() {
           <Sparkles 
             className={cn(
               "w-7 h-7 text-white group-hover:rotate-12 transition-transform relative z-10",
-              "drop-shadow-[0_0_8px_rgba(0,255,255,0.8)]"
+              "drop-shadow-[0_0_15px_rgba(0,255,255,1)]"
             )} 
             style={{
-              filter: 'drop-shadow(0 0 5px cyan)'
+              filter: 'drop-shadow(0 0 10px cyan) drop-shadow(0 0 20px cyan)'
             }}
           />
         </Button>

@@ -1,13 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   LiveKitRoom,
   VideoConference,
-  GridLayout,
-  ParticipantTile,
   RoomAudioRenderer,
-} from 'livekit-react';
+} from '@livekit/components-react';
+import '@livekit/components-styles';
 import { X, Loader } from 'lucide-react';
-import { useLiveKit } from '@/context/LiveKitContext';
 
 interface LiveKitStreamProps {
   token: string;
@@ -95,9 +93,9 @@ export default function LiveKitStream({
             audio={true}
             token={token}
             serverUrl={serverUrl}
-            onError={(error) => {
-              console.error('LiveKit error:', error);
-              setError(error.message || 'Connection error');
+            onError={(err: Error) => {
+              console.error('LiveKit error:', err);
+              setError(err.message || 'Connection error');
             }}
             onConnected={() => {
               setIsConnecting(false);

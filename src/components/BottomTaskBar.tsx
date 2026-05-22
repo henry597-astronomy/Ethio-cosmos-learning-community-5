@@ -10,7 +10,6 @@ export default function BottomTaskBar() {
   const {
     isLiveModalOpen,
     isHosting,
-    liveRoomName,
     liveToken,
     openLiveModal,
     closeLiveModal,

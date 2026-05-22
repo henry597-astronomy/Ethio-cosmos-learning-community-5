@@ -38,7 +38,9 @@ export default async function handler(
       canSubscribe: true,
     });
 
-    at.identity = userName;
+    // Use a unique identity to allow multiple viewers with same display name
+    const identity = isHost ? userName : `${userName}-${Math.random().toString(36).substring(2, 7)}`;
+    at.identity = identity;
     at.name = userName;
 
     const token = await at.toJwt();

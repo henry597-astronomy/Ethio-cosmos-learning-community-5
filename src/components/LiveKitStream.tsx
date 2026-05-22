@@ -90,7 +90,7 @@ export default function LiveKitStream({
 
           <LiveKitRoom
             video={isHost}
-            audio={true}
+            audio={isHost}
             token={token}
             serverUrl={serverUrl}
             onError={(err: Error) => {

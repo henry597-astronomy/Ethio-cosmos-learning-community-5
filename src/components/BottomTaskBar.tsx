@@ -40,9 +40,26 @@ export default function BottomTaskBar() {
         {/* Center Host Live / Join Live Button */}
         {user && (
           <div className="flex items-center gap-4">
-            {activeSessions.length > 0 && !isHosting ? (
+            {/* 
+              If user is currently hosting, show "Live Now" (disabled).
+              If user is NOT hosting, but there is an active session NOT hosted by them, show "Join Live".
+              Otherwise, show "Host Live".
+            */}
+            {isHosting ? (
               <Button
-                onClick={() => joinSession(activeSessions[0].room_name)}
+                disabled
+                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-500 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 opacity-50 cursor-not-allowed shadow-lg shadow-red-500/20"
+              >
+                <Radio size={18} className="animate-pulse" />
+                <span>Live Now</span>
+              </Button>
+            ) : activeSessions.length > 0 && activeSessions.some(s => s.host_id !== user.id) ? (
+              <Button
+                onClick={() => {
+                  // Join the first session that isn't hosted by the current user
+                  const sessionToJoin = activeSessions.find(s => s.host_id !== user.id);
+                  if (sessionToJoin) joinSession(sessionToJoin.room_name);
+                }}
                 className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 shadow-lg shadow-green-500/20 hover:shadow-green-500/40"
               >
                 <Radio size={18} className="animate-pulse" />
@@ -51,11 +68,10 @@ export default function BottomTaskBar() {
             ) : (
               <Button
                 onClick={openLiveModal}
-                disabled={isHosting}
-                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-500/20 hover:shadow-red-500/40"
+                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 shadow-lg shadow-red-500/20 hover:shadow-red-500/40"
               >
-                <Radio size={18} className={isHosting ? 'animate-pulse' : ''} />
-                <span>{isHosting ? 'Live Now' : 'Host Live'}</span>
+                <Radio size={18} />
+                <span>Host Live</span>
               </Button>
             )}
           </div>

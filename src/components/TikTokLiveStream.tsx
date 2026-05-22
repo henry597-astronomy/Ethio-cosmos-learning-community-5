@@ -5,7 +5,7 @@ import {
   useLocalParticipant,
   ParticipantTile,
 } from '@livekit/components-react';
-import { Participant, Track } from 'livekit-client';
+import { Participant } from 'livekit-client';
 import '@livekit/components-styles';
 import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -31,7 +31,7 @@ function StreamContent({
   onClose: () => void;
   roomName?: string;
 }) {
-  const { participants } = useParticipants();
+  const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
   const [coHostParticipant, setCoHostParticipant] = useState<Participant | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -40,7 +40,7 @@ function StreamContent({
 
   // Get community members (all participants except host and current co-host)
   const communityMembers = participants.filter(
-    (p) => p.identity !== localParticipant?.identity && p.identity !== coHostParticipant?.identity
+    (p: Participant) => p.identity !== localParticipant?.identity && p.identity !== coHostParticipant?.identity
   );
 
   // Handle co-host promotion
@@ -152,7 +152,10 @@ function StreamContent({
           {localParticipant && (
             <div className="w-full h-full">
               <ParticipantTile
-                participant={localParticipant}
+                trackRef={{
+                  participant: localParticipant,
+                  source: 'camera' as any,
+                }}
                 className="w-full h-full"
               />
               {isHost && (
@@ -168,7 +171,10 @@ function StreamContent({
           {coHostParticipant && (
             <div className="absolute bottom-4 right-4 w-32 h-32 rounded-lg overflow-hidden border-2 border-orange-500 shadow-lg">
               <ParticipantTile
-                participant={coHostParticipant}
+                trackRef={{
+                  participant: coHostParticipant,
+                  source: 'camera' as any,
+                }}
                 className="w-full h-full"
               />
               <div className="absolute top-1 right-1 bg-orange-500 text-white px-2 py-0.5 rounded text-xs font-semibold">
@@ -201,7 +207,7 @@ function StreamContent({
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
-                {communityMembers.map((participant) => (
+                {communityMembers.map((participant: Participant) => (
                   <div
                     key={participant.identity}
                     className="flex flex-col items-center gap-2 group cursor-pointer"

@@ -12,6 +12,7 @@ export default function BottomTaskBar() {
     isHosting,
     activeSessions,
     liveToken,
+    liveRoomName,
     openLiveModal,
     closeLiveModal,
     startHosting,

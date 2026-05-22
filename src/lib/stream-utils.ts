@@ -41,8 +41,7 @@ export function decodeParticipantMetadata(metadataString: string): ParticipantMe
  * Get participant avatar URL with fallback
  */
 export function getParticipantAvatarUrl(
-  metadata: ParticipantMetadata | string,
-  fallbackColor?: string
+  metadata: ParticipantMetadata | string
 ): string | null {
   const parsedMetadata = typeof metadata === 'string' 
     ? decodeParticipantMetadata(metadata)

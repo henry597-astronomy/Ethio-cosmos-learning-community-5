@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { NotificationProvider } from '@/context/NotificationContext';
+import { LiveKitProvider } from '@/context/LiveKitContext';
 import { Toaster } from 'sonner';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
@@ -66,10 +67,12 @@ function App() {
       <CmsProvider>
         <Router>
           <NotificationProvider>
-            <AppRoutes />
-            <Toaster position="top-right" theme="dark" />
-            <AIChatBar />
-            <BottomTaskBar />
+            <LiveKitProvider>
+              <AppRoutes />
+              <Toaster position="top-right" theme="dark" />
+              <AIChatBar />
+              <BottomTaskBar />
+            </LiveKitProvider>
           </NotificationProvider>
         </Router>
       </CmsProvider>

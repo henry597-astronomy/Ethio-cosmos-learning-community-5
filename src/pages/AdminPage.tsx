@@ -766,7 +766,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-12 bg-[#0a0e1a]">
+    <div className="min-h-screen pt-24 bg-[#0a0e1a]" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
         <p className="text-gray-400 mb-8">Signed in as {user.email}</p>

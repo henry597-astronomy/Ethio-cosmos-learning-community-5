@@ -66,7 +66,7 @@ export default function TestsPage() {
 
   if (quizzesLoading || quizQuestionsLoading) {
     return (
-      <div className="min-h-screen pt-24 pb-12 bg-[#0a0e1a] flex items-center justify-center text-white">
+      <div className="min-h-screen pt-24 bg-[#0a0e1a] flex items-center justify-center text-white" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
         Loading quizzes...
       </div>
     );
@@ -74,7 +74,7 @@ export default function TestsPage() {
 
   if (quizzesError || quizQuestionsError) {
     return (
-      <div className="min-h-screen pt-24 pb-12 bg-[#0a0e1a] flex items-center justify-center text-red-400">
+      <div className="min-h-screen pt-24 bg-[#0a0e1a] flex items-center justify-center text-red-400" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
         Error loading quizzes: {quizzesError || quizQuestionsError}
       </div>
     );
@@ -99,7 +99,7 @@ export default function TestsPage() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-12 bg-[#0a0e1a]">
+    <div className="min-h-screen pt-24 bg-[#0a0e1a]" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">Astronomy Tests</h1>

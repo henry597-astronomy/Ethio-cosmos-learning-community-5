@@ -23,7 +23,7 @@ export async function generateLiveKitToken(
   at.identity = userName;
   at.name = userName;
 
-  return at.toJwt();
+  return await at.toJwt();
 }
 
 /**
@@ -48,5 +48,5 @@ export async function generateLiveKitViewerToken(
   at.identity = userName;
   at.name = userName;
 
-  return at.toJwt();
+  return await at.toJwt();
 }

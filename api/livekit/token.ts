@@ -41,7 +41,7 @@ export default async function handler(
     at.identity = userName;
     at.name = userName;
 
-    const token = at.toJwt();
+    const token = await at.toJwt();
 
     return res.status(200).json({ token });
   } catch (error) {

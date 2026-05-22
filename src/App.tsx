@@ -32,7 +32,7 @@ function AppRoutes() {
     <div className="min-h-screen bg-[#0a0e1a] flex flex-col" style={{ WebkitOverflowScrolling: 'touch' }}>
       <Navbar />
       <InstallPrompt />
-      <main className="flex-1 pt-28 pb-12 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <main className="flex-1 pt-28 pb-24 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <Routes>
           {/* Login is always accessible */}
           <Route path="/login" element={<LoginPage />} />

@@ -331,7 +331,7 @@ export default function ChatPage() {
 
   return (
     <div 
-      className="fixed inset-0 top-28 flex flex-col bg-cover bg-center bg-no-repeat"
+      className="fixed inset-0 top-28 bottom-12 flex flex-col bg-cover bg-center bg-no-repeat"
       style={{
         backgroundImage: 'url(/images/chat-bg-new.jpg)',
       }}

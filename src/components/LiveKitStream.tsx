@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   LiveKitRoom,
-  RoomAudioRenderer,
-  ControlBar,
-  ParticipantTile,
-  useTracks,
-  GridLayout,
+  VideoConference,
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+
 import '@livekit/components-styles';
 import { X, Loader } from 'lucide-react';
 
@@ -18,49 +14,12 @@ interface LiveKitStreamProps {
   isHost?: boolean;
 }
 
-function MyVideoConference({ isHost }: { isHost: boolean }) {
-  // For viewers, we want to see the host's camera and screen share.
-  // For the host, we want to see our own tracks to confirm we are broadcasting.
-  const tracks = useTracks(
-    [
-      { source: Track.Source.Camera, withPlaceholder: true },
-      { source: Track.Source.ScreenShare, withPlaceholder: false },
-    ],
-    { onlySubscribed: !isHost }
-  );
-
+function MyVideoConference() {
+  // Use VideoConference for a standard interactive experience
+  // This will automatically handle layout, participant tiles, and audio/video tracks
   return (
-    <div className="relative w-full h-full bg-black">
-      {tracks.length > 0 ? (
-        <GridLayout tracks={tracks}>
-          <ParticipantTile />
-        </GridLayout>
-      ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
-            <Loader size={32} className="text-orange-500 animate-spin" />
-          </div>
-          <p className="text-gray-300 font-medium">
-            {isHost ? 'Initializing your broadcast...' : 'Waiting for host to start video...'}
-          </p>
-          <p className="text-gray-500 text-sm mt-2">
-            {isHost ? 'Please ensure your camera permissions are allowed.' : 'The stream will appear here once the host starts sharing.'}
-          </p>
-        </div>
-      )}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-        <ControlBar 
-          variation="minimal" 
-          controls={{ 
-            microphone: isHost, 
-            camera: isHost, 
-            screenShare: isHost, 
-            chat: false, 
-            leave: false, 
-            settings: false 
-          }} 
-        />
-      </div>
+    <div className="relative w-full h-full bg-black overflow-hidden">
+      <VideoConference />
     </div>
   );
 }
@@ -140,8 +99,8 @@ export default function LiveKitStream({
           )}
 
           <LiveKitRoom
-            video={isHost}
-            audio={isHost}
+            video={true}
+            audio={true}
             token={token}
             serverUrl={serverUrl}
             connect={true}
@@ -154,8 +113,7 @@ export default function LiveKitStream({
               setError(null);
             }}
           >
-            <MyVideoConference isHost={isHost} />
-            <RoomAudioRenderer />
+            <MyVideoConference />
           </LiveKitRoom>
         </div>
       </div>

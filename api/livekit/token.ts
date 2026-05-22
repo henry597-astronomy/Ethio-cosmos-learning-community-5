@@ -33,8 +33,8 @@ export default async function handler(
     at.addGrant({
       room: roomName,
       roomJoin: true,
-      canPublish: isHost ? true : false,
-      canPublishData: isHost ? true : false,
+      canPublish: true,
+      canPublishData: true,
       canSubscribe: true,
     });
 

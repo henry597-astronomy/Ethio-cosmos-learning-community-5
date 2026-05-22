@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   LiveKitRoom,
-  VideoConference,
   RoomAudioRenderer,
   ControlBar,
   ParticipantTile,
@@ -20,11 +19,12 @@ interface LiveKitStreamProps {
 }
 
 function MyVideoConference({ isHost }: { isHost: boolean }) {
+  // For viewers, we want to see the host's camera and screen share.
+  // For the host, we want to see our own tracks to confirm we are broadcasting.
   const tracks = useTracks(
     [
-      { source: Track.Source.Camera, name: 'camera' },
-      { source: Track.Source.Microphone, name: 'microphone' },
-      { source: Track.Source.ScreenShare, name: 'screen_share' },
+      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.ScreenShare, withPlaceholder: false },
     ],
     { onlySubscribed: !isHost }
   );
@@ -36,8 +36,16 @@ function MyVideoConference({ isHost }: { isHost: boolean }) {
           <ParticipantTile />
         </GridLayout>
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-gray-400">Waiting for host to start video...</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+            <Loader size={32} className="text-orange-500 animate-spin" />
+          </div>
+          <p className="text-gray-300 font-medium">
+            {isHost ? 'Initializing your broadcast...' : 'Waiting for host to start video...'}
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
+            {isHost ? 'Please ensure your camera permissions are allowed.' : 'The stream will appear here once the host starts sharing.'}
+          </p>
         </div>
       )}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2">

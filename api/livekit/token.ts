@@ -30,13 +30,26 @@ export default async function handler(
     // Create access token
     const at = new AccessToken(apiKey, apiSecret);
 
-    at.addGrant({
-      room: roomName,
-      roomJoin: true,
-      canPublish: true,
-      canPublishData: true,
-      canSubscribe: true,
-    });
+    // Grant different permissions based on role
+    if (isHost) {
+      // Host: can publish and subscribe (full permissions)
+      at.addGrant({
+        room: roomName,
+        roomJoin: true,
+        canPublish: true,
+        canPublishData: true,
+        canSubscribe: true,
+      });
+    } else {
+      // Viewer: read-only access (can only subscribe, not publish)
+      at.addGrant({
+        room: roomName,
+        roomJoin: true,
+        canPublish: false,
+        canPublishData: false,
+        canSubscribe: true,
+      });
+    }
 
     // Use a unique identity to allow multiple viewers with same display name
     const identity = isHost ? userName : `${userName}-${Math.random().toString(36).substring(2, 7)}`;

@@ -14,6 +14,7 @@ interface LiveSession {
   room_name: string;
   host_id: string;
   host_name: string;
+  host_avatar?: string;
 }
 
 interface LiveKitContextType {
@@ -106,10 +107,12 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
 
   const openLiveModal = useCallback(() => {
     setIsLiveModalOpen(true);
+    console.log('Live modal opened');
   }, []);
 
   const closeLiveModal = useCallback(() => {
     setIsLiveModalOpen(false);
+    console.log('Live modal closed');
   }, []);
 
   const startHosting = useCallback(async (roomName: string, token: string) => {
@@ -121,6 +124,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       host_id: user.id,
       host_name: displayName || 'Anonymous',
       is_active: true,
+      host_avatar: user.user_metadata?.avatar_url || null,
     });
 
     if (error) {
@@ -132,6 +136,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     setLiveToken(token);
     setIsHosting(true);
     setIsLiveModalOpen(false);
+    console.log('Hosting stream:', roomName);
   }, [user, displayName]);
 
   const stopHosting = useCallback(async () => {
@@ -151,6 +156,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     setLiveRoomName(null);
     setLiveToken(null);
     setIsHosting(false);
+    console.log('Stream stopped');
   }, [user, liveRoomName]);
 
   // Add cleanup on page unload
@@ -162,6 +168,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         data.append('host_id', user.id);
         data.append('room_name', liveRoomName);
         navigator.sendBeacon('/api/livekit/stop-hosting', data);
+        console.log('Stream cleanup on unload');
       }
     };
 
@@ -175,6 +182,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     setLiveRoomName(null);
     setLiveToken(null);
     setIsHosting(false);
+    console.log('Session cleared');
   }, []);
 
   const joinSession = useCallback(async (roomName: string) => {
@@ -193,19 +201,21 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
           userName: displayName || 'Viewer',
           roomName: roomName,
           isHost: false,
+          avatarUrl: user?.user_metadata?.avatar_url || null,
         }),
       });
 
       if (!response.ok) throw new Error('Failed to get token');
       
-      const { token } = await response.json();
+      const { token, identity, metadata } = await response.json();
       setLiveRoomName(roomName);
       setLiveToken(token);
       setIsHosting(false); // We are viewing, not hosting
+      console.log('Joined stream with identity:', identity, 'metadata:', metadata);
     } catch (error) {
       console.error('Error joining session:', error);
     }
-  }, [displayName, clearSession]);
+  }, [displayName, user, clearSession]);
 
   return (
     <LiveKitContext.Provider

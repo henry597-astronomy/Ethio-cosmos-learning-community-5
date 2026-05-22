@@ -11,11 +11,16 @@ export default async function handler(
   }
 
   try {
-    const { userName, roomName, isHost } = req.body;
+    const { userName, roomName, isHost, avatarUrl } = req.body;
 
     // Validate inputs
     if (!userName || !roomName) {
       return res.status(400).json({ error: 'Missing userName or roomName' });
+    }
+
+    // Validate avatarUrl if provided
+    if (avatarUrl && typeof avatarUrl !== 'string') {
+      return res.status(400).json({ error: 'Invalid avatarUrl format' });
     }
 
     // Get environment variables
@@ -55,10 +60,21 @@ export default async function handler(
     const identity = isHost ? userName : `${userName}-${Math.random().toString(36).substring(2, 7)}`;
     at.identity = identity;
     at.name = userName;
+    
+    // Attach participant metadata including avatar
+    const metadata = {
+      avatar_url: avatarUrl || null,
+      username: userName,
+    };
+    at.metadata = JSON.stringify(metadata);
 
     const token = await at.toJwt();
 
-    return res.status(200).json({ token });
+    return res.status(200).json({ 
+      token,
+      identity,
+      metadata: { avatar_url: avatarUrl || null, username: userName }
+    });
   } catch (error) {
     console.error('Token generation error:', error);
     return res.status(500).json({

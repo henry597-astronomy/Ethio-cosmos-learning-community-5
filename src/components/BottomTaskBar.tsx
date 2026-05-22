@@ -3,7 +3,7 @@ import { useLiveKit } from '@/context/LiveKitContext';
 import { Button } from '@/components/ui/button';
 import { Radio } from 'lucide-react';
 import LiveHostModal from './LiveHostModal';
-import LiveKitStream from './LiveKitStream';
+import TikTokLiveStream from './TikTokLiveStream';
 
 export default function BottomTaskBar() {
   const { user } = useAuth();
@@ -87,7 +87,7 @@ export default function BottomTaskBar() {
 
       {/* Live Stream Component */}
       {liveToken && (
-        <LiveKitStream
+        <TikTokLiveStream
           token={liveToken}
           serverUrl={liveKitUrl}
           onClose={() => {
@@ -98,6 +98,7 @@ export default function BottomTaskBar() {
             }
           }}
           isHost={isHosting}
+          roomName={liveRoomName || undefined}
         />
       )}
     </>

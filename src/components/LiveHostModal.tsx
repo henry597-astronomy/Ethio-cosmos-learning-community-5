@@ -15,7 +15,7 @@ export default function LiveHostModal({
   onClose,
   onStartStream,
 }: LiveHostModalProps) {
-  const { displayName } = useAuth();
+  const { displayName, profile } = useAuth();
   const [roomName, setRoomName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +40,7 @@ export default function LiveHostModal({
           userName: displayName,
           roomName: roomName.trim(),
           isHost: true,
+          avatarUrl: profile?.avatar_url || null,
         }),
       });
 
@@ -48,9 +49,10 @@ export default function LiveHostModal({
         throw new Error(data.error || 'Failed to generate token');
       }
 
-      const { token } = await response.json();
+      const { token, identity, metadata } = await response.json();
       onStartStream(roomName.trim(), token);
       setRoomName('');
+      console.log('Stream started with identity:', identity, 'metadata:', metadata);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
@@ -88,14 +90,14 @@ export default function LiveHostModal({
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Room Name
             </label>
-            <Input
-              type="text"
-              placeholder="e.g., Astronomy Basics"
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              disabled={isLoading}
-              className="bg-slate-800 border-white/10 text-white placeholder-gray-500"
-            />
+          <Input
+            type="text"
+            placeholder="e.g., Astronomy Basics"
+            value={roomName}
+            onChange={(e) => setRoomName(e.target.value)}
+            disabled={isLoading}
+            className="bg-slate-800 border-white/10 text-white placeholder-gray-500"
+          />
             <p className="text-xs text-gray-400 mt-1">
               Give your live stream a descriptive name
             </p>
@@ -103,7 +105,10 @@ export default function LiveHostModal({
 
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
             <p className="text-sm text-blue-300">
-              You will be able to share this room with others to watch your live stream.
+              🎥 You will be able to share this room with others to watch your live stream.
+            </p>
+            <p className="text-xs text-blue-200 mt-2">
+              ✨ Community members can join and you can promote them to co-host!
             </p>
           </div>
 

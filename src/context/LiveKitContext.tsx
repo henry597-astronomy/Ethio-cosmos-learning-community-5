@@ -4,6 +4,7 @@ import {
   useState,
   useCallback,
   useEffect,
+  useRef,
   type ReactNode,
 } from 'react';
 import { supabase } from '@/supabase';
@@ -54,8 +55,26 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     setActiveSessions(data || []);
   }, []);
 
+  // Clean up stale sessions (older than 30 minutes)
+  const cleanupStaleSessions = useCallback(async () => {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { error } = await supabase
+      .from('live_sessions')
+      .update({ is_active: false })
+      .eq('is_active', true)
+      .lt('created_at', thirtyMinutesAgo);
+    
+    if (error) {
+      console.error('Error cleaning up stale sessions:', error);
+    } else {
+      // Refresh sessions after cleanup
+      fetchSessions();
+    }
+  }, [fetchSessions]);
+
   useEffect(() => {
     fetchSessions();
+    cleanupStaleSessions();
 
     // Subscribe to changes
     const channel = supabase
@@ -69,10 +88,22 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    // Set up periodic cleanup every 5 minutes
+    const cleanupInterval = setInterval(() => {
+      cleanupStaleSessions();
+    }, 5 * 60 * 1000);
+
+    // Set up periodic session refresh every 30 seconds
+    const refreshInterval = setInterval(() => {
+      fetchSessions();
+    }, 30 * 1000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(cleanupInterval);
+      clearInterval(refreshInterval);
     };
-  }, [fetchSessions]);
+  }, [fetchSessions, cleanupStaleSessions]);
 
   const openLiveModal = useCallback(() => {
     setIsLiveModalOpen(true);
@@ -107,17 +138,39 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
   const stopHosting = useCallback(async () => {
     if (user && liveRoomName) {
       // Deactivate session in Supabase
-      await supabase
+      const { error } = await supabase
         .from('live_sessions')
         .update({ is_active: false })
         .eq('host_id', user.id)
         .eq('room_name', liveRoomName);
+      
+      if (error) {
+        console.error('Error stopping hosting:', error);
+      }
     }
 
     setLiveRoomName(null);
     setLiveToken(null);
     setIsHosting(false);
   }, [user, liveRoomName]);
+
+  // Add cleanup on page unload
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (isHosting && user && liveRoomName) {
+        // Use sendBeacon for reliable cleanup on page close
+        const data = new FormData();
+        data.append('host_id', user.id);
+        data.append('room_name', liveRoomName);
+        navigator.sendBeacon('/api/livekit/stop-hosting', data);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isHosting, user, liveRoomName]);
 
   const clearSession = useCallback(() => {
     setLiveRoomName(null);

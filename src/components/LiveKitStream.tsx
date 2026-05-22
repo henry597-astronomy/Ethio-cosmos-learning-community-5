@@ -3,7 +3,12 @@ import {
   LiveKitRoom,
   VideoConference,
   RoomAudioRenderer,
+  ControlBar,
+  ParticipantTile,
+  useTracks,
+  GridLayout,
 } from '@livekit/components-react';
+import { Track } from 'livekit-client';
 import '@livekit/components-styles';
 import { X, Loader } from 'lucide-react';
 
@@ -12,6 +17,44 @@ interface LiveKitStreamProps {
   serverUrl: string;
   onClose: () => void;
   isHost?: boolean;
+}
+
+function MyVideoConference({ isHost }: { isHost: boolean }) {
+  const tracks = useTracks(
+    [
+      { source: Track.Source.Camera, name: 'camera' },
+      { source: Track.Source.Microphone, name: 'microphone' },
+      { source: Track.Source.ScreenShare, name: 'screen_share' },
+    ],
+    { onlySubscribed: !isHost }
+  );
+
+  return (
+    <div className="relative w-full h-full bg-black">
+      {tracks.length > 0 ? (
+        <GridLayout tracks={tracks}>
+          <ParticipantTile />
+        </GridLayout>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-gray-400">Waiting for host to start video...</p>
+        </div>
+      )}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+        <ControlBar 
+          variation="minimal" 
+          controls={{ 
+            microphone: isHost, 
+            camera: isHost, 
+            screenShare: isHost, 
+            chat: false, 
+            leave: false, 
+            settings: false 
+          }} 
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function LiveKitStream({
@@ -93,6 +136,7 @@ export default function LiveKitStream({
             audio={isHost}
             token={token}
             serverUrl={serverUrl}
+            connect={true}
             onError={(err: Error) => {
               console.error('LiveKit error:', err);
               setError(err.message || 'Connection error');
@@ -102,7 +146,7 @@ export default function LiveKitStream({
               setError(null);
             }}
           >
-            <VideoConference />
+            <MyVideoConference isHost={isHost} />
             <RoomAudioRenderer />
           </LiveKitRoom>
         </div>

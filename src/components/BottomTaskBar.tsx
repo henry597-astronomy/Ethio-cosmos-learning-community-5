@@ -12,6 +12,8 @@ export default function BottomTaskBar() {
         // Ensure it stays above content but below modals
         // Safe area support for notched devices
         paddingBottom: 'max(0px, env(safe-area-inset-bottom))',
+        // Ensure fixed positioning is relative to viewport
+        willChange: 'auto',
       }}
     >
       {/* Task bar content will be added here */}

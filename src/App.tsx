@@ -29,10 +29,10 @@ function AppRoutes() {
   // The app now correctly preserves the current URL on hard refresh.
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] flex flex-col" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className="min-h-screen bg-[#0a0e1a] flex flex-col overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       <Navbar />
       <InstallPrompt />
-      <main className="flex-1 pt-28 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
+      <main className="flex-1 pt-28" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
         <Routes>
           {/* Login is always accessible */}
           <Route path="/login" element={<LoginPage />} />

@@ -42,7 +42,7 @@
   html, body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* Allow normal scrolling - remove overflow: hidden and position: fixed */
+    /* Allow normal scrolling */
     overflow: auto;
     position: relative;
     width: 100%;
@@ -56,9 +56,6 @@
     -webkit-text-size-adjust: 100%;
     /* Optimize for mobile performance */
     -webkit-tap-highlight-color: transparent;
-    /* Enable hardware acceleration */
-    -webkit-transform: translate3d(0, 0, 0);
-    transform: translate3d(0, 0, 0);
   }
 
   #root {
@@ -71,8 +68,6 @@
     -webkit-overflow-scrolling: touch;
     /* Allow default touch actions for scrolling */
     touch-action: auto;
-    /* Optimize rendering */
-    will-change: scroll-position;
   }
 }
 

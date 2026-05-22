@@ -249,7 +249,7 @@ function StreamContent({
                         {participant.name || 'User'}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {participant.audioTrackSubscribed ? '🎤' : '🔇'}
+                        {participant.isSpeaking ? '🎤' : '🔇'}
                       </p>
                     </div>
                   </div>

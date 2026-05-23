@@ -8,8 +8,9 @@ import {
 } from '@livekit/components-react';
 import { Participant, Track } from 'livekit-client';
 import '@livekit/components-styles';
-import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserPlus, UserMinus } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useStreamParticipants } from '@/context/StreamParticipantContext';
 
 interface TikTokLiveStreamProps {
   token: string;
@@ -33,6 +34,7 @@ function StreamContent({
 }) {
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
+  const { coHostIdentity, promoteToCoHost, demoteFromCoHost } = useStreamParticipants();
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,14 +50,11 @@ function StreamContent({
   }, [isHost, localParticipant, participants]);
 
   // 2. Identify the Co-Host:
-  // - Any participant who isn't me and isn't the host we identified.
+  // - Use the coHostIdentity from context (explicitly promoted by host)
   const coHostParticipant = useMemo(() => {
-    if (!hostParticipant) return null;
-    return participants.find(p => 
-      p.identity !== localParticipant?.identity && 
-      p.identity !== hostParticipant.identity
-    ) || null;
-  }, [participants, localParticipant, hostParticipant]);
+    if (!coHostIdentity) return null;
+    return participants.find(p => p.identity === coHostIdentity) || null;
+  }, [participants, coHostIdentity]);
 
   // 3. Resilient Track Discovery:
   // Instead of filtering by publishers, we look for any available camera tracks.
@@ -119,6 +118,16 @@ function StreamContent({
       return metadata.avatar_url || null;
     } catch {
       return null;
+    }
+  };
+
+  const handleProfileClick = (participant: Participant) => {
+    if (!isHost) return;
+    
+    if (coHostIdentity === participant.identity) {
+      demoteFromCoHost();
+    } else {
+      promoteToCoHost(participant.identity);
     }
   };
 
@@ -191,6 +200,17 @@ function StreamContent({
                   <div className="absolute top-4 left-4 bg-orange-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                     CO-HOST
+                    {isHost && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          demoteFromCoHost();
+                        }}
+                        className="ml-2 p-1 hover:bg-white/20 rounded-full transition-colors"
+                      >
+                        <UserMinus size={12} />
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -201,9 +221,16 @@ function StreamContent({
         {/* BOTTOM: Community */}
         <div className="h-1/2 bg-slate-950 overflow-y-auto">
           <div className="p-5">
-            <h3 className="text-white font-bold flex items-center gap-2 text-sm uppercase tracking-wider mb-6">
-              <span className="text-blue-500 text-lg">👥</span>
-              Community ({communityMembers.length})
+            <h3 className="text-white font-bold flex items-center justify-between text-sm uppercase tracking-wider mb-6">
+              <div className="flex items-center gap-2">
+                <span className="text-blue-500 text-lg">👥</span>
+                Community ({communityMembers.length})
+              </div>
+              {isHost && (
+                <span className="text-[10px] text-blue-400 font-medium lowercase">
+                  (Tap a profile to co-host)
+                </span>
+              )}
             </h3>
 
             {communityMembers.length === 0 ? (
@@ -213,7 +240,11 @@ function StreamContent({
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-6">
                 {communityMembers.map((participant) => (
-                  <div key={participant.identity} className="flex flex-col items-center gap-3 group">
+                  <div 
+                    key={participant.identity} 
+                    className={`flex flex-col items-center gap-3 group ${isHost ? 'cursor-pointer' : ''}`}
+                    onClick={() => handleProfileClick(participant)}
+                  >
                     <div className="relative w-16 h-16 rounded-full p-0.5 bg-slate-800 transition-transform group-hover:scale-110">
                       <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-950 bg-slate-900">
                         <Avatar className="w-full h-full">
@@ -224,6 +255,13 @@ function StreamContent({
                         </Avatar>
                       </div>
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-950 shadow-lg" />
+                      
+                      {/* Hover/Host Action Overlay */}
+                      {isHost && (
+                        <div className="absolute inset-0 bg-blue-600/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <UserPlus size={20} className="text-white" />
+                        </div>
+                      )}
                     </div>
                     <p className="text-[10px] font-bold text-gray-500 truncate w-20 text-center uppercase tracking-tighter">
                       {participant.name || 'User'}

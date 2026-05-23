@@ -5,7 +5,7 @@ import {
   useLocalParticipant,
   ParticipantTile,
 } from '@livekit/components-react';
-import { Participant, Track } from 'livekit-client';
+import { Participant } from 'livekit-client';
 import '@livekit/components-styles';
 import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -73,9 +73,8 @@ function StreamContent({
   // Find the host participant (for viewers)
   const hostParticipant = participants.find((p: Participant) => {
     try {
-      const metadata = p.metadata ? JSON.parse(p.metadata) : {};
       // Host is identified by having the canPublish permission or being the first publisher
-      return p.isScreenShareEnabled || p.videoTracks.size > 0;
+      return p.isScreenShareEnabled || p.videoTrackPublications.size > 0;
     } catch {
       return false;
     }

@@ -5,7 +5,7 @@ import {
   useLocalParticipant,
   ParticipantTile,
 } from '@livekit/components-react';
-import { Participant } from 'livekit-client';
+import { Participant, Track } from 'livekit-client';
 import '@livekit/components-styles';
 import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -37,6 +37,49 @@ function StreamContent({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Enable camera and microphone for host on mount
+  useEffect(() => {
+    if (isHost && localParticipant) {
+      const enableMedia = async () => {
+        try {
+          // Enable camera
+          await localParticipant.setCameraEnabled(true);
+          // Enable microphone
+          await localParticipant.setMicrophoneEnabled(true);
+          console.log('Host camera and microphone enabled');
+        } catch (error) {
+          console.error('Error enabling media:', error);
+        }
+      };
+      enableMedia();
+    }
+  }, [isHost, localParticipant]);
+
+  // Handle mute toggle for host
+  useEffect(() => {
+    if (isHost && localParticipant) {
+      const updateMute = async () => {
+        try {
+          await localParticipant.setMicrophoneEnabled(!isMuted);
+        } catch (error) {
+          console.error('Error updating microphone:', error);
+        }
+      };
+      updateMute();
+    }
+  }, [isMuted, isHost, localParticipant]);
+
+  // Find the host participant (for viewers)
+  const hostParticipant = participants.find((p: Participant) => {
+    try {
+      const metadata = p.metadata ? JSON.parse(p.metadata) : {};
+      // Host is identified by having the canPublish permission or being the first publisher
+      return p.isScreenShareEnabled || p.videoTracks.size > 0;
+    } catch {
+      return false;
+    }
+  });
 
   // Get community members (all participants except host and current co-host)
   const communityMembers = participants.filter(
@@ -90,6 +133,9 @@ function StreamContent({
       .slice(0, 2);
   };
 
+  // Determine which participant to show in main area
+  const mainParticipant = isHost ? localParticipant : (hostParticipant || localParticipant);
+
   return (
     <div
       ref={containerRef}
@@ -107,18 +153,20 @@ function StreamContent({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Mute Button */}
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            title={isMuted ? 'Unmute' : 'Mute'}
-          >
-            {isMuted ? (
-              <VolumeX size={20} className="text-red-400" />
-            ) : (
-              <Volume2 size={20} className="text-white" />
-            )}
-          </button>
+          {/* Mute Button (only for host) */}
+          {isHost && (
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              title={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted ? (
+                <VolumeX size={20} className="text-red-400" />
+              ) : (
+                <Volume2 size={20} className="text-white" />
+              )}
+            </button>
+          )}
 
           {/* Fullscreen Button */}
           <button
@@ -148,12 +196,12 @@ function StreamContent({
       <div className="flex-1 overflow-hidden flex">
         {/* Left Side: Main Stream (50%) */}
         <div className="w-1/2 bg-black relative overflow-hidden border-r border-white/10">
-          {/* Host Video */}
-          {localParticipant && (
+          {/* Main Video - Host for hosts, Remote Host for viewers */}
+          {mainParticipant && (
             <div className="w-full h-full">
               <ParticipantTile
                 trackRef={{
-                  participant: localParticipant,
+                  participant: mainParticipant,
                   source: 'camera' as any,
                 }}
                 className="w-full h-full"
@@ -164,6 +212,17 @@ function StreamContent({
                   HOST
                 </div>
               )}
+            </div>
+          )}
+
+          {/* No video available message */}
+          {!mainParticipant && (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-black">
+              <div className="text-center">
+                <p className="text-gray-400 text-lg">
+                  {isHost ? 'Camera not available' : 'Waiting for host...'}
+                </p>
+              </div>
             </div>
           )}
 

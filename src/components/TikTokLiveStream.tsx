@@ -5,8 +5,9 @@ import {
   useLocalParticipant,
   ParticipantTile,
   useTracks,
+  useDataChannel,
 } from '@livekit/components-react';
-import { Participant, Track } from 'livekit-client';
+import { Participant, Track, DataPacket_Kind } from 'livekit-client';
 import '@livekit/components-styles';
 import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserPlus, UserMinus } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -33,6 +34,21 @@ function StreamContent({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Local state for co-host identity to ensure immediate UI feedback
+  const [localCoHostId, setLocalCoHostId] = useState<string | null>(null);
+
+  // Data channel for signaling
+  const { send } = useDataChannel('co-host-signaling', (message) => {
+    try {
+      const data = JSON.parse(new TextDecoder().decode(message.payload));
+      if (data.type === 'CO_HOST_UPDATE') {
+        setLocalCoHostId(data.coHostIdentity);
+      }
+    } catch (e) {
+      console.error('Failed to parse signaling message', e);
+    }
+  });
 
   const getMetadata = (p: Participant) => {
     try {
@@ -44,24 +60,39 @@ function StreamContent({
 
   // 1. Identify the Host
   const hostParticipant = useMemo(() => {
-    // Priority 1: Check metadata role
     const metaHost = participants.find(p => getMetadata(p).role === 'host');
     if (metaHost) return metaHost;
-    
-    // Priority 2: Fallback to local if I am host
     if (isHost && localParticipant) return localParticipant;
-    
-    // Priority 3: First remote participant (for safety)
     return participants.find(p => p.identity !== localParticipant?.identity) || null;
   }, [participants, isHost, localParticipant]);
 
-  // 2. Identify the Co-Host based on Host's metadata
+  // 2. Identify the Co-Host (Sync from Host's metadata + Local state)
   const coHostParticipant = useMemo(() => {
-    if (!hostParticipant) return null;
-    const hostMeta = getMetadata(hostParticipant);
-    if (!hostMeta.currentCoHost) return null;
-    return participants.find(p => p.identity === hostMeta.currentCoHost) || null;
-  }, [participants, hostParticipant]);
+    // Priority 1: Host's metadata (Source of truth)
+    if (hostParticipant) {
+      const hostMeta = getMetadata(hostParticipant);
+      if (hostMeta.currentCoHost) {
+        const p = participants.find(p => p.identity === hostMeta.currentCoHost);
+        if (p) return p;
+      }
+    }
+    // Priority 2: Local state (Immediate feedback)
+    if (localCoHostId) {
+      const p = participants.find(p => p.identity === localCoHostId);
+      if (p) return p;
+    }
+    return null;
+  }, [participants, hostParticipant, localCoHostId]);
+
+  // Sync local state when host metadata changes
+  useEffect(() => {
+    if (hostParticipant) {
+      const hostMeta = getMetadata(hostParticipant);
+      if (hostMeta.currentCoHost !== localCoHostId) {
+        setLocalCoHostId(hostMeta.currentCoHost || null);
+      }
+    }
+  }, [hostParticipant]);
 
   // 3. Track Discovery
   const allCameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
@@ -76,7 +107,7 @@ function StreamContent({
     return allCameraTracks.find(t => t.participant.identity === coHostParticipant.identity);
   }, [allCameraTracks, coHostParticipant]);
 
-  // Media Management
+  // Media Management (Camera/Mic activation)
   useEffect(() => {
     if (!localParticipant) return;
 
@@ -128,11 +159,26 @@ function StreamContent({
   const handleProfileClick = async (participant: Participant) => {
     if (!isHost || !localParticipant) return;
     
+    const isCurrentlyCoHost = coHostParticipant?.identity === participant.identity;
+    const newCoHostId = isCurrentlyCoHost ? null : participant.identity;
+    
+    // 1. Update Local State for immediate feedback
+    setLocalCoHostId(newCoHostId);
+
+    // 2. Update Host Metadata (Source of truth for all)
     const currentMetadata = getMetadata(localParticipant);
     await localParticipant.setMetadata(JSON.stringify({
       ...currentMetadata,
-      currentCoHost: participant.identity === currentMetadata.currentCoHost ? null : participant.identity
+      currentCoHost: newCoHostId
     }));
+
+    // 3. Broadcast update via Data Channel for faster sync
+    const encoder = new TextEncoder();
+    const data = encoder.encode(JSON.stringify({
+      type: 'CO_HOST_UPDATE',
+      coHostIdentity: newCoHostId
+    }));
+    await send(data, { reliable: true });
   };
 
   return (

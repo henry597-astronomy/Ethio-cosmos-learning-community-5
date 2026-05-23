@@ -3,7 +3,6 @@ import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { LiveKitProvider } from '@/context/LiveKitContext';
-import { StreamParticipantProvider } from '@/context/StreamParticipantContext';
 import { Toaster } from 'sonner';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
@@ -69,12 +68,10 @@ function App() {
         <Router>
           <NotificationProvider>
             <LiveKitProvider>
-              <StreamParticipantProvider>
-                <AppRoutes />
-                <Toaster position="top-right" theme="dark" />
-                <AIChatBar />
-                <BottomTaskBar />
-              </StreamParticipantProvider>
+              <AppRoutes />
+              <Toaster position="top-right" theme="dark" />
+              <AIChatBar />
+              <BottomTaskBar />
             </LiveKitProvider>
           </NotificationProvider>
         </Router>

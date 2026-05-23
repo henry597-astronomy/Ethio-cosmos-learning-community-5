@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS public.live_sessions (
     room_name TEXT NOT NULL,
     host_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     host_name TEXT NOT NULL,
+    host_avatar TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     is_active BOOLEAN DEFAULT true NOT NULL
 );

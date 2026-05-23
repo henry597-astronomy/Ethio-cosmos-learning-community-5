@@ -116,27 +116,37 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const startHosting = useCallback(async (roomName: string, token: string) => {
-    if (!user) return;
-
-    // Register session in Supabase
-    const { error } = await supabase.from('live_sessions').insert({
-      room_name: roomName,
-      host_id: user.id,
-      host_name: displayName || 'Anonymous',
-      is_active: true,
-      host_avatar: user.user_metadata?.avatar_url || null,
-    });
-
-    if (error) {
-      console.error('Error registering live session:', error);
+    if (!user) {
+      console.error('User not authenticated');
       return;
     }
 
-    setLiveRoomName(roomName);
-    setLiveToken(token);
-    setIsHosting(true);
-    setIsLiveModalOpen(false);
-    console.log('Hosting stream:', roomName);
+    try {
+      // Register session in Supabase
+      const { error } = await supabase.from('live_sessions').insert({
+        room_name: roomName,
+        host_id: user.id,
+        host_name: displayName || 'Anonymous',
+        is_active: true,
+        host_avatar: user.user_metadata?.avatar_url || null,
+      });
+
+      if (error) {
+        console.error('Error registering live session:', error);
+        throw new Error(`Failed to register session: ${error.message}`);
+      }
+
+      // Only set state if registration succeeded
+      setLiveRoomName(roomName);
+      setLiveToken(token);
+      setIsHosting(true);
+      setIsLiveModalOpen(false);
+      console.log('Hosting stream:', roomName);
+    } catch (err) {
+      console.error('Error in startHosting:', err);
+      // Reset modal state to allow retry
+      setIsLiveModalOpen(true);
+    }
   }, [user, displayName]);
 
   const stopHosting = useCallback(async () => {

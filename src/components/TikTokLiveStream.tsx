@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import {
   LiveKitRoom,
   useParticipants,
@@ -21,7 +21,6 @@ interface TikTokLiveStreamProps {
 
 /**
  * StreamContent renders the actual video stream and participant management
- * This component must be inside LiveKitRoom context
  */
 function StreamContent({
   isHost,
@@ -34,24 +33,39 @@ function StreamContent({
 }) {
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
-  const [coHostParticipant, setCoHostParticipant] = useState<Participant | null>(null);
+
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Use useTracks to get all camera tracks for better reliability
-  const tracks = useTracks([Track.Source.Camera]);
+  // Get all camera tracks in the room
+  const cameraTracks = useTracks([Track.Source.Camera]);
+
+  // 1. Identify the Host: 
+  // If I am the host, I am the host. 
+  // Otherwise, the host is the first person who published a camera track.
+  const hostTrack = useMemo(() => {
+    if (isHost && localParticipant) {
+      return cameraTracks.find(t => t.participant.identity === localParticipant.identity);
+    }
+    // For viewers: The host is usually the first publisher or the one with the most recent track
+    return cameraTracks[0]; 
+  }, [cameraTracks, isHost, localParticipant]);
+
+  // 2. Identify the Co-Host:
+  // The co-host is anyone else publishing a camera track who isn't the host.
+  const coHostTrack = useMemo(() => {
+    if (!hostTrack) return null;
+    return cameraTracks.find(t => t.participant.identity !== hostTrack.participant.identity);
+  }, [cameraTracks, hostTrack]);
 
   // Enable camera and microphone for host on mount
   useEffect(() => {
     if (isHost && localParticipant) {
       const enableMedia = async () => {
         try {
-          // Enable camera
           await localParticipant.setCameraEnabled(true);
-          // Enable microphone
           await localParticipant.setMicrophoneEnabled(true);
-          console.log('Host camera and microphone enabled');
         } catch (error) {
           console.error('Error enabling media:', error);
         }
@@ -63,64 +77,37 @@ function StreamContent({
   // Handle mute toggle for host
   useEffect(() => {
     if (isHost && localParticipant) {
-      const updateMute = async () => {
-        try {
-          await localParticipant.setMicrophoneEnabled(!isMuted);
-        } catch (error) {
-          console.error('Error updating microphone:', error);
-        }
-      };
-      updateMute();
+      localParticipant.setMicrophoneEnabled(!isMuted).catch(console.error);
     }
   }, [isMuted, isHost, localParticipant]);
 
-  // Find the host participant (for viewers)
-  const hostParticipant = participants.find((p: Participant) => {
-    try {
-      // Host is identified by having video tracks or screen share
-      return p.isScreenShareEnabled || p.videoTrackPublications.size > 0;
-    } catch {
-      return false;
-    }
+  // Get community members (everyone except the host and co-host)
+  const communityMembers = participants.filter((p) => {
+    const isHostParticipant = hostTrack?.participant.identity === p.identity;
+    const isCoHostParticipant = coHostTrack?.participant.identity === p.identity;
+    return !isHostParticipant && !isCoHostParticipant;
   });
 
-  // Get community members (all participants except host and current co-host)
-  const communityMembers = participants.filter(
-    (p: Participant) => p.identity !== localParticipant?.identity && p.identity !== coHostParticipant?.identity
-  );
-
-  // Handle co-host promotion
-  const handlePromoteToCoHost = (participant: Participant) => {
-    setCoHostParticipant(participant);
-  };
-
-  // Handle co-host removal
-  const handleRemoveCoHost = () => {
-    setCoHostParticipant(null);
-  };
-
-  // Handle fullscreen toggle
+  // Fullscreen logic
   const handleFullscreen = async () => {
     if (!containerRef.current) return;
-
     try {
       if (!isFullscreen) {
-        if (containerRef.current.requestFullscreen) {
-          await containerRef.current.requestFullscreen();
-          setIsFullscreen(true);
-        }
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
       } else {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-          setIsFullscreen(false);
-        }
+        await document.exitFullscreen();
+        setIsFullscreen(false);
       }
     } catch (error) {
       console.error('Fullscreen error:', error);
     }
   };
 
-  // Get participant avatar
+  const getInitials = (name: string) => {
+    return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   const getParticipantAvatar = (participant: Participant) => {
     try {
       const metadata = participant.metadata ? JSON.parse(participant.metadata) : {};
@@ -130,33 +117,8 @@ function StreamContent({
     }
   };
 
-  // Get participant initials
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  // Determine which participant to show in main area
-  const mainParticipant = isHost ? localParticipant : (hostParticipant || localParticipant);
-
-  // Helper to find track for a specific participant
-  const getTrackForParticipant = (participant: Participant | null) => {
-    if (!participant) return null;
-    return tracks.find((t) => t.participant.identity === participant.identity);
-  };
-
-  const mainTrack = getTrackForParticipant(mainParticipant);
-  const coHostTrack = getTrackForParticipant(coHostParticipant);
-
   return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 bg-black z-50 flex flex-col"
-    >
+    <div ref={containerRef} className="fixed inset-0 bg-black z-50 flex flex-col font-sans">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-950/95 backdrop-blur-md">
         <div className="flex-1">
@@ -164,174 +126,91 @@ function StreamContent({
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             {isHost ? 'Live Stream' : 'Watching Live'}
           </h2>
-          {roomName && (
-            <p className="text-xs text-gray-400 mt-1">{roomName}</p>
-          )}
+          {roomName && <p className="text-xs text-gray-400 mt-1">{roomName}</p>}
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Mute Button (only for host) */}
           {isHost && (
-            <button
-              onClick={() => setIsMuted(!isMuted)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              title={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted ? (
-                <VolumeX size={20} className="text-red-400" />
-              ) : (
-                <Volume2 size={20} className="text-white" />
-              )}
+            <button onClick={() => setIsMuted(!isMuted)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              {isMuted ? <VolumeX size={20} className="text-red-400" /> : <Volume2 size={20} className="text-white" />}
             </button>
           )}
-
-          {/* Fullscreen Button */}
-          <button
-            onClick={handleFullscreen}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-          >
-            {isFullscreen ? (
-              <Minimize2 size={20} className="text-white" />
-            ) : (
-              <Maximize2 size={20} className="text-white" />
-            )}
+          <button onClick={handleFullscreen} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+            {isFullscreen ? <Minimize2 size={20} className="text-white" /> : <Maximize2 size={20} className="text-white" />}
           </button>
-
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
-            title="Close Stream"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-red-500/20 rounded-lg transition-colors">
             <X size={20} className="text-red-400" />
           </button>
         </div>
       </div>
 
-      {/* Main Content Area - Split Vertically */}
+      {/* Main Layout: Top (Stream) / Bottom (Community) */}
       <div className="flex-1 flex flex-col overflow-hidden">
         
-        {/* TOP HALF: Stream Area */}
-        <div className="h-1/2 bg-black relative flex overflow-hidden border-b border-white/10">
-          {/* Split screen if co-host exists */}
-          <div className="flex w-full h-full">
-            {/* Main Stream (Host) */}
-            <div className={`${coHostParticipant ? 'w-1/2' : 'w-full'} h-full relative border-r border-white/5`}>
-              {mainParticipant && mainTrack ? (
-                <ParticipantTile
-                  trackRef={mainTrack}
-                  className="w-full h-full"
-                  
-                />
-              ) : mainParticipant ? (
-                 <div className="w-full h-full flex items-center justify-center bg-slate-900">
-                    <div className="text-center">
-                      <Loader className="w-8 h-8 text-orange-500 animate-spin mx-auto mb-2" />
-                      <p className="text-gray-400 text-sm">Loading stream...</p>
-                    </div>
-                 </div>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-slate-900">
-                  <p className="text-gray-500">Waiting for host...</p>
-                </div>
-              )}
-              {mainParticipant && (
-                <div className="absolute top-4 left-4 bg-red-600/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-2">
+        {/* TOP: Stream Area (50%) */}
+        <div className="h-1/2 bg-black relative flex border-b border-white/10">
+          {!hostTrack ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
+              <Loader className="w-10 h-10 text-orange-500 animate-spin mb-4" />
+              <p className="text-gray-400 font-medium">Waiting for host stream...</p>
+            </div>
+          ) : (
+            <div className="flex w-full h-full">
+              {/* Host Section */}
+              <div className={`${coHostTrack ? 'w-1/2' : 'w-full'} h-full relative border-r border-white/5`}>
+                <ParticipantTile trackRef={hostTrack} className="w-full h-full" />
+                <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                   HOST
                 </div>
+              </div>
+
+              {/* Co-Host Section (Visible if someone else is streaming) */}
+              {coHostTrack && (
+                <div className="w-1/2 h-full relative">
+                  <ParticipantTile trackRef={coHostTrack} className="w-full h-full" />
+                  <div className="absolute top-4 left-4 bg-orange-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                    CO-HOST
+                  </div>
+                </div>
               )}
             </div>
-
-            {/* Co-Host Stream */}
-            {coHostParticipant && (
-              <div className="w-1/2 h-full relative">
-                {coHostTrack ? (
-                  <ParticipantTile
-                    trackRef={coHostTrack}
-                    className="w-full h-full"
-                    
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-900">
-                    <div className="text-center">
-                      <Loader className="w-6 h-6 text-orange-500 animate-spin mx-auto mb-2" />
-                      <p className="text-gray-400 text-xs">Connecting co-host...</p>
-                    </div>
-                  </div>
-                )}
-                <div className="absolute top-4 left-4 bg-orange-600/80 backdrop-blur-sm text-white px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                  CO-HOST
-                </div>
-                {isHost && (
-                  <button
-                    onClick={handleRemoveCoHost}
-                    className="absolute top-4 right-4 bg-black/50 hover:bg-red-600 text-white p-1.5 rounded-full transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* BOTTOM HALF: Community Profiles */}
+        {/* BOTTOM: Community (50%) */}
         <div className="h-1/2 bg-slate-950 overflow-y-auto">
-          <div className="p-4">
-            <h3 className="text-white font-semibold mb-4 flex items-center gap-2 text-sm">
-              <span className="text-blue-400">👥</span>
-              Community ({communityMembers.length})
-            </h3>
+          <div className="p-5">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
+                <span className="text-blue-500 text-lg">👥</span>
+                Community ({communityMembers.length})
+              </h3>
+            </div>
 
             {communityMembers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                <p className="text-sm italic">No other participants yet</p>
+              <div className="flex flex-col items-center justify-center py-16 text-gray-600">
+                <p className="text-sm italic">Waiting for members to join...</p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                {communityMembers.map((participant: Participant) => (
-                  <div
-                    key={participant.identity}
-                    className="flex flex-col items-center gap-2 group"
-                  >
-                    <div
-                      onClick={() => isHost && handlePromoteToCoHost(participant)}
-                      className={`relative w-16 h-16 rounded-full overflow-hidden border-2 transition-all duration-200 cursor-pointer ${
-                        isHost
-                          ? 'border-white/10 hover:border-orange-500 hover:scale-105'
-                          : 'border-white/5'
-                      }`}
-                    >
-                      <Avatar className="w-full h-full">
-                        <AvatarImage
-                          src={getParticipantAvatar(participant)}
-                          alt={participant.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <AvatarFallback className="w-full h-full bg-slate-800 flex items-center justify-center text-white font-bold text-xs">
-                          {getInitials(participant.name || 'User')}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      {/* Online Indicator */}
-                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-slate-950" />
-
-                      {/* Hover Overlay for Host */}
-                      {isHost && (
-                        <div className="absolute inset-0 bg-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="text-white text-[10px] font-bold bg-orange-600 px-1.5 py-0.5 rounded">INVITE</span>
-                        </div>
-                      )}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-6">
+                {communityMembers.map((participant) => (
+                  <div key={participant.identity} className="flex flex-col items-center gap-3 group">
+                    <div className="relative w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-orange-500 to-red-500 transition-transform group-hover:scale-110">
+                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-950 bg-slate-800">
+                        <Avatar className="w-full h-full">
+                          <AvatarImage src={getParticipantAvatar(participant)} className="object-cover" />
+                          <AvatarFallback className="text-white font-bold text-xs">
+                            {getInitials(participant.name || 'User')}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-950 shadow-lg" />
                     </div>
-
-                    <div className="text-center">
-                      <p className="text-[10px] font-medium text-gray-300 truncate w-20">
-                        {participant.name || 'User'}
-                      </p>
-                    </div>
+                    <p className="text-[10px] font-bold text-gray-400 truncate w-20 text-center uppercase tracking-tighter">
+                      {participant.name || 'User'}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -340,21 +219,18 @@ function StreamContent({
         </div>
       </div>
 
-      {/* Footer / Status Bar */}
-      <div className="bg-slate-950 border-t border-white/5 px-4 py-2 text-[10px] text-gray-500 flex items-center justify-between">
+      {/* Footer */}
+      <div className="bg-slate-950 border-t border-white/5 px-4 py-2.5 text-[10px] text-gray-500 flex items-center justify-between font-bold uppercase tracking-widest">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
-          <span>Connected</span>
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+          <span>Live Status: Connected</span>
         </div>
-        <span>{participants.length + 1} participants in room</span>
+        <span>{participants.length} Active</span>
       </div>
     </div>
   );
 }
 
-/**
- * Main TikTokLiveStream Component
- */
 export default function TikTokLiveStream({
   token,
   serverUrl,
@@ -367,23 +243,11 @@ export default function TikTokLiveStream({
 
   if (!token || !serverUrl) {
     return (
-      <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-        <div className="bg-slate-900 rounded-2xl p-8 max-w-md w-full border border-red-500/20 shadow-2xl">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Stream Error</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-              <X size={24} />
-            </button>
-          </div>
-          <p className="text-gray-400 mb-8 leading-relaxed">
-            Unable to initialize live stream. Missing authentication credentials. Please try again later.
-          </p>
-          <button
-            onClick={onClose}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-semibold transition-all active:scale-95"
-          >
-            Close
-          </button>
+      <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-6">
+        <div className="bg-slate-900 rounded-3xl p-10 max-w-sm w-full border border-white/5 text-center">
+          <h2 className="text-2xl font-black text-white mb-4">STREAM ERROR</h2>
+          <p className="text-gray-500 mb-8 text-sm">Connection credentials missing.</p>
+          <button onClick={onClose} className="w-full bg-white text-black py-4 rounded-2xl font-black uppercase tracking-widest">CLOSE</button>
         </div>
       </div>
     );
@@ -391,48 +255,27 @@ export default function TikTokLiveStream({
 
   return (
     <LiveKitRoom
-      video={true}
-      audio={true}
+      video={isHost} // Only publish if host
+      audio={isHost} // Only publish if host
       token={token}
       serverUrl={serverUrl}
       connect={true}
-      onError={(err: Error) => {
-        console.error('LiveKit error:', err);
-        setError(err.message || 'Connection error');
-      }}
-      onConnected={() => {
-        setIsConnecting(false);
-        setError(null);
-      }}
+      onError={(err) => setError(err.message)}
+      onConnected={() => setIsConnecting(false)}
     >
       {isConnecting && (
-        <div className="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center">
-          <div className="flex flex-col items-center gap-6">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 bg-orange-500/10 rounded-full animate-pulse" />
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-white text-xl font-bold mb-2">Entering Room</p>
-              <p className="text-gray-500 text-sm">Preparing your live experience...</p>
-            </div>
-          </div>
+        <div className="fixed inset-0 bg-black z-[60] flex flex-col items-center justify-center gap-6">
+          <Loader className="w-12 h-12 text-white animate-spin" />
+          <p className="text-white font-black tracking-widest uppercase text-sm">Entering Live...</p>
         </div>
       )}
 
       {error && (
-        <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-2xl p-8 max-w-md w-full border border-red-500/20 shadow-2xl">
-            <h2 className="text-2xl font-bold text-white mb-4">Connection Error</h2>
-            <p className="text-red-400/80 mb-8 leading-relaxed">{error}</p>
-            <button
-              onClick={onClose}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-semibold transition-all active:scale-95"
-            >
-              Exit Stream
-            </button>
+        <div className="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-6">
+          <div className="bg-slate-900 rounded-3xl p-10 max-w-sm w-full border border-red-500/20 text-center">
+            <h2 className="text-xl font-black text-red-500 mb-4">CONNECTION FAILED</h2>
+            <p className="text-gray-500 mb-8 text-sm">{error}</p>
+            <button onClick={onClose} className="w-full bg-red-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest">EXIT</button>
           </div>
         </div>
       )}

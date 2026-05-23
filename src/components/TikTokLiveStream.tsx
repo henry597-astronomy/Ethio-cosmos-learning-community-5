@@ -33,31 +33,40 @@ function StreamContent({
 }) {
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
-
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Get all camera tracks in the room
+  // 1. Get all participants who are publishing video
+  const publishers = useMemo(() => {
+    return participants.filter(p => p.videoTrackPublications.size > 0 || p.isScreenShareEnabled);
+  }, [participants]);
+
+  // 2. Identify the Host (First priority: me if I'm host, Second priority: the first publisher found)
+  const hostParticipant = useMemo(() => {
+    if (isHost && localParticipant) return localParticipant;
+    // If I'm a viewer, the host is the first person in the room who is publishing video
+    return publishers[0] || null;
+  }, [isHost, localParticipant, publishers]);
+
+  // 3. Identify the Co-Host (The second person publishing video)
+  const coHostParticipant = useMemo(() => {
+    if (!hostParticipant) return null;
+    return publishers.find(p => p.identity !== hostParticipant.identity) || null;
+  }, [publishers, hostParticipant]);
+
+  // 4. Get the actual tracks for rendering
   const cameraTracks = useTracks([Track.Source.Camera]);
-
-  // 1. Identify the Host: 
-  // If I am the host, I am the host. 
-  // Otherwise, the host is the first person who published a camera track.
+  
   const hostTrack = useMemo(() => {
-    if (isHost && localParticipant) {
-      return cameraTracks.find(t => t.participant.identity === localParticipant.identity);
-    }
-    // For viewers: The host is usually the first publisher or the one with the most recent track
-    return cameraTracks[0]; 
-  }, [cameraTracks, isHost, localParticipant]);
+    if (!hostParticipant) return null;
+    return cameraTracks.find(t => t.participant.identity === hostParticipant.identity);
+  }, [cameraTracks, hostParticipant]);
 
-  // 2. Identify the Co-Host:
-  // The co-host is anyone else publishing a camera track who isn't the host.
   const coHostTrack = useMemo(() => {
-    if (!hostTrack) return null;
-    return cameraTracks.find(t => t.participant.identity !== hostTrack.participant.identity);
-  }, [cameraTracks, hostTrack]);
+    if (!coHostParticipant) return null;
+    return cameraTracks.find(t => t.participant.identity === coHostParticipant.identity);
+  }, [cameraTracks, coHostParticipant]);
 
   // Enable camera and microphone for host on mount
   useEffect(() => {
@@ -81,12 +90,14 @@ function StreamContent({
     }
   }, [isMuted, isHost, localParticipant]);
 
-  // Get community members (everyone except the host and co-host)
-  const communityMembers = participants.filter((p) => {
-    const isHostParticipant = hostTrack?.participant.identity === p.identity;
-    const isCoHostParticipant = coHostTrack?.participant.identity === p.identity;
-    return !isHostParticipant && !isCoHostParticipant;
-  });
+  // Get community members (everyone except host and co-host)
+  const communityMembers = useMemo(() => {
+    return participants.filter((p) => {
+      const isHostPart = hostParticipant?.identity === p.identity;
+      const isCoHostPart = coHostParticipant?.identity === p.identity;
+      return !isHostPart && !isCoHostPart;
+    });
+  }, [participants, hostParticipant, coHostParticipant]);
 
   // Fullscreen logic
   const handleFullscreen = async () => {
@@ -105,7 +116,7 @@ function StreamContent({
   };
 
   const getInitials = (name: string) => {
-    return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+    return (name || 'User').split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const getParticipantAvatar = (participant: Participant) => {
@@ -149,7 +160,7 @@ function StreamContent({
         
         {/* TOP: Stream Area (50%) */}
         <div className="h-1/2 bg-black relative flex border-b border-white/10">
-          {!hostTrack ? (
+          {!hostParticipant ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
               <Loader className="w-10 h-10 text-orange-500 animate-spin mb-4" />
               <p className="text-gray-400 font-medium">Waiting for host stream...</p>
@@ -157,18 +168,30 @@ function StreamContent({
           ) : (
             <div className="flex w-full h-full">
               {/* Host Section */}
-              <div className={`${coHostTrack ? 'w-1/2' : 'w-full'} h-full relative border-r border-white/5`}>
-                <ParticipantTile trackRef={hostTrack} className="w-full h-full" />
+              <div className={`${coHostParticipant ? 'w-1/2' : 'w-full'} h-full relative border-r border-white/5`}>
+                {hostTrack ? (
+                  <ParticipantTile trackRef={hostTrack} className="w-full h-full" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900/50">
+                    <p className="text-gray-500 text-xs italic">Host is starting video...</p>
+                  </div>
+                )}
                 <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                   HOST
                 </div>
               </div>
 
-              {/* Co-Host Section (Visible if someone else is streaming) */}
-              {coHostTrack && (
+              {/* Co-Host Section */}
+              {coHostParticipant && (
                 <div className="w-1/2 h-full relative">
-                  <ParticipantTile trackRef={coHostTrack} className="w-full h-full" />
+                  {coHostTrack ? (
+                    <ParticipantTile trackRef={coHostTrack} className="w-full h-full" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-900/50">
+                      <p className="text-gray-500 text-xs italic">Co-host is starting video...</p>
+                    </div>
+                  )}
                   <div className="absolute top-4 left-4 bg-orange-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                     CO-HOST
@@ -255,8 +278,8 @@ export default function TikTokLiveStream({
 
   return (
     <LiveKitRoom
-      video={isHost} // Only publish if host
-      audio={isHost} // Only publish if host
+      video={isHost}
+      audio={isHost}
       token={token}
       serverUrl={serverUrl}
       connect={true}

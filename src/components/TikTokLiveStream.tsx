@@ -37,69 +37,63 @@ function StreamContent({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 1. Get all participants who are publishing video
-  const publishers = useMemo(() => {
-    return participants.filter(p => p.videoTrackPublications.size > 0 || p.isScreenShareEnabled);
-  }, [participants]);
-
-  // 2. Identify the Host (First priority: me if I'm host, Second priority: the first publisher found)
+  // 1. Identify the Host: 
+  // - If I'm the host, I'm the host.
+  // - If I'm a viewer, the host is anyone else in the room. 
+  // (In a 1-host scenario, the first remote participant we find is the host)
   const hostParticipant = useMemo(() => {
     if (isHost && localParticipant) return localParticipant;
-    // If I'm a viewer, the host is the first person in the room who is publishing video
-    return publishers[0] || null;
-  }, [isHost, localParticipant, publishers]);
+    // For viewers: Look for any participant that isn't me.
+    return participants.find(p => p.identity !== localParticipant?.identity) || null;
+  }, [isHost, localParticipant, participants]);
 
-  // 3. Identify the Co-Host (The second person publishing video)
+  // 2. Identify the Co-Host:
+  // - Any participant who isn't me and isn't the host we identified.
   const coHostParticipant = useMemo(() => {
     if (!hostParticipant) return null;
-    return publishers.find(p => p.identity !== hostParticipant.identity) || null;
-  }, [publishers, hostParticipant]);
+    return participants.find(p => 
+      p.identity !== localParticipant?.identity && 
+      p.identity !== hostParticipant.identity
+    ) || null;
+  }, [participants, localParticipant, hostParticipant]);
 
-  // 4. Get the actual tracks for rendering
-  const cameraTracks = useTracks([Track.Source.Camera]);
-  
+  // 3. Resilient Track Discovery:
+  // Instead of filtering by publishers, we look for any available camera tracks.
+  const allCameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
+
   const hostTrack = useMemo(() => {
     if (!hostParticipant) return null;
-    return cameraTracks.find(t => t.participant.identity === hostParticipant.identity);
-  }, [cameraTracks, hostParticipant]);
+    return allCameraTracks.find(t => t.participant.identity === hostParticipant.identity);
+  }, [allCameraTracks, hostParticipant]);
 
   const coHostTrack = useMemo(() => {
     if (!coHostParticipant) return null;
-    return cameraTracks.find(t => t.participant.identity === coHostParticipant.identity);
-  }, [cameraTracks, coHostParticipant]);
+    return allCameraTracks.find(t => t.participant.identity === coHostParticipant.identity);
+  }, [allCameraTracks, coHostParticipant]);
 
-  // Enable camera and microphone for host on mount
+  // Enable media for host
   useEffect(() => {
     if (isHost && localParticipant) {
-      const enableMedia = async () => {
-        try {
-          await localParticipant.setCameraEnabled(true);
-          await localParticipant.setMicrophoneEnabled(true);
-        } catch (error) {
-          console.error('Error enabling media:', error);
-        }
-      };
-      enableMedia();
+      localParticipant.setCameraEnabled(true).catch(console.error);
+      localParticipant.setMicrophoneEnabled(true).catch(console.error);
     }
   }, [isHost, localParticipant]);
 
-  // Handle mute toggle for host
+  // Handle mute
   useEffect(() => {
     if (isHost && localParticipant) {
       localParticipant.setMicrophoneEnabled(!isMuted).catch(console.error);
     }
   }, [isMuted, isHost, localParticipant]);
 
-  // Get community members (everyone except host and co-host)
+  // Community members: Everyone except those on stage
   const communityMembers = useMemo(() => {
-    return participants.filter((p) => {
-      const isHostPart = hostParticipant?.identity === p.identity;
-      const isCoHostPart = coHostParticipant?.identity === p.identity;
-      return !isHostPart && !isCoHostPart;
+    return participants.filter(p => {
+      const isOnStage = p.identity === hostParticipant?.identity || p.identity === coHostParticipant?.identity;
+      return !isOnStage;
     });
   }, [participants, hostParticipant, coHostParticipant]);
 
-  // Fullscreen logic
   const handleFullscreen = async () => {
     if (!containerRef.current) return;
     try {
@@ -155,15 +149,15 @@ function StreamContent({
         </div>
       </div>
 
-      {/* Main Layout: Top (Stream) / Bottom (Community) */}
+      {/* Main Layout */}
       <div className="flex-1 flex flex-col overflow-hidden">
         
-        {/* TOP: Stream Area (50%) */}
+        {/* TOP: Stream Area */}
         <div className="h-1/2 bg-black relative flex border-b border-white/10">
           {!hostParticipant ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
               <Loader className="w-10 h-10 text-orange-500 animate-spin mb-4" />
-              <p className="text-gray-400 font-medium">Waiting for host stream...</p>
+              <p className="text-gray-400 font-medium uppercase tracking-widest text-xs">Connecting to Host...</p>
             </div>
           ) : (
             <div className="flex w-full h-full">
@@ -172,8 +166,9 @@ function StreamContent({
                 {hostTrack ? (
                   <ParticipantTile trackRef={hostTrack} className="w-full h-full" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-900/50">
-                    <p className="text-gray-500 text-xs italic">Host is starting video...</p>
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
+                    <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
+                    <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Starting Host Stream...</p>
                   </div>
                 )}
                 <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
@@ -188,8 +183,9 @@ function StreamContent({
                   {coHostTrack ? (
                     <ParticipantTile trackRef={coHostTrack} className="w-full h-full" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-900/50">
-                      <p className="text-gray-500 text-xs italic">Co-host is starting video...</p>
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
+                      <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
+                      <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Starting Co-Host Stream...</p>
                     </div>
                   )}
                   <div className="absolute top-4 left-4 bg-orange-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
@@ -202,26 +198,24 @@ function StreamContent({
           )}
         </div>
 
-        {/* BOTTOM: Community (50%) */}
+        {/* BOTTOM: Community */}
         <div className="h-1/2 bg-slate-950 overflow-y-auto">
           <div className="p-5">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-white font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
-                <span className="text-blue-500 text-lg">👥</span>
-                Community ({communityMembers.length})
-              </h3>
-            </div>
+            <h3 className="text-white font-bold flex items-center gap-2 text-sm uppercase tracking-wider mb-6">
+              <span className="text-blue-500 text-lg">👥</span>
+              Community ({communityMembers.length})
+            </h3>
 
             {communityMembers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-gray-600">
-                <p className="text-sm italic">Waiting for members to join...</p>
+              <div className="flex flex-col items-center justify-center py-16 text-gray-700">
+                <p className="text-xs uppercase tracking-widest font-bold">No members yet</p>
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-6">
                 {communityMembers.map((participant) => (
                   <div key={participant.identity} className="flex flex-col items-center gap-3 group">
-                    <div className="relative w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-orange-500 to-red-500 transition-transform group-hover:scale-110">
-                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-950 bg-slate-800">
+                    <div className="relative w-16 h-16 rounded-full p-0.5 bg-slate-800 transition-transform group-hover:scale-110">
+                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-950 bg-slate-900">
                         <Avatar className="w-full h-full">
                           <AvatarImage src={getParticipantAvatar(participant)} className="object-cover" />
                           <AvatarFallback className="text-white font-bold text-xs">
@@ -231,7 +225,7 @@ function StreamContent({
                       </div>
                       <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-950 shadow-lg" />
                     </div>
-                    <p className="text-[10px] font-bold text-gray-400 truncate w-20 text-center uppercase tracking-tighter">
+                    <p className="text-[10px] font-bold text-gray-500 truncate w-20 text-center uppercase tracking-tighter">
                       {participant.name || 'User'}
                     </p>
                   </div>
@@ -268,7 +262,7 @@ export default function TikTokLiveStream({
     return (
       <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-6">
         <div className="bg-slate-900 rounded-3xl p-10 max-w-sm w-full border border-white/5 text-center">
-          <h2 className="text-2xl font-black text-white mb-4">STREAM ERROR</h2>
+          <h2 className="text-2xl font-black text-white mb-4 uppercase tracking-widest">Stream Error</h2>
           <p className="text-gray-500 mb-8 text-sm">Connection credentials missing.</p>
           <button onClick={onClose} className="w-full bg-white text-black py-4 rounded-2xl font-black uppercase tracking-widest">CLOSE</button>
         </div>
@@ -289,14 +283,14 @@ export default function TikTokLiveStream({
       {isConnecting && (
         <div className="fixed inset-0 bg-black z-[60] flex flex-col items-center justify-center gap-6">
           <Loader className="w-12 h-12 text-white animate-spin" />
-          <p className="text-white font-black tracking-widest uppercase text-sm">Entering Live...</p>
+          <p className="text-white font-black tracking-widest uppercase text-xs">Entering Live Room...</p>
         </div>
       )}
 
       {error && (
         <div className="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-6">
           <div className="bg-slate-900 rounded-3xl p-10 max-w-sm w-full border border-red-500/20 text-center">
-            <h2 className="text-xl font-black text-red-500 mb-4">CONNECTION FAILED</h2>
+            <h2 className="text-xl font-black text-red-500 mb-4 uppercase tracking-widest">Connection Failed</h2>
             <p className="text-gray-500 mb-8 text-sm">{error}</p>
             <button onClick={onClose} className="w-full bg-red-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest">EXIT</button>
           </div>

@@ -18,11 +18,6 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing userName or roomName' });
     }
 
-    // Validate avatarUrl if provided
-    if (avatarUrl && typeof avatarUrl !== 'string') {
-      return res.status(400).json({ error: 'Invalid avatarUrl format' });
-    }
-
     // Get environment variables
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
@@ -35,36 +30,26 @@ export default async function handler(
     // Create access token
     const at = new AccessToken(apiKey, apiSecret);
 
-    // Grant different permissions based on role
-    if (isHost) {
-      // Host: can publish and subscribe (full permissions)
-      at.addGrant({
-        room: roomName,
-        roomJoin: true,
-        canPublish: true,
-        canPublishData: true,
-        canSubscribe: true,
-      });
-    } else {
-      // Viewer: read-only access (can only subscribe, not publish)
-      at.addGrant({
-        room: roomName,
-        roomJoin: true,
-        canPublish: false,
-        canPublishData: false,
-        canSubscribe: true,
-      });
-    }
+    // Grant permissions
+    // We allow everyone to publish so they can be promoted to co-host dynamically
+    at.addGrant({
+      room: roomName,
+      roomJoin: true,
+      canPublish: true,
+      canPublishData: true,
+      canSubscribe: true,
+    });
 
-    // Use a unique identity to allow multiple viewers with same display name
+    // Use a unique identity
     const identity = isHost ? userName : `${userName}-${Math.random().toString(36).substring(2, 7)}`;
     at.identity = identity;
     at.name = userName;
     
-    // Attach participant metadata including avatar
+    // Attach participant metadata
     const metadata = {
       avatar_url: avatarUrl || null,
       username: userName,
+      role: isHost ? 'host' : 'viewer'
     };
     at.metadata = JSON.stringify(metadata);
 
@@ -73,7 +58,7 @@ export default async function handler(
     return res.status(200).json({ 
       token,
       identity,
-      metadata: { avatar_url: avatarUrl || null, username: userName }
+      metadata
     });
   } catch (error) {
     console.error('Token generation error:', error);

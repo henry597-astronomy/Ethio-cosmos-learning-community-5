@@ -10,7 +10,6 @@ import { Participant, Track } from 'livekit-client';
 import '@livekit/components-styles';
 import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserPlus, UserMinus } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { useStreamParticipants } from '@/context/StreamParticipantContext';
 
 interface TikTokLiveStreamProps {
   token: string;
@@ -20,9 +19,6 @@ interface TikTokLiveStreamProps {
   roomName?: string;
 }
 
-/**
- * StreamContent renders the actual video stream and participant management
- */
 function StreamContent({
   isHost,
   onClose,
@@ -34,30 +30,40 @@ function StreamContent({
 }) {
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
-  const { coHostIdentity, promoteToCoHost, demoteFromCoHost } = useStreamParticipants();
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 1. Identify the Host: 
-  // - If I'm the host, I'm the host.
-  // - If I'm a viewer, the host is anyone else in the room. 
-  // (In a 1-host scenario, the first remote participant we find is the host)
+  const getMetadata = (p: Participant) => {
+    try {
+      return p.metadata ? JSON.parse(p.metadata) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  // 1. Identify the Host
   const hostParticipant = useMemo(() => {
+    // Priority 1: Check metadata role
+    const metaHost = participants.find(p => getMetadata(p).role === 'host');
+    if (metaHost) return metaHost;
+    
+    // Priority 2: Fallback to local if I am host
     if (isHost && localParticipant) return localParticipant;
-    // For viewers: Look for any participant that isn't me.
+    
+    // Priority 3: First remote participant (for safety)
     return participants.find(p => p.identity !== localParticipant?.identity) || null;
-  }, [isHost, localParticipant, participants]);
+  }, [participants, isHost, localParticipant]);
 
-  // 2. Identify the Co-Host:
-  // - Use the coHostIdentity from context (explicitly promoted by host)
+  // 2. Identify the Co-Host based on Host's metadata
   const coHostParticipant = useMemo(() => {
-    if (!coHostIdentity) return null;
-    return participants.find(p => p.identity === coHostIdentity) || null;
-  }, [participants, coHostIdentity]);
+    if (!hostParticipant) return null;
+    const hostMeta = getMetadata(hostParticipant);
+    if (!hostMeta.currentCoHost) return null;
+    return participants.find(p => p.identity === hostMeta.currentCoHost) || null;
+  }, [participants, hostParticipant]);
 
-  // 3. Resilient Track Discovery:
-  // Instead of filtering by publishers, we look for any available camera tracks.
+  // 3. Track Discovery
   const allCameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
 
   const hostTrack = useMemo(() => {
@@ -70,26 +76,28 @@ function StreamContent({
     return allCameraTracks.find(t => t.participant.identity === coHostParticipant.identity);
   }, [allCameraTracks, coHostParticipant]);
 
-  // Enable media for host
+  // Media Management
   useEffect(() => {
-    if (isHost && localParticipant) {
+    if (!localParticipant) return;
+
+    const isMeHost = isHost;
+    const isMeCoHost = coHostParticipant?.identity === localParticipant.identity;
+
+    if (isMeHost || isMeCoHost) {
       localParticipant.setCameraEnabled(true).catch(console.error);
-      localParticipant.setMicrophoneEnabled(true).catch(console.error);
-    }
-  }, [isHost, localParticipant]);
-
-  // Handle mute
-  useEffect(() => {
-    if (isHost && localParticipant) {
       localParticipant.setMicrophoneEnabled(!isMuted).catch(console.error);
+    } else {
+      localParticipant.setCameraEnabled(false).catch(console.error);
+      localParticipant.setMicrophoneEnabled(false).catch(console.error);
     }
-  }, [isMuted, isHost, localParticipant]);
+  }, [isHost, localParticipant, coHostParticipant, isMuted]);
 
-  // Community members: Everyone except those on stage
+  // Community members
   const communityMembers = useMemo(() => {
     return participants.filter(p => {
-      const isOnStage = p.identity === hostParticipant?.identity || p.identity === coHostParticipant?.identity;
-      return !isOnStage;
+      const isHostMember = p.identity === hostParticipant?.identity;
+      const isCoHostMember = p.identity === coHostParticipant?.identity;
+      return !isHostMember && !isCoHostMember;
     });
   }, [participants, hostParticipant, coHostParticipant]);
 
@@ -113,22 +121,18 @@ function StreamContent({
   };
 
   const getParticipantAvatar = (participant: Participant) => {
-    try {
-      const metadata = participant.metadata ? JSON.parse(participant.metadata) : {};
-      return metadata.avatar_url || null;
-    } catch {
-      return null;
-    }
+    const metadata = getMetadata(participant);
+    return metadata.avatar_url || null;
   };
 
-  const handleProfileClick = (participant: Participant) => {
-    if (!isHost) return;
+  const handleProfileClick = async (participant: Participant) => {
+    if (!isHost || !localParticipant) return;
     
-    if (coHostIdentity === participant.identity) {
-      demoteFromCoHost();
-    } else {
-      promoteToCoHost(participant.identity);
-    }
+    const currentMetadata = getMetadata(localParticipant);
+    await localParticipant.setMetadata(JSON.stringify({
+      ...currentMetadata,
+      currentCoHost: participant.identity === currentMetadata.currentCoHost ? null : participant.identity
+    }));
   };
 
   return (
@@ -204,7 +208,7 @@ function StreamContent({
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          demoteFromCoHost();
+                          handleProfileClick(coHostParticipant);
                         }}
                         className="ml-2 p-1 hover:bg-white/20 rounded-full transition-colors"
                       >

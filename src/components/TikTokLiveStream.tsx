@@ -80,21 +80,24 @@ function StreamContent({
 
   // 2. Identify the Co-Host
   const coHostParticipant = useMemo(() => {
+    // Combine local and remote participants to ensure we find the co-host even if it's us
+    const allParticipants = localParticipant ? [localParticipant, ...participants] : participants;
+    
     // Try to find co-host from host metadata first
     if (hostParticipant) {
       const hostMeta = getMetadata(hostParticipant);
       if (hostMeta.currentCoHost) {
-        const p = participants.find(p => p.identity === hostMeta.currentCoHost);
+        const p = allParticipants.find(p => p.identity === hostMeta.currentCoHost);
         if (p) return p;
       }
     }
     // Fall back to locally stored co-host ID for instant UI feedback
     if (localCoHostId) {
-      const p = participants.find(p => p.identity === localCoHostId);
+      const p = allParticipants.find(p => p.identity === localCoHostId);
       if (p) return p;
     }
     return null;
-  }, [participants, hostParticipant, localCoHostId]);
+  }, [participants, localParticipant, hostParticipant, localCoHostId]);
 
   // Sync local state when host metadata changes
   useEffect(() => {
@@ -112,7 +115,7 @@ function StreamContent({
       Track.Source.Camera,
       Track.Source.ScreenShare
     ],
-    { onlySubscribed: true }
+    { onlySubscribed: false } // Include local tracks and don't wait for subscription to show UI
   );
 
   const hostTrack = useMemo(() => {
@@ -348,7 +351,7 @@ function StreamContent({
           <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
           <span>Live Status: Connected</span>
         </div>
-        <span>{participants.length} Active</span>
+        <span>{participants.length + (localParticipant ? 1 : 0)} Active</span>
       </div>
     </div>
   );

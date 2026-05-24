@@ -38,16 +38,17 @@ function AppRoutes() {
           {/* Login is always accessible */}
           <Route path="/login" element={<LoginPage />} />
 
-          {/* All other routes require authentication and check block status */}
-          {/* Public content routes - still require login check and block status check */}
-          <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          {/* Public content routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          
+          {/* Protected content routes - require login check and block status check */}
           <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />
           <Route path="/learning/:topicId" element={<ProtectedRoute><TopicDetailPage /></ProtectedRoute>} />
           <Route path="/learning/:topicId/:subtopicId" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
-          <Route path="/about" element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
           <Route path="/materials" element={<ProtectedRoute><MaterialsPage /></ProtectedRoute>} />
 
-          {/* Protected Routes */}
+          {/* Protected Interactive Routes */}
           <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
           <Route path="/tests" element={<ProtectedRoute><TestsPage /></ProtectedRoute>} />
           <Route path="/bookmarks" element={<ProtectedRoute><BookmarksPage /></ProtectedRoute>} />

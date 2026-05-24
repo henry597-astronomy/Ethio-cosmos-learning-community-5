@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase';
 import type { Short } from '@/types';
-import { X, Loader, Heart, MessageCircle, Share2, Upload } from 'lucide-react';
+import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -15,11 +15,20 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
   const [shorts, setShorts] = useState<Short[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetchShorts();
   }, []);
+
+  // Update video mute state when isMuted changes
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
 
   const fetchShorts = async () => {
     try {
@@ -198,13 +207,23 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
           shorts.map((short) => (
             <div key={short.id} className="h-full w-full snap-start relative flex items-center justify-center bg-black">
               <video
+                ref={videoRef}
                 src={short.video_url}
                 className="max-h-full max-w-full object-contain"
                 loop
                 autoPlay
-                muted
+                muted={isMuted}
                 playsInline
               />
+              
+              {/* Volume Toggle Button */}
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className="absolute top-20 right-6 z-20 bg-white/20 hover:bg-white/30 p-3 rounded-full backdrop-blur-md transition-all duration-200 text-white"
+                title={isMuted ? 'Unmute' : 'Mute'}
+              >
+                {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+              </button>
               
               {/* Overlay UI */}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/70 to-transparent flex justify-between items-end">

@@ -26,10 +26,7 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
       setLoading(true);
       const { data, error } = await supabase
         .from('shorts')
-        .select(`
-          *,
-          profiles:user_id (username, avatar_url)
-        `)
+        .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -37,8 +34,8 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
 
       const formattedShorts = (data || []).map((s: any) => ({
         ...s,
-        user_name: s.profiles?.username || 'User',
-        user_avatar: s.profiles?.avatar_url,
+        user_name: 'User',
+        user_avatar: undefined,
       }));
 
       setShorts(formattedShorts);

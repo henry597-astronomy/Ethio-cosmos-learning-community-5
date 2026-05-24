@@ -50,7 +50,7 @@ export default function BottomTaskBar() {
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-5 py-2 rounded-full font-bold transition-all duration-300 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transform"
             >
               <Zap size={18} className="animate-pulse" />
-              <span className="hidden sm:inline">Create Shorts</span>
+              <span className="hidden sm:inline">Shorts</span>
             </Button>
 
             {/* 

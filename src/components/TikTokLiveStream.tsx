@@ -58,17 +58,23 @@ function StreamContent({
     }
   };
 
-  // 1. Identify the Host
+  // 1. Identify the Host (INSTANT DISCOVERY)
   const hostParticipant = useMemo(() => {
+    // If I'm the host, return me immediately
+    if (isHost && localParticipant) return localParticipant;
+
+    // For viewers:
+    // Priority 1: Check metadata role
     const metaHost = participants.find(p => getMetadata(p).role === 'host');
     if (metaHost) return metaHost;
-    if (isHost && localParticipant) return localParticipant;
+    
+    // Priority 2: Fallback to ANY remote participant to show something immediately
+    // This prevents the "Connecting to Host" screen from hanging if metadata is slow
     return participants.find(p => p.identity !== localParticipant?.identity) || null;
   }, [participants, isHost, localParticipant]);
 
-  // 2. Identify the Co-Host (Sync from Host's metadata + Local state)
+  // 2. Identify the Co-Host
   const coHostParticipant = useMemo(() => {
-    // Priority 1: Host's metadata (Source of truth)
     if (hostParticipant) {
       const hostMeta = getMetadata(hostParticipant);
       if (hostMeta.currentCoHost) {
@@ -76,7 +82,6 @@ function StreamContent({
         if (p) return p;
       }
     }
-    // Priority 2: Local state (Immediate feedback)
     if (localCoHostId) {
       const p = participants.find(p => p.identity === localCoHostId);
       if (p) return p;
@@ -107,17 +112,19 @@ function StreamContent({
     return allCameraTracks.find(t => t.participant.identity === coHostParticipant.identity);
   }, [allCameraTracks, coHostParticipant]);
 
-  // Media Management (Camera/Mic activation)
+  // Media Management (Optimized for instant viewing)
   useEffect(() => {
     if (!localParticipant) return;
 
     const isMeHost = isHost;
     const isMeCoHost = coHostParticipant?.identity === localParticipant.identity;
 
+    // Only enable media if I am on stage
     if (isMeHost || isMeCoHost) {
       localParticipant.setCameraEnabled(true).catch(console.error);
       localParticipant.setMicrophoneEnabled(!isMuted).catch(console.error);
     } else {
+      // For viewers, ensure camera/mic are disabled to save bandwidth and speed up connection
       localParticipant.setCameraEnabled(false).catch(console.error);
       localParticipant.setMicrophoneEnabled(false).catch(console.error);
     }
@@ -162,17 +169,14 @@ function StreamContent({
     const isCurrentlyCoHost = coHostParticipant?.identity === participant.identity;
     const newCoHostId = isCurrentlyCoHost ? null : participant.identity;
     
-    // 1. Update Local State for immediate feedback
     setLocalCoHostId(newCoHostId);
 
-    // 2. Update Host Metadata (Source of truth for all)
     const currentMetadata = getMetadata(localParticipant);
     await localParticipant.setMetadata(JSON.stringify({
       ...currentMetadata,
       currentCoHost: newCoHostId
     }));
 
-    // 3. Broadcast update via Data Channel for faster sync
     const encoder = new TextEncoder();
     const data = encoder.encode(JSON.stringify({
       type: 'CO_HOST_UPDATE',
@@ -365,6 +369,14 @@ export default function TikTokLiveStream({
       token={token}
       serverUrl={serverUrl}
       connect={true}
+      options={{
+        publishDefaults: {
+          videoSimulcast: true,
+          screenShareSimulcast: true,
+        },
+        adaptiveStream: true,
+        dynacast: true,
+      }}
       onError={(err) => setError(err.message)}
       onConnected={() => setIsConnecting(false)}
     >

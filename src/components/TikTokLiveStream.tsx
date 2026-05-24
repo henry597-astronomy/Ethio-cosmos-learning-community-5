@@ -371,8 +371,7 @@ export default function TikTokLiveStream({
       connect={true}
       options={{
         publishDefaults: {
-          videoSimulcast: true,
-          screenShareSimulcast: true,
+          simulcast: true,
         },
         adaptiveStream: true,
         dynacast: true,

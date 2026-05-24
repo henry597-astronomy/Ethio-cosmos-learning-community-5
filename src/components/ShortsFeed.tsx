@@ -52,44 +52,93 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user) {
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
 
     if (!file.type.startsWith('video/')) {
       toast.error('Please upload a video file');
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       return;
     }
 
     try {
       setUploading(true);
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = fileName;
 
-      const { error: uploadError } = await supabase.storage
+      // Upload file to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('shorts')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
 
+      if (!uploadData) {
+        throw new Error('Upload returned no data');
+      }
+
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('shorts')
         .getPublicUrl(filePath);
 
-      const { error: dbError } = await supabase
+      if (!publicUrl) {
+        throw new Error('Failed to get public URL');
+      }
+
+      // Insert record into database
+      const { data: insertData, error: dbError } = await supabase
         .from('shorts')
         .insert({
           user_id: user.id,
           video_url: publicUrl,
           caption: 'New short',
-        });
+          is_active: true,
+        })
+        .select();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw new Error(`Database insert failed: ${dbError.message}`);
+      }
+
+      if (!insertData || insertData.length === 0) {
+        throw new Error('Failed to create short record');
+      }
 
       toast.success('Short uploaded successfully!');
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+      // Refresh shorts list
       fetchShorts();
     } catch (error) {
       console.error('Error uploading short:', error);
-      toast.error('Failed to upload short');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload short';
+      toast.error(errorMessage);
+      
+      // Reset file input on error
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } finally {
       setUploading(false);
     }
@@ -114,13 +163,24 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 variant="ghost"
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 transition-all duration-300"
+                title="Upload a new short video"
               >
-                {uploading ? <Loader className="animate-spin" /> : <Upload size={24} />}
+                {uploading ? (
+                  <>
+                    <Loader className="animate-spin" size={24} />
+                    <span className="hidden sm:inline ml-2 text-sm">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={24} />
+                    <span className="hidden sm:inline ml-2 text-sm">Upload</span>
+                  </>
+                )}
               </Button>
             </>
           )}
-          <button onClick={onClose} className="text-white p-2">
+          <button onClick={onClose} className="text-white p-2 hover:bg-white/10 rounded-lg transition-all duration-300">
             <X size={24} />
           </button>
         </div>
@@ -168,20 +228,20 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
                 </div>
 
                 <div className="flex flex-col gap-6 items-center text-white">
-                  <button className="flex flex-col items-center gap-1">
-                    <div className="bg-white/10 p-3 rounded-full backdrop-blur-md">
+                  <button className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200">
+                    <div className="bg-white/10 p-3 rounded-full backdrop-blur-md hover:bg-red-500/30">
                       <Heart size={24} />
                     </div>
                     <span className="text-xs">{short.likes_count}</span>
                   </button>
-                  <button className="flex flex-col items-center gap-1">
-                    <div className="bg-white/10 p-3 rounded-full backdrop-blur-md">
+                  <button className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200">
+                    <div className="bg-white/10 p-3 rounded-full backdrop-blur-md hover:bg-blue-500/30">
                       <MessageCircle size={24} />
                     </div>
                     <span className="text-xs">0</span>
                   </button>
-                  <button className="flex flex-col items-center gap-1">
-                    <div className="bg-white/10 p-3 rounded-full backdrop-blur-md">
+                  <button className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200">
+                    <div className="bg-white/10 p-3 rounded-full backdrop-blur-md hover:bg-green-500/30">
                       <Share2 size={24} />
                     </div>
                     <span className="text-xs">Share</span>

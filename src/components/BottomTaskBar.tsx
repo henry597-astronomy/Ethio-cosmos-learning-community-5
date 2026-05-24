@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLiveKit } from '@/context/LiveKitContext';
 import { Button } from '@/components/ui/button';
-import { Radio, PlaySquare } from 'lucide-react';
+import { Radio, Zap } from 'lucide-react';
 import LiveHostModal from './LiveHostModal';
 import TikTokLiveStream from './TikTokLiveStream';
 import ShortsFeed from './ShortsFeed';
@@ -43,14 +43,14 @@ export default function BottomTaskBar() {
       >
         {/* Center Host Live / Join Live Button */}
         {user && (
-          <div className="flex items-center gap-4">
-            {/* Shorts Button */}
+          <div className="flex items-center justify-center gap-12 w-full">
+            {/* Shorts Button - Left Side with Enhanced Design */}
             <Button
               onClick={() => setIsShortsOpen(true)}
-              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full font-semibold transition-all duration-300"
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-5 py-2 rounded-full font-bold transition-all duration-300 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transform"
             >
-              <PlaySquare size={18} />
-              <span className="hidden sm:inline">Shorts</span>
+              <Zap size={18} className="animate-pulse" />
+              <span className="hidden sm:inline">Create Shorts</span>
             </Button>
 
             {/* 

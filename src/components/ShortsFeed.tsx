@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase';
 import type { Short } from '@/types';
-import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX, Trash2 } from 'lucide-react';
+import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX, Trash2, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -22,6 +22,8 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const options = {
@@ -55,39 +57,74 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
     };
   }, []);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMenu]);
+
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this short video? This action cannot be undone.')) {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this short video? This action cannot be undone and will permanently remove the video from the system.'
+    );
+    
+    if (!confirmed) {
+      setShowMenu(false);
       return;
     }
 
     setIsDeleting(true);
+    setShowMenu(false);
+    
     try {
       // Extract the file path from the video URL
       const urlParts = short.video_url.split('/storage/v1/object/public/shorts/');
       if (urlParts.length !== 2) {
         throw new Error('Invalid video URL format');
       }
-      const filePath = urlParts[1];
+      const filePath = decodeURIComponent(urlParts[1]);
 
-      // Delete from storage first
+      // Step 1: Delete from storage first
       const { error: storageError } = await supabase.storage
         .from('shorts')
         .remove([filePath]);
 
+      // Log storage error but continue (file might already be deleted)
       if (storageError) {
-        console.warn('Storage deletion warning:', storageError);
-        // Continue with database deletion even if storage deletion fails
+        console.warn('Storage deletion warning:', storageError.message);
       }
 
-      // Delete from database
+      // Step 2: Delete from database
       const { error: dbError } = await supabase
         .from('shorts')
         .delete()
         .eq('id', short.id);
 
-      if (dbError) throw new Error(`Database deletion failed: ${dbError.message}`);
+      if (dbError) {
+        throw new Error(`Database deletion failed: ${dbError.message}`);
+      }
 
-      toast.success('Short video deleted successfully!');
+      // Step 3: Verify deletion by attempting to fetch the record
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('shorts')
+        .select('id')
+        .eq('id', short.id)
+        .single();
+
+      if (!verifyError && verifyData) {
+        throw new Error('Deletion verification failed: Record still exists in database');
+      }
+
+      toast.success('Short video permanently deleted!');
       onDelete(short.id);
     } catch (error) {
       console.error('Error deleting short:', error);
@@ -121,21 +158,6 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
       >
         {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
       </button>
-
-      {/* Admin Delete Button */}
-      {isAdmin && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDelete();
-          }}
-          disabled={isDeleting}
-          className="absolute top-20 right-20 z-20 bg-red-500/20 hover:bg-red-500/40 p-3 rounded-full backdrop-blur-md transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Delete this short"
-        >
-          {isDeleting ? <Loader size={24} className="animate-spin" /> : <Trash2 size={24} />}
-        </button>
-      )}
       
       {/* Play/Pause Overlay Indicator */}
       {!isPlaying && (
@@ -183,6 +205,46 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
             </div>
             <span className="text-xs">Share</span>
           </button>
+          
+          {/* Admin Menu Button */}
+          {isAdmin && (
+            <div ref={menuRef} className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMenu(!showMenu);
+                }}
+                disabled={isDeleting}
+                className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="More options"
+              >
+                <div className="bg-white/10 p-3 rounded-full backdrop-blur-md hover:bg-gray-500/30">
+                  {isDeleting ? (
+                    <Loader size={24} className="animate-spin text-white" />
+                  ) : (
+                    <MoreVertical size={24} className="text-white" />
+                  )}
+                </div>
+              </button>
+              
+              {/* Dropdown Menu */}
+              {showMenu && !isDeleting && (
+                <div className="absolute bottom-full right-0 mb-2 bg-gray-900/95 backdrop-blur-md rounded-lg shadow-xl border border-white/10 overflow-hidden z-30 min-w-max">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete();
+                    }}
+                    disabled={isDeleting}
+                    className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/20 transition-colors duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 size={18} />
+                    <span className="text-sm font-medium">Delete Video</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -16,8 +16,11 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     fetchShorts();
@@ -25,10 +28,68 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
 
   // Update video mute state when isMuted changes
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = isMuted;
+    if (videoRefs.current[currentVideoIndex]) {
+      videoRefs.current[currentVideoIndex]!.muted = isMuted;
     }
-  }, [isMuted]);
+  }, [isMuted, currentVideoIndex]);
+
+  // Handle scroll to track current video and cleanup previous ones
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      // Clear existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      // Debounce scroll handling
+      scrollTimeoutRef.current = setTimeout(() => {
+        const scrollTop = container.scrollTop;
+        const containerHeight = container.clientHeight;
+        
+        // Calculate which video is in view
+        const newIndex = Math.round(scrollTop / containerHeight);
+        
+        if (newIndex !== currentVideoIndex && newIndex >= 0 && newIndex < shorts.length) {
+          // Stop and cleanup all videos
+          Object.keys(videoRefs.current).forEach((key) => {
+            const video = videoRefs.current[key];
+            if (video) {
+              video.pause();
+              video.currentTime = 0;
+              video.src = '';
+              video.load();
+            }
+          });
+
+          // Update current index
+          setCurrentVideoIndex(newIndex);
+
+          // Play the new video
+          setTimeout(() => {
+            const newVideo = videoRefs.current[newIndex];
+            if (newVideo) {
+              newVideo.currentTime = 0;
+              newVideo.play().catch((err) => {
+                console.warn('Autoplay prevented:', err);
+              });
+            }
+          }, 100);
+        }
+      }, 150);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [currentVideoIndex, shorts.length]);
 
   const fetchShorts = async () => {
     try {
@@ -48,6 +109,7 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
       }));
 
       setShorts(formattedShorts);
+      setCurrentVideoIndex(0);
     } catch (error) {
       console.error('Error fetching shorts:', error);
       toast.error('Failed to load shorts');
@@ -193,7 +255,10 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
       </div>
 
       {/* Feed */}
-      <div className="flex-1 overflow-y-scroll snap-y snap-mandatory scrollbar-hide">
+      <div 
+        ref={containerRef}
+        className="flex-1 overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+      >
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <Loader className="text-white animate-spin" size={48} />
@@ -204,16 +269,26 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
             {user && <p className="text-sm">Be the first to upload!</p>}
           </div>
         ) : (
-          shorts.map((short) => (
+          shorts.map((short, index) => (
             <div key={short.id} className="h-full w-full snap-start relative flex items-center justify-center bg-black">
               <video
-                ref={videoRef}
+                ref={(el) => {
+                  if (el) videoRefs.current[index] = el;
+                }}
                 src={short.video_url}
                 className="max-h-full max-w-full object-contain"
                 loop
-                autoPlay
+                autoPlay={index === 0}
                 muted={isMuted}
                 playsInline
+                preload="metadata"
+                onLoadedMetadata={(e) => {
+                  if (index === currentVideoIndex) {
+                    (e.target as HTMLVideoElement).play().catch((err) => {
+                      console.warn('Autoplay prevented:', err);
+                    });
+                  }
+                }}
               />
               
               {/* Volume Toggle Button */}

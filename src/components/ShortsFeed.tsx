@@ -76,7 +76,7 @@ function ShortVideo({ short, isMuted, onMuteToggle }: ShortVideoProps) {
         {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
       </button>
       
-      {/* Play/Pause Overlay Indicator (optional, briefly shows when toggled) */}
+      {/* Play/Pause Overlay Indicator */}
       {!isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="bg-black/20 p-6 rounded-full backdrop-blur-sm">
@@ -129,7 +129,7 @@ function ShortVideo({ short, isMuted, onMuteToggle }: ShortVideoProps) {
 }
 
 export default function ShortsFeed({ onClose }: ShortsFeedProps) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [shorts, setShorts] = useState<Short[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -168,7 +168,15 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) {
+    
+    // Security check: only admins can upload
+    if (!isAdmin || !user) {
+      toast.error('Only administrators can upload shorts.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (!file) {
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -231,7 +239,8 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
       <div className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-center bg-gradient-to-b from-black/70 to-transparent">
         <h2 className="text-white text-xl font-bold">Shorts</h2>
         <div className="flex items-center gap-2">
-          {user && (
+          {/* Only show upload button to admins */}
+          {isAdmin && user && (
             <>
               <input
                 type="file"
@@ -245,8 +254,19 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
                 disabled={uploading}
                 variant="ghost"
                 className="text-white hover:bg-white/20 transition-all duration-300"
+                title="Admin: Upload a new short video"
               >
-                {uploading ? <Loader className="animate-spin" size={24} /> : <Upload size={24} />}
+                {uploading ? (
+                  <>
+                    <Loader className="animate-spin" size={24} />
+                    <span className="hidden sm:inline ml-2 text-sm">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={24} />
+                    <span className="hidden sm:inline ml-2 text-sm">Upload</span>
+                  </>
+                )}
               </Button>
             </>
           )}
@@ -265,6 +285,7 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
         ) : shorts.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400">
             <p>No shorts yet</p>
+            {isAdmin && <p className="text-sm">Admin: Be the first to upload!</p>}
           </div>
         ) : (
           shorts.map((short) => (

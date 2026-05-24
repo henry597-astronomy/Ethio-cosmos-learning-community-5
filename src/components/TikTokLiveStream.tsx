@@ -63,18 +63,24 @@ function StreamContent({
     // If I'm the host, return me immediately
     if (isHost && localParticipant) return localParticipant;
 
-    // For viewers:
-    // Priority 1: Check metadata role
+    // For viewers: Prioritize immediate display over metadata accuracy
+    // Priority 1: Check metadata role (most reliable but may be delayed)
     const metaHost = participants.find(p => getMetadata(p).role === 'host');
     if (metaHost) return metaHost;
     
-    // Priority 2: Fallback to ANY remote participant to show something immediately
-    // This prevents the "Connecting to Host" screen from hanging if metadata is slow
-    return participants.find(p => p.identity !== localParticipant?.identity) || null;
+    // Priority 2: Fallback to ANY remote participant to show content immediately
+    // This ensures viewers see the stream instantly without waiting for metadata propagation
+    // The fallback is typically the host since they join first
+    const firstRemote = participants.find(p => p.identity !== localParticipant?.identity);
+    if (firstRemote) return firstRemote;
+    
+    // Priority 3: Return null only if truly no one else is in the room
+    return null;
   }, [participants, isHost, localParticipant]);
 
   // 2. Identify the Co-Host
   const coHostParticipant = useMemo(() => {
+    // Try to find co-host from host metadata first
     if (hostParticipant) {
       const hostMeta = getMetadata(hostParticipant);
       if (hostMeta.currentCoHost) {
@@ -82,6 +88,7 @@ function StreamContent({
         if (p) return p;
       }
     }
+    // Fall back to locally stored co-host ID for instant UI feedback
     if (localCoHostId) {
       const p = participants.find(p => p.identity === localCoHostId);
       if (p) return p;
@@ -118,7 +125,7 @@ function StreamContent({
     return allCameraTracks.find(t => t.participant.identity === coHostParticipant.identity);
   }, [allCameraTracks, coHostParticipant]);
 
-  // Media Management (Optimized for instant viewing)
+  // Media Management (Optimized for instant viewing - disable viewer media immediately)
   useEffect(() => {
     if (!localParticipant) return;
 
@@ -130,7 +137,8 @@ function StreamContent({
       localParticipant.setCameraEnabled(true).catch(console.error);
       localParticipant.setMicrophoneEnabled(!isMuted).catch(console.error);
     } else {
-      // For viewers, ensure camera/mic are disabled to save bandwidth and speed up connection
+      // For viewers, disable camera/mic IMMEDIATELY to reduce connection overhead
+      // This allows faster initial connection without waiting for media negotiation
       localParticipant.setCameraEnabled(false).catch(console.error);
       localParticipant.setMicrophoneEnabled(false).catch(console.error);
     }
@@ -192,7 +200,7 @@ function StreamContent({
   };
 
   return (
-    <div ref={containerRef} className="fixed inset-0 bg-black z-50 flex flex-col font-sans">
+    <div ref={containerRef} className="fixed inset-0 bg-black z-50 flex flex-col font-sans" suppressHydrationWarning>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-950/95 backdrop-blur-md">
         <div className="flex-1">
@@ -221,23 +229,18 @@ function StreamContent({
       {/* Main Layout */}
       <div className="flex-1 flex flex-col overflow-hidden">
         
-        {/* TOP: Stream Area */}
+        {/* TOP: Stream Area - Immediately visible even while host loads */}
         <div className="h-1/2 bg-black relative flex border-b border-white/10">
-          {!hostParticipant ? (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
-              <Loader className="w-10 h-10 text-orange-500 animate-spin mb-4" />
-              <p className="text-gray-400 font-medium uppercase tracking-widest text-xs">Connecting to Host...</p>
-            </div>
-          ) : (
-            <div className="flex w-full h-full">
+          {hostParticipant ? (
+            <div className="flex w-full h-full" suppressHydrationWarning>
               {/* Host Section */}
               <div className={`${coHostParticipant ? 'w-1/2' : 'w-full'} h-full relative border-r border-white/5`}>
                 {hostTrack ? (
-                  <ParticipantTile trackRef={hostTrack} className="w-full h-full" />
+                  <ParticipantTile trackRef={hostTrack} className="w-full h-full" suppressHydrationWarning />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
                     <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
-                    <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Starting Host Stream...</p>
+                    <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Loading Host Stream...</p>
                   </div>
                 )}
                 <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
@@ -250,11 +253,11 @@ function StreamContent({
               {coHostParticipant && (
                 <div className="w-1/2 h-full relative">
                   {coHostTrack ? (
-                    <ParticipantTile trackRef={coHostTrack} className="w-full h-full" />
+                    <ParticipantTile trackRef={coHostTrack} className="w-full h-full" suppressHydrationWarning />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
                       <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
-                      <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Starting Co-Host Stream...</p>
+                      <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Loading Co-Host Stream...</p>
                     </div>
                   )}
                   <div className="absolute top-4 left-4 bg-orange-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
@@ -274,6 +277,11 @@ function StreamContent({
                   </div>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
+              <Loader className="w-10 h-10 text-orange-500 animate-spin mb-4" />
+              <p className="text-gray-400 font-medium uppercase tracking-widest text-xs">Waiting for Host to Join...</p>
             </div>
           )}
         </div>
@@ -385,12 +393,7 @@ export default function TikTokLiveStream({
       onError={(err) => setError(err.message)}
       onConnected={() => setIsConnecting(false)}
     >
-      {isConnecting && (
-        <div className="fixed inset-0 bg-black z-[60] flex flex-col items-center justify-center gap-6">
-          <Loader className="w-12 h-12 text-white animate-spin" />
-          <p className="text-white font-black tracking-widest uppercase text-xs">Entering Live Room...</p>
-        </div>
-      )}
+      {/* Connection overlay removed - viewers now see content immediately */}
 
       {error && (
         <div className="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-6">

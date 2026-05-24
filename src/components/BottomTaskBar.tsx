@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLiveKit } from '@/context/LiveKitContext';
 import { Button } from '@/components/ui/button';
-import { Radio } from 'lucide-react';
+import { Radio, PlaySquare } from 'lucide-react';
 import LiveHostModal from './LiveHostModal';
 import TikTokLiveStream from './TikTokLiveStream';
+import ShortsFeed from './ShortsFeed';
 
 export default function BottomTaskBar() {
   const { user } = useAuth();
+  const [isShortsOpen, setIsShortsOpen] = useState(false);
   const {
     isLiveModalOpen,
     isHosting,
@@ -41,6 +44,15 @@ export default function BottomTaskBar() {
         {/* Center Host Live / Join Live Button */}
         {user && (
           <div className="flex items-center gap-4">
+            {/* Shorts Button */}
+            <Button
+              onClick={() => setIsShortsOpen(true)}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full font-semibold transition-all duration-300"
+            >
+              <PlaySquare size={18} />
+              <span className="hidden sm:inline">Shorts</span>
+            </Button>
+
             {/* 
               If user is currently hosting, show "Live Now" (disabled).
               If user is NOT hosting, but there is an active session NOT hosted by them, show "Join Live".
@@ -101,6 +113,11 @@ export default function BottomTaskBar() {
           isHost={isHosting}
           roomName={liveRoomName || undefined}
         />
+      )}
+
+      {/* Shorts Feed */}
+      {isShortsOpen && (
+        <ShortsFeed onClose={() => setIsShortsOpen(false)} />
       )}
     </>
   );

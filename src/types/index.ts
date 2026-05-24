@@ -180,3 +180,16 @@ export interface SiteContent {
   value: SiteContentValue;
   updated_at?: string;
 }
+
+export interface Short {
+  id: string;
+  user_id: string;
+  video_url: string;
+  caption?: string;
+  created_at: string;
+  likes_count: number;
+  is_active: boolean;
+  // Optional joined fields
+  user_name?: string;
+  user_avatar?: string;
+}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase';
 import type { Short } from '@/types';
-import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX } from 'lucide-react';
+import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -14,11 +14,14 @@ interface ShortVideoProps {
   short: Short;
   isMuted: boolean;
   onMuteToggle: () => void;
+  isAdmin: boolean;
+  onDelete: (id: string) => void;
 }
 
-function ShortVideo({ short, isMuted, onMuteToggle }: ShortVideoProps) {
+function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const options = {
@@ -52,6 +55,49 @@ function ShortVideo({ short, isMuted, onMuteToggle }: ShortVideoProps) {
     };
   }, []);
 
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this short video? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // Extract the file path from the video URL
+      const urlParts = short.video_url.split('/storage/v1/object/public/shorts/');
+      if (urlParts.length !== 2) {
+        throw new Error('Invalid video URL format');
+      }
+      const filePath = urlParts[1];
+
+      // Delete from storage first
+      const { error: storageError } = await supabase.storage
+        .from('shorts')
+        .remove([filePath]);
+
+      if (storageError) {
+        console.warn('Storage deletion warning:', storageError);
+        // Continue with database deletion even if storage deletion fails
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('shorts')
+        .delete()
+        .eq('id', short.id);
+
+      if (dbError) throw new Error(`Database deletion failed: ${dbError.message}`);
+
+      toast.success('Short video deleted successfully!');
+      onDelete(short.id);
+    } catch (error) {
+      console.error('Error deleting short:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete short';
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="h-full w-full snap-start relative flex items-center justify-center bg-black">
       <video
@@ -75,6 +121,21 @@ function ShortVideo({ short, isMuted, onMuteToggle }: ShortVideoProps) {
       >
         {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
       </button>
+
+      {/* Admin Delete Button */}
+      {isAdmin && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete();
+          }}
+          disabled={isDeleting}
+          className="absolute top-20 right-20 z-20 bg-red-500/20 hover:bg-red-500/40 p-3 rounded-full backdrop-blur-md transition-all duration-200 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Delete this short"
+        >
+          {isDeleting ? <Loader size={24} className="animate-spin" /> : <Trash2 size={24} />}
+        </button>
+      )}
       
       {/* Play/Pause Overlay Indicator */}
       {!isPlaying && (
@@ -176,6 +237,7 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
       return;
     }
 
+    // File validation
     if (!file) {
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
@@ -183,6 +245,14 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
 
     if (!file.type.startsWith('video/')) {
       toast.error('Please upload a video file');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // File size validation (e.g., max 100MB)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      toast.error('Video file is too large. Maximum size is 100MB.');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -293,7 +363,9 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
               key={short.id} 
               short={short} 
               isMuted={isMuted} 
-              onMuteToggle={() => setIsMuted(!isMuted)} 
+              onMuteToggle={() => setIsMuted(!isMuted)}
+              isAdmin={isAdmin}
+              onDelete={(id) => setShorts(shorts.filter(s => s.id !== id))}
             />
           ))
         )}

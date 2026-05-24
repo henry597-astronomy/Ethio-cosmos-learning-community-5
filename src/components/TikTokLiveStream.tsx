@@ -7,7 +7,7 @@ import {
   useTracks,
   useDataChannel,
 } from '@livekit/components-react';
-import { Participant, Track, DataPacket_Kind } from 'livekit-client';
+import { Participant, Track } from 'livekit-client';
 import '@livekit/components-styles';
 import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserPlus, UserMinus } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';

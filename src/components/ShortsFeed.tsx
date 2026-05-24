@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase';
-import { Short } from '@/types';
+import type { Short } from '@/types';
 import { X, Loader, Heart, MessageCircle, Share2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';

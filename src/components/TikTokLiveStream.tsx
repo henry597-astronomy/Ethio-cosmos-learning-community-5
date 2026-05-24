@@ -361,7 +361,7 @@ export default function TikTokLiveStream({
   isHost = false,
   roomName,
 }: TikTokLiveStreamProps) {
-  const [isConnecting, setIsConnecting] = useState(true);
+  // Removed isConnecting state to allow immediate viewer access and fix TS6133 error
   const [error, setError] = useState<string | null>(null);
 
   if (!token || !serverUrl) {
@@ -391,7 +391,7 @@ export default function TikTokLiveStream({
         dynacast: true,
       }}
       onError={(err) => setError(err.message)}
-      onConnected={() => setIsConnecting(false)}
+      onConnected={() => console.log('Connected to room')}
     >
       {/* Connection overlay removed - viewers now see content immediately */}
 

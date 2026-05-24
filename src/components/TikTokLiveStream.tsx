@@ -99,8 +99,14 @@ function StreamContent({
     }
   }, [hostParticipant]);
 
-  // 3. Track Discovery
-  const allCameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
+  // 3. Track Discovery (Optimized for both Host and Co-Host)
+  const allCameraTracks = useTracks(
+    [
+      Track.Source.Camera,
+      Track.Source.ScreenShare
+    ],
+    { onlySubscribed: false }
+  );
 
   const hostTrack = useMemo(() => {
     if (!hostParticipant) return null;
@@ -121,8 +127,20 @@ function StreamContent({
 
     // Only enable media if I am on stage
     if (isMeHost || isMeCoHost) {
-      localParticipant.setCameraEnabled(true).catch(console.error);
-      localParticipant.setMicrophoneEnabled(!isMuted).catch(console.error);
+      // Use setCameraEnabled and setMicrophoneEnabled with explicit checks
+      const toggleMedia = async () => {
+        try {
+          if (!localParticipant.isCameraEnabled) {
+            await localParticipant.setCameraEnabled(true);
+          }
+          if (localParticipant.isMicrophoneEnabled === isMuted) {
+            await localParticipant.setMicrophoneEnabled(!isMuted);
+          }
+        } catch (err) {
+          console.error('Failed to toggle media:', err);
+        }
+      };
+      toggleMedia();
     } else {
       // For viewers, ensure camera/mic are disabled to save bandwidth and speed up connection
       localParticipant.setCameraEnabled(false).catch(console.error);

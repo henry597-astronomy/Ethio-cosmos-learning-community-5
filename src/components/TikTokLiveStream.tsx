@@ -77,7 +77,7 @@ function StreamContent({
     
     // Priority 3: Return null only if truly no one else is in the room
     return null;
-  }, [participants, isHost, localParticipant, allCameraTracks]);
+  }, [participants, isHost, localParticipant]);
 
   // 2. Identify the Co-Host
   const coHostParticipant = useMemo(() => {
@@ -135,7 +135,7 @@ function StreamContent({
 
   // Ensure host enables camera when they join
   useEffect(() => {
-    if (isHost && localParticipant && !localParticipant.isCameraEnabled()) {
+    if (isHost && localParticipant && !localParticipant.isCameraEnabled) {
       localParticipant.setCameraEnabled(true).catch(err => {
         console.warn('Failed to enable host camera:', err);
       });

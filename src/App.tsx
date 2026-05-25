@@ -56,6 +56,9 @@ function AppRoutes() {
 
           {/* Admin Route */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPage /></ProtectedRoute>} />
+
+          {/* Catch-all route - redirect to home */}
+          <Route path="*" element={<HomePage />} />
         </Routes>
       </main>
     </div>

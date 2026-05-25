@@ -24,6 +24,7 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
   const [isDeleting, setIsDeleting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const options = {
@@ -136,7 +137,11 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
   };
 
   return (
-    <div className="h-full w-full snap-start relative flex items-center justify-center bg-black">
+    <div 
+      ref={containerRef}
+      className="h-full w-full snap-start snap-always relative flex items-center justify-center bg-black"
+      style={{ scrollSnapStop: 'always' }}
+    >
       <video
         ref={videoRef}
         src={short.video_url}
@@ -409,7 +414,14 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
       </div>
 
       {/* Feed */}
-      <div className="flex-1 overflow-y-scroll snap-y snap-mandatory scrollbar-hide">
+      <div 
+        className="flex-1 overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+        style={{
+          scrollBehavior: 'smooth',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <Loader className="text-white animate-spin" size={48} />

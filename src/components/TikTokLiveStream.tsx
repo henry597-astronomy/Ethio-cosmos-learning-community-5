@@ -58,7 +58,7 @@ function StreamContent({
     }
   };
 
-  // 1. Identify the Host (INSTANT DISCOVERY)
+  // 1. Identify the Host (INSTANT DISCOVERY WITH TRACK VALIDATION)
   const hostParticipant = useMemo(() => {
     // If I'm the host, return me immediately
     if (isHost && localParticipant) return localParticipant;
@@ -76,7 +76,7 @@ function StreamContent({
     
     // Priority 3: Return null only if truly no one else is in the room
     return null;
-  }, [participants, isHost, localParticipant]);
+  }, [participants, isHost, localParticipant, allCameraTracks]);
 
   // 2. Identify the Co-Host
   const coHostParticipant = useMemo(() => {
@@ -118,14 +118,34 @@ function StreamContent({
     { onlySubscribed: false } // Include local tracks and don't wait for subscription to show UI
   );
 
+  // Ensure host enables camera when they join
+  useEffect(() => {
+    if (isHost && localParticipant && !localParticipant.isCameraEnabled()) {
+      localParticipant.setCameraEnabled(true).catch(err => {
+        console.warn('Failed to enable host camera:', err);
+      });
+    }
+  }, [isHost, localParticipant]);
+
   const hostTrack = useMemo(() => {
     if (!hostParticipant) return null;
-    return allCameraTracks.find(t => t.participant.identity === hostParticipant.identity);
+    
+    // Find camera or screen share track from host
+    const track = allCameraTracks.find(t => t.participant.identity === hostParticipant.identity);
+    
+    // If host is connected but no track yet, still show them (loading state in UI)
+    // This prevents "Waiting for Host" from showing when host is actually connected
+    return track || null;
   }, [allCameraTracks, hostParticipant]);
 
   const coHostTrack = useMemo(() => {
     if (!coHostParticipant) return null;
-    return allCameraTracks.find(t => t.participant.identity === coHostParticipant.identity);
+    
+    // Find camera or screen share track from co-host
+    const track = allCameraTracks.find(t => t.participant.identity === coHostParticipant.identity);
+    
+    // If co-host is connected but no track yet, still show them (loading state in UI)
+    return track || null;
   }, [allCameraTracks, coHostParticipant]);
 
   // Media Management (Optimized for instant viewing - disable viewer media immediately)
@@ -240,10 +260,15 @@ function StreamContent({
               <div className={`${coHostParticipant ? 'w-1/2' : 'w-full'} h-full relative border-r border-white/5`}>
                 {hostTrack ? (
                   <ParticipantTile trackRef={hostTrack} className="w-full h-full" suppressHydrationWarning />
+                ) : hostParticipant ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
+                    <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
+                    <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Enabling Host Camera...</p>
+                  </div>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
                     <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
-                    <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Loading Host Stream...</p>
+                    <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Waiting for Host...</p>
                   </div>
                 )}
                 <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
@@ -257,12 +282,12 @@ function StreamContent({
                 <div className="w-1/2 h-full relative">
                   {coHostTrack ? (
                     <ParticipantTile trackRef={coHostTrack} className="w-full h-full" suppressHydrationWarning />
-                  ) : (
+                  ) : coHostParticipant ? (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
                       <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
-                      <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Loading Co-Host Stream...</p>
+                      <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Enabling Co-Host Camera...</p>
                     </div>
-                  )}
+                  ) : null}
                   <div className="absolute top-4 left-4 bg-orange-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                     CO-HOST
@@ -284,7 +309,7 @@ function StreamContent({
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
               <Loader className="w-10 h-10 text-orange-500 animate-spin mb-4" />
-              <p className="text-gray-400 font-medium uppercase tracking-widest text-xs">Waiting for Host to Join...</p>
+              <p className="text-gray-400 font-medium uppercase tracking-widest text-xs">Connecting to Host...</p>
             </div>
           )}
         </div>

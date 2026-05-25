@@ -139,8 +139,12 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
   return (
     <div 
       ref={containerRef}
-      className="h-full w-full snap-start snap-always relative flex items-center justify-center bg-black"
-      style={{ scrollSnapStop: 'always' }}
+      className="h-full w-full relative flex items-center justify-center bg-black"
+      style={{ 
+        scrollSnapAlign: 'start',
+        scrollSnapStop: 'always',
+        flexShrink: 0,
+      }}
     >
       <video
         ref={videoRef}
@@ -415,11 +419,13 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
 
       {/* Feed */}
       <div 
-        className="flex-1 overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+        className="flex-1 overflow-y-scroll scrollbar-hide"
         style={{
           scrollBehavior: 'smooth',
           overscrollBehavior: 'contain',
           WebkitOverflowScrolling: 'touch',
+          scrollSnapType: 'y mandatory',
+          scrollPaddingTop: '0px',
         }}
       >
         {loading ? (

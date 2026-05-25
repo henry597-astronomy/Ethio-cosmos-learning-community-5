@@ -34,6 +34,7 @@ function StreamContent({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [connectionTimeout, setConnectionTimeout] = useState(false);
   
   // Local state for co-host identity to ensure immediate UI feedback
   const [localCoHostId, setLocalCoHostId] = useState<string | null>(null);
@@ -117,6 +118,20 @@ function StreamContent({
     ],
     { onlySubscribed: false } // Include local tracks and don't wait for subscription to show UI
   );
+
+  // Connection timeout handler - show error if no host connects within 15 seconds
+  useEffect(() => {
+    if (isHost || hostParticipant) {
+      setConnectionTimeout(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setConnectionTimeout(true);
+    }, 15000); // 15 second timeout
+
+    return () => clearTimeout(timer);
+  }, [isHost, hostParticipant]);
 
   // Ensure host enables camera when they join
   useEffect(() => {
@@ -305,6 +320,19 @@ function StreamContent({
                   </div>
                 </div>
               )}
+            </div>
+          ) : connectionTimeout ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
+              <div className="text-center">
+                <p className="text-red-400 font-bold uppercase tracking-widest text-sm mb-2">Connection Failed</p>
+                <p className="text-gray-500 text-xs mb-4">The host is not currently streaming.</p>
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold uppercase transition-colors"
+                >
+                  Exit Stream
+                </button>
+              </div>
             </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">

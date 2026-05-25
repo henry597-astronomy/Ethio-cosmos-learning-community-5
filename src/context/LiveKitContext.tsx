@@ -202,6 +202,20 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     }
     
     try {
+      // First, verify the session is still active in the database
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('live_sessions')
+        .select('*')
+        .eq('room_name', roomName)
+        .eq('is_active', true)
+        .single();
+
+      if (sessionError || !sessionData) {
+        console.error('Session not found or inactive:', sessionError);
+        clearSession();
+        return;
+      }
+
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: {
@@ -224,6 +238,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       console.log('Joined stream with identity:', identity, 'metadata:', metadata);
     } catch (error) {
       console.error('Error joining session:', error);
+      clearSession();
     }
   }, [displayName, user, clearSession]);
 

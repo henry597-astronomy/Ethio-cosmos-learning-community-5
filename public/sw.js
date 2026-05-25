@@ -2,7 +2,7 @@
 // Strategy: Network-first for API/Supabase calls, Cache-first for static assets
 // Enhanced: Offline support for learning page, homepage, about page, and lessons
 
-const CACHE_NAME = 'ethio-cosmos-v7';
+const CACHE_NAME = 'ethio-cosmos-v8';
 const API_CACHE_NAME = 'ethio-cosmos-api-v1';
 
 const STATIC_ASSETS = [

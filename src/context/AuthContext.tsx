@@ -128,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       .then(({ data }) => {
         if (!mountedRef.current) return;
+        console.log('[Auth] Initial session check:', data.session ? 'Session found' : 'No session');
         applySession(data.session ?? null);
       })
       .catch((e) => {
@@ -136,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[Auth] State change:', event, session ? 'Session active' : 'No session');
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         applySession(session);
       } else if (event === 'SIGNED_OUT') {
@@ -152,9 +154,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession]);
 
   const signInWithGoogle = useCallback(async () => {
+    // Determine the redirect URL. If we're on Vercel, use the window.location.origin.
+    // This ensures that the redirect goes back to the same domain (e.g., the .vercel.app one).
+    const redirectUrl = window.location.origin + '/login';
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { 
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
+      },
     });
     if (error) throw error;
   }, []);

@@ -24,6 +24,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
+    storageKey: 'ethio-cosmos-auth-token', // Custom storage key to avoid collisions
   },
   realtime: {
     params: {

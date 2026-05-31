@@ -65,23 +65,17 @@ function StreamContent({
     if (isHost && localParticipant) return localParticipant;
 
     // For viewers: Prioritize immediate display over metadata accuracy
-    // Priority 1: Check for any participant that is currently publishing a camera or screen share track
-    // This is the most accurate way to find the actual streamer
-    const publishingParticipant = participants.find(p => 
-      p.identity !== localParticipant?.identity && 
-      (p.isCameraEnabled || p.isScreenShareEnabled)
-    );
-    if (publishingParticipant) return publishingParticipant;
-    
-    // Priority 2: Check metadata role (fallback if no active media)
+    // Priority 1: Check metadata role (most reliable but may be delayed)
     const metaHost = participants.find(p => getMetadata(p).role === 'host');
     if (metaHost) return metaHost;
-
-    // Priority 3: Fallback to ANY remote participant
+    
+    // Priority 2: Fallback to ANY remote participant to show content immediately
+    // This ensures viewers see the stream instantly without waiting for metadata propagation
+    // The fallback is typically the host since they join first
     const firstRemote = participants.find(p => p.identity !== localParticipant?.identity);
     if (firstRemote) return firstRemote;
     
-    // Priority 4: Return null only if truly no one else is in the room
+    // Priority 3: Return null only if truly no one else is in the room
     return null;
   }, [participants, isHost, localParticipant]);
 
@@ -125,7 +119,7 @@ function StreamContent({
     { onlySubscribed: false } // Include local tracks and don't wait for subscription to show UI
   );
 
-  // Connection timeout handler - show error if no host connects within 30 seconds
+  // Connection timeout handler - show error if no host connects within 15 seconds
   useEffect(() => {
     if (isHost || hostParticipant) {
       setConnectionTimeout(false);
@@ -134,48 +128,30 @@ function StreamContent({
 
     const timer = setTimeout(() => {
       setConnectionTimeout(true);
-    }, 30000); // 30 second timeout to give host more time to connect
+    }, 15000); // 15 second timeout
 
     return () => clearTimeout(timer);
   }, [isHost, hostParticipant]);
 
-  // Ensure host enables camera and microphone immediately when they join
+  // Ensure host enables camera when they join
   useEffect(() => {
-    if (isHost && localParticipant) {
-      // Enable camera immediately
-      if (!localParticipant.isCameraEnabled) {
-        localParticipant.setCameraEnabled(true).catch(err => {
-          console.warn('Failed to enable host camera:', err);
-        });
-      }
-      // Enable microphone immediately
-      if (!localParticipant.isMicrophoneEnabled) {
-        localParticipant.setMicrophoneEnabled(true).catch(err => {
-          console.warn('Failed to enable host microphone:', err);
-        });
-      }
+    if (isHost && localParticipant && !localParticipant.isCameraEnabled) {
+      localParticipant.setCameraEnabled(true).catch(err => {
+        console.warn('Failed to enable host camera:', err);
+      });
     }
   }, [isHost, localParticipant]);
 
   const hostTrack = useMemo(() => {
     if (!hostParticipant) return null;
     
-    // Priority 1: Find camera or screen share track specifically from the identified host
-    const track = allCameraTracks.find(t => 
-      t.participant.identity === hostParticipant.identity && 
-      (t.source === Track.Source.Camera || t.source === Track.Source.ScreenShare)
-    );
-    if (track) return track;
-
-    // Priority 2: If the identified host isn't publishing yet, but SOMEONE is, show that track
-    // This handles cases where host identity and track publication are slightly out of sync
-    const anyActiveTrack = allCameraTracks.find(t => 
-      t.participant.identity !== localParticipant?.identity &&
-      (t.source === Track.Source.Camera || t.source === Track.Source.ScreenShare)
-    );
+    // Find camera or screen share track from host
+    const track = allCameraTracks.find(t => t.participant.identity === hostParticipant.identity);
     
-    return anyActiveTrack || null;
-  }, [allCameraTracks, hostParticipant, localParticipant]);
+    // If host is connected but no track yet, still show them (loading state in UI)
+    // This prevents "Waiting for Host" from showing when host is actually connected
+    return track || null;
+  }, [allCameraTracks, hostParticipant]);
 
   const coHostTrack = useMemo(() => {
     if (!coHostParticipant) return null;
@@ -469,10 +445,6 @@ export default function TikTokLiveStream({
         },
         adaptiveStream: true,
         dynacast: true,
-        // Ensure viewers automatically subscribe to all tracks
-        videoCaptureDefaults: {
-          resolution: { width: 1280, height: 720 },
-        },
       }}
       onError={(err) => setError(err.message)}
       onConnected={() => console.log('Connected to room')}

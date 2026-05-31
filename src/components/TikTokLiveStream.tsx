@@ -69,9 +69,15 @@ function StreamContent({
     const metaHost = participants.find(p => getMetadata(p).role === 'host');
     if (metaHost) return metaHost;
     
-    // Priority 2: Fallback to ANY remote participant to show content immediately
-    // This ensures viewers see the stream instantly without waiting for metadata propagation
-    // The fallback is typically the host since they join first
+    // Priority 2: Check for any participant that is currently publishing a camera or screen share track
+    // This is the most accurate way to find the actual streamer
+    const publishingParticipant = participants.find(p => 
+      p.identity !== localParticipant?.identity && 
+      (p.isCameraEnabled || p.isScreenShareEnabled || p.getTracks().some(t => t.isPublished))
+    );
+    if (publishingParticipant) return publishingParticipant;
+
+    // Priority 3: Fallback to ANY remote participant
     const firstRemote = participants.find(p => p.identity !== localParticipant?.identity);
     if (firstRemote) return firstRemote;
     
@@ -145,13 +151,22 @@ function StreamContent({
   const hostTrack = useMemo(() => {
     if (!hostParticipant) return null;
     
-    // Find camera or screen share track from host
-    const track = allCameraTracks.find(t => t.participant.identity === hostParticipant.identity);
+    // Priority 1: Find camera or screen share track specifically from the identified host
+    const track = allCameraTracks.find(t => 
+      t.participant.identity === hostParticipant.identity && 
+      (t.source === Track.Source.Camera || t.source === Track.Source.ScreenShare)
+    );
+    if (track) return track;
+
+    // Priority 2: If the identified host isn't publishing yet, but SOMEONE is, show that track
+    // This handles cases where host identity and track publication are slightly out of sync
+    const anyActiveTrack = allCameraTracks.find(t => 
+      t.participant.identity !== localParticipant?.identity &&
+      (t.source === Track.Source.Camera || t.source === Track.Source.ScreenShare)
+    );
     
-    // If host is connected but no track yet, still show them (loading state in UI)
-    // This prevents "Waiting for Host" from showing when host is actually connected
-    return track || null;
-  }, [allCameraTracks, hostParticipant]);
+    return anyActiveTrack || null;
+  }, [allCameraTracks, hostParticipant, localParticipant]);
 
   const coHostTrack = useMemo(() => {
     if (!coHostParticipant) return null;
@@ -445,6 +460,10 @@ export default function TikTokLiveStream({
         },
         adaptiveStream: true,
         dynacast: true,
+        // Ensure viewers automatically subscribe to all tracks
+        videoCaptureDefaults: {
+          resolution: { width: 1280, height: 720 },
+        },
       }}
       onError={(err) => setError(err.message)}
       onConnected={() => console.log('Connected to room')}

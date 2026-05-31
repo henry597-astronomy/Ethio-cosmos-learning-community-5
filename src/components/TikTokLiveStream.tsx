@@ -65,23 +65,23 @@ function StreamContent({
     if (isHost && localParticipant) return localParticipant;
 
     // For viewers: Prioritize immediate display over metadata accuracy
-    // Priority 1: Check metadata role (most reliable but may be delayed)
-    const metaHost = participants.find(p => getMetadata(p).role === 'host');
-    if (metaHost) return metaHost;
-    
-    // Priority 2: Check for any participant that is currently publishing a camera or screen share track
+    // Priority 1: Check for any participant that is currently publishing a camera or screen share track
     // This is the most accurate way to find the actual streamer
     const publishingParticipant = participants.find(p => 
       p.identity !== localParticipant?.identity && 
-      (p.isCameraEnabled || p.isScreenShareEnabled || p.getTracks().some(t => t.isPublished))
+      (p.isCameraEnabled || p.isScreenShareEnabled)
     );
     if (publishingParticipant) return publishingParticipant;
+    
+    // Priority 2: Check metadata role (fallback if no active media)
+    const metaHost = participants.find(p => getMetadata(p).role === 'host');
+    if (metaHost) return metaHost;
 
     // Priority 3: Fallback to ANY remote participant
     const firstRemote = participants.find(p => p.identity !== localParticipant?.identity);
     if (firstRemote) return firstRemote;
     
-    // Priority 3: Return null only if truly no one else is in the room
+    // Priority 4: Return null only if truly no one else is in the room
     return null;
   }, [participants, isHost, localParticipant]);
 
@@ -125,7 +125,7 @@ function StreamContent({
     { onlySubscribed: false } // Include local tracks and don't wait for subscription to show UI
   );
 
-  // Connection timeout handler - show error if no host connects within 15 seconds
+  // Connection timeout handler - show error if no host connects within 30 seconds
   useEffect(() => {
     if (isHost || hostParticipant) {
       setConnectionTimeout(false);
@@ -134,17 +134,26 @@ function StreamContent({
 
     const timer = setTimeout(() => {
       setConnectionTimeout(true);
-    }, 15000); // 15 second timeout
+    }, 30000); // 30 second timeout to give host more time to connect
 
     return () => clearTimeout(timer);
   }, [isHost, hostParticipant]);
 
-  // Ensure host enables camera when they join
+  // Ensure host enables camera and microphone immediately when they join
   useEffect(() => {
-    if (isHost && localParticipant && !localParticipant.isCameraEnabled) {
-      localParticipant.setCameraEnabled(true).catch(err => {
-        console.warn('Failed to enable host camera:', err);
-      });
+    if (isHost && localParticipant) {
+      // Enable camera immediately
+      if (!localParticipant.isCameraEnabled) {
+        localParticipant.setCameraEnabled(true).catch(err => {
+          console.warn('Failed to enable host camera:', err);
+        });
+      }
+      // Enable microphone immediately
+      if (!localParticipant.isMicrophoneEnabled) {
+        localParticipant.setMicrophoneEnabled(true).catch(err => {
+          console.warn('Failed to enable host microphone:', err);
+        });
+      }
     }
   }, [isHost, localParticipant]);
 

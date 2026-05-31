@@ -10,9 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.4",
-    "@capacitor/cli": "^8.3.4",
-    "@capacitor/core": "^8.3.4",
     "@hookform/resolvers": "^5.2.2",
     "@livekit/components-react": "^2.9.21",
     "@livekit/components-styles": "^1.2.0",

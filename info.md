@@ -29,3 +29,26 @@ Structure:
   tailwind.config.js   Configures Tailwind's theme, plugins, etc.
   vite.config.ts       Main build and dev server settings for Vite
   postcss.config.js    Config file for CSS post-processing tools
+
+
+## Ethio Cosmos Project Summary
+
+Ethio Cosmos is a full-stack educational web application designed to make astronomy education accessible, engaging, and skill-focused for teenagers aged 13-18. It provides structured lessons, embedded educational videos, interactive tests, personalized progress tracking, and a responsive interface. The project aims to foster a generation of young Ethiopian and African space enthusiasts, promoting scientific thinking and digital literacy.
+
+**Key Features:**
+*   Structured Lessons on various astronomy topics.
+*   Curated Educational Videos for visual learning.
+*   Interactive Tests & Quizzes with instant feedback.
+*   Personalized Progress Tracking via Google OAuth.
+*   Responsive Interface for multi-device access.
+
+**Technology Stack:**
+*   **Next.js:** For a fast, responsive user interface.
+*   **Supabase:** PostgreSQL database with row-level security and authentication.
+*   **Google OAuth:** Secure student login.
+*   **Vercel:** Cloud hosting with automatic deployment.
+*   **GitHub:** Version control.
+
+## Lead Developer and Organizer
+
+**Henok Girma** is the lead Developer and organizer of the Ethio Cosmos app. He is a student at Dodola Ifa Boru Special Boarding School and the leader of the EthioCosmos Learning Community.

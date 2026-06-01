@@ -5,6 +5,13 @@ import { useNotifications } from '@/context/NotificationContext';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle } from 'lucide-react';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 const publicNavLinks = [
   { path: '/', label: 'Home' },
@@ -26,8 +33,7 @@ export default function Navbar() {
   const { user, profile, isAdmin, isSuperAdmin, isBlocked, logout, displayName } = useAuth();
   const { unreadCount } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const [profilePanelOpen, setProfilePanelOpen] = useState(false);
 
   // Offline and Prefetch State
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -84,21 +90,12 @@ export default function Navbar() {
     ? Math.round((prefetchProgress.completed / prefetchProgress.total) * 100)
     : 0;
 
-  // Close profile menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-        setProfileMenuOpen(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+
 
   const handleLogout = async () => {
     try {
       await logout();
-      setProfileMenuOpen(false);
+      setProfilePanelOpen(false);
       setMobileMenuOpen(false);
       navigate('/login');
     } catch (error) {
@@ -189,12 +186,9 @@ export default function Navbar() {
             {/* Right side - User Profile / Login */}
             <div className="flex items-center gap-2">
               {user ? (
-                <div className="relative" ref={profileMenuRef}>
+                <>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setProfileMenuOpen(!profileMenuOpen);
-                    }}
+                    onClick={() => setProfilePanelOpen(true)}
                     className="flex items-center gap-2 p-1 rounded-full border border-white/10 hover:bg-white/5 transition-colors"
                   >
                     {avatarUrl ? (
@@ -216,102 +210,124 @@ export default function Navbar() {
                     <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                   </button>
 
-                  {/* Profile Dropdown */}
-                  {profileMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-white/10 rounded-lg shadow-xl py-2 z-[60]">
-                      <div className="px-4 py-2 border-b border-white/5 mb-2">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-white truncate max-w-[140px]">
-                            {displayName}
-                          </p>
-                          <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            isOnline ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                          }`}>
-                            {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
-                            {isOnline ? 'Online' : 'Offline'}
+                  {/* Profile Side Panel */}
+                  <Sheet open={profilePanelOpen} onOpenChange={setProfilePanelOpen}>
+                    <SheetContent side="right" className="w-1/3 bg-slate-900 border-l border-white/10 p-0 flex flex-col">
+                      <SheetHeader className="border-b border-white/5 bg-slate-950">
+                        <div className="flex items-center gap-3 mb-2">
+                          {avatarUrl ? (
+                            <img 
+                              src={avatarUrl} 
+                              alt="Profile" 
+                              className="w-12 h-12 rounded-full border border-orange-500/50"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500 font-semibold text-lg">
+                              {avatarLetter}
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <SheetTitle className="text-white text-base">{displayName}</SheetTitle>
+                            <p className="text-xs text-gray-400 truncate">{user.email}</p>
                           </div>
                         </div>
-                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit ${
+                          isOnline ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                        }`}>
+                          {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
+                          {isOnline ? 'Online' : 'Offline'}
+                        </div>
+                      </SheetHeader>
+
+                      {/* Main Content Area */}
+                      <div className="flex-1 overflow-y-auto">
+                        {/* Prefetch Progress Section */}
+                        <div className="px-4 py-4 border-b border-white/5">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-gray-400 uppercase font-bold tracking-wider">Offline Content</span>
+                            <span className="text-xs text-gray-400">{formatBytes(cacheSize)}</span>
+                          </div>
+                          
+                          {prefetchProgress.status === 'running' ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-orange-400 animate-pulse truncate max-w-[150px]">
+                                  {prefetchProgress.currentItem || 'Downloading...'}
+                                </span>
+                                <span className="text-gray-400">{progressPercent}%</span>
+                              </div>
+                              <div className="w-full bg-slate-800 rounded-full h-2">
+                                <div
+                                  className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${progressPercent}%` }}
+                                />
+                              </div>
+                            </div>
+                          ) : prefetchProgress.status === 'completed' ? (
+                            <div className="flex items-center gap-2 text-xs text-green-400">
+                              <CheckCircle size={14} />
+                              <span>All content ready for offline use</span>
+                            </div>
+                          ) : prefetchProgress.status === 'error' ? (
+                            <div className="flex items-center gap-2 text-xs text-red-400">
+                              <AlertCircle size={14} />
+                              <span>Download failed</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Download size={14} />
+                              <span>Auto-downloading in background</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Navigation Links */}
+                        <div className="py-2">
+                          <Link
+                            to="/progress"
+                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                            onClick={() => setProfilePanelOpen(false)}
+                          >
+                            <BarChart3 size={18} />
+                            <span>My Progress</span>
+                          </Link>
+                          <Link
+                            to="/bookmarks"
+                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                            onClick={() => setProfilePanelOpen(false)}
+                          >
+                            <BookOpen size={18} />
+                            <span>Bookmarks</span>
+                          </Link>
+                          {isAdmin && (
+                            <Link
+                              to="/admin"
+                              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                              onClick={() => setProfilePanelOpen(false)}
+                            >
+                              <Settings size={18} />
+                              <span>{isSuperAdmin ? 'Admin Panel' : 'Manage Lessons'}</span>
+                            </Link>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Prefetch Progress Section */}
-                      <div className="px-4 py-2 border-b border-white/5 mb-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Offline Content</span>
-                          <span className="text-[10px] text-gray-400">{formatBytes(cacheSize)}</span>
-                        </div>
-                        
-                        {prefetchProgress.status === 'running' ? (
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-[10px]">
-                              <span className="text-orange-400 animate-pulse truncate max-w-[120px]">
-                                {prefetchProgress.currentItem || 'Downloading...'}
-                              </span>
-                              <span className="text-gray-400">{progressPercent}%</span>
-                            </div>
-                            <div className="w-full bg-slate-800 rounded-full h-1">
-                              <div
-                                className="bg-orange-500 h-1 rounded-full transition-all duration-300"
-                                style={{ width: `${progressPercent}%` }}
-                              />
-                            </div>
-                          </div>
-                        ) : prefetchProgress.status === 'completed' ? (
-                          <div className="flex items-center gap-1 text-[10px] text-green-400">
-                            <CheckCircle size={10} />
-                            <span>All content ready for offline use</span>
-                          </div>
-                        ) : prefetchProgress.status === 'error' ? (
-                          <div className="flex items-center gap-1 text-[10px] text-red-400">
-                            <AlertCircle size={10} />
-                            <span>Download failed</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-[10px] text-gray-500">
-                            <Download size={10} />
-                            <span>Auto-downloading in background</span>
-                          </div>
+                      {/* Footer - Logout Button */}
+                      <SheetFooter className="border-t border-white/5 bg-slate-950">
+                        {!isBlocked && (
+                          <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors rounded-md"
+                          >
+                            <LogOut size={18} />
+                            <span>Sign Out</span>
+                          </button>
                         )}
-                      </div>
-
-                      <Link
-                        to="/progress"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                        onClick={() => setProfileMenuOpen(false)}
-                      >
-                        <BarChart3 size={16} />
-                        My Progress
-                      </Link>
-                      <Link
-                        to="/bookmarks"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                        onClick={() => setProfileMenuOpen(false)}
-                      >
-                        <BookOpen size={16} />
-                        Bookmarks
-                      </Link>
-                      {isAdmin && (
-                        <Link
-                          to="/admin"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                          onClick={() => setProfileMenuOpen(false)}
-                        >
-                          <Settings size={16} />
-                          {isSuperAdmin ? 'Admin Panel' : 'Manage Lessons'}
-                        </Link>
-                      )}
-                      {!isBlocked && (
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors mt-2 border-t border-white/5 pt-2"
-                        >
-                          <LogOut size={16} />
-                          Sign Out
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                      </SheetFooter>
+                    </SheetContent>
+                  </Sheet>
+                </>
               ) : (
                 <Link to="/login">
                   <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">

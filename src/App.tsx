@@ -9,7 +9,7 @@ import Navbar from '@/components/Navbar';
 import InstallPrompt from '@/components/InstallPrompt';
 import AIChatBar from '@/components/AIChatBar';
 import BottomTaskBar from '@/components/BottomTaskBar';
-import OfflineStatusMonitor from '@/components/OfflineStatusMonitor';
+
 
 import HomePage from '@/pages/HomePage';
 import LearningPage from '@/pages/LearningPage';
@@ -77,7 +77,7 @@ function App() {
               <Toaster position="top-right" theme="dark" />
               <AIChatBar />
               <BottomTaskBar />
-              <OfflineStatusMonitor />
+              
             </LiveKitProvider>
           </NotificationProvider>
         </Router>

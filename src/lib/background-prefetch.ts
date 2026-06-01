@@ -60,15 +60,12 @@ function extractImageUrls(data: any): string[] {
   return Array.from(urls);
 }
 
-
-
 /**
  * Send message to service worker
  */
 function sendToServiceWorker(type: string, payload?: any): Promise<any> {
   return new Promise((resolve, reject) => {
     if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
-      // Don't fail if SW is not ready, just log it
       console.warn('Service worker not available for prefetch');
       resolve({ success: true, message: 'SW not available' });
       return;
@@ -156,10 +153,10 @@ async function prefetchLessons(): Promise<string[]> {
 }
 
 /**
- * Prefetch all quizzes and questions
+ * Prefetch all quizzes and questions (Tests)
  */
 async function prefetchQuizzes(): Promise<void> {
-  updateProgress({ currentItem: 'Fetching quizzes...' });
+  updateProgress({ currentItem: 'Fetching tests and quizzes...' });
 
   const { data: quizzes, error: quizzesError } = await supabase
     .from('quizzes')
@@ -305,10 +302,10 @@ async function prefetchAboutContent(): Promise<string[]> {
 }
 
 /**
- * Main prefetch function - downloads everything
+ * Main prefetch function - downloads everything automatically
  */
 export async function prefetchAllContent(): Promise<void> {
-  console.log('[Prefetch] Starting comprehensive content prefetch...');
+  console.log('[Prefetch] Starting comprehensive automatic content prefetch...');
 
   // Initialize progress
   updateProgress({
@@ -323,27 +320,32 @@ export async function prefetchAllContent(): Promise<void> {
     const allImageUrls: Set<string> = new Set();
     const allMediaUrls: Set<string> = new Set();
 
-    // Prefetch all content types
-    const topicImages = await prefetchTopics();
+    // Prefetch all content types in parallel where possible
+    const [
+      topicImages,
+      _subtopics,
+      lessonImages,
+      _quizzes,
+      siteContentImages,
+      galleryImages,
+      materials,
+      aboutImages
+    ] = await Promise.all([
+      prefetchTopics(),
+      prefetchSubtopics(),
+      prefetchLessons(),
+      prefetchQuizzes(),
+      prefetchSiteContent(),
+      prefetchGalleryImages(),
+      prefetchMaterials(),
+      prefetchAboutContent()
+    ]);
+
     topicImages.forEach(url => allImageUrls.add(url));
-
-    await prefetchSubtopics();
-
-    const lessonImages = await prefetchLessons();
     lessonImages.forEach(url => allImageUrls.add(url));
-
-    await prefetchQuizzes();
-
-    const siteContentImages = await prefetchSiteContent();
     siteContentImages.forEach(url => allImageUrls.add(url));
-
-    const galleryImages = await prefetchGalleryImages();
     galleryImages.forEach(url => allImageUrls.add(url));
-
-    const materials = await prefetchMaterials();
     materials.forEach(url => allMediaUrls.add(url));
-
-    const aboutImages = await prefetchAboutContent();
     aboutImages.forEach(url => allImageUrls.add(url));
 
     // Send all URLs to service worker for caching
@@ -364,11 +366,10 @@ export async function prefetchAllContent(): Promise<void> {
     updateProgress({
       status: 'completed',
       completed: prefetchProgress.total,
-      currentItem: 'Prefetch completed successfully!',
+      currentItem: 'All content downloaded for offline use!',
     });
 
     console.log('[Prefetch] Completed successfully');
-    console.log(`[Prefetch] Cached ${allImageUrls.size} images and ${allMediaUrls.size} media files`);
   } catch (error) {
     console.error('[Prefetch] Error:', error);
     updateProgress({
@@ -413,27 +414,24 @@ export async function clearAllCaches(): Promise<void> {
 }
 
 /**
- * Check if online and trigger prefetch if needed
+ * Check if online and trigger prefetch automatically
  */
 export function setupOnlineListener(): void {
-  if (!navigator.onLine) {
-    console.log('[Prefetch] Currently offline, will prefetch when online');
-  }
-
+  // Listen for online events
   window.addEventListener('online', () => {
-    console.log('[Prefetch] Connection restored, starting prefetch...');
+    console.log('[Prefetch] Connection restored, starting automatic prefetch...');
     prefetchAllContent().catch((err) => {
       console.error('[Prefetch] Background prefetch failed:', err);
     });
   });
 
-  // Also trigger prefetch on app startup if online
+  // Trigger prefetch on app startup if online
   if (navigator.onLine) {
-    // Delay to avoid blocking app startup
+    // Delay slightly to allow the app to initialize first
     setTimeout(() => {
       prefetchAllContent().catch((err) => {
         console.error('[Prefetch] Initial prefetch failed:', err);
       });
-    }, 3000);
+    }, 5000);
   }
 }

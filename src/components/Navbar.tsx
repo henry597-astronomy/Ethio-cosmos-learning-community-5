@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, Loader, CheckCircle, AlertCircle } from 'lucide-react';
-import { prefetchAllContent, getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
+import { Menu, X, LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 
 const publicNavLinks = [
   { path: '/', label: 'Home' },

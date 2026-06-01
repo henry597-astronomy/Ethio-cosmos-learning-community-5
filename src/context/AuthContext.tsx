@@ -29,6 +29,7 @@ interface AuthContextType {
   ) => Promise<{ needsEmailConfirmation: boolean }>;
   logout: () => Promise<void>;
   displayName: string;
+  onlineUsersCount: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [onlineUsersCount, setOnlineUsersCount] = useState(1);
   const mountedRef = useRef(true);
 
   // Derive a display name synchronously.
@@ -145,9 +147,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    // Realtime Presence for Online Users
+    const channel = supabase.channel('online-users', {
+      config: {
+        presence: {
+          key: 'user',
+        },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const count = Object.keys(state).length;
+        setOnlineUsersCount(count > 0 ? count : 1);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
     return () => {
       mountedRef.current = false;
       sub.subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [applySession]);
 
@@ -221,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithEmail,
         signUpWithEmail,
         logout,
+        onlineUsersCount,
       }}
     >
       {children}

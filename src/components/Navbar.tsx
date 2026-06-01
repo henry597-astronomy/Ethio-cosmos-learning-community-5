@@ -212,7 +212,7 @@ export default function Navbar() {
 
                   {/* Profile Side Panel */}
                   <Sheet open={profilePanelOpen} onOpenChange={setProfilePanelOpen}>
-                    <SheetContent side="right" className="w-1/3 bg-slate-900 border-l border-white/10 p-0 flex flex-col">
+                    <SheetContent side="right" className="w-full sm:w-4/5 md:w-3/5 lg:w-1/3 bg-slate-900 border-l border-white/10 p-0 flex flex-col">
                       <SheetHeader className="border-b border-white/5 bg-slate-950">
                         <div className="flex items-center gap-3 mb-2">
                           {avatarUrl ? (

@@ -30,7 +30,7 @@ const privateNavLinks = [
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, isAdmin, isSuperAdmin, isBlocked, logout, displayName, onlineUsersCount } = useAuth();
+  const { user, profile, isAdmin, isSuperAdmin, isBlocked, logout, displayName, totalUsersCount } = useAuth();
   const { unreadCount } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
@@ -241,7 +241,7 @@ export default function Navbar() {
                           </div>
                           <div className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit bg-blue-500/20 text-blue-400">
                             <Users size={12} />
-                            <span>{onlineUsersCount} {onlineUsersCount === 1 ? 'User' : 'Users'} Online</span>
+                            <span>{totalUsersCount} Registered {totalUsersCount === 1 ? 'Member' : 'Members'}</span>
                           </div>
                         </div>
                       </SheetHeader>

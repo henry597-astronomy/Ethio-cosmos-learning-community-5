@@ -29,7 +29,7 @@ interface AuthContextType {
   ) => Promise<{ needsEmailConfirmation: boolean }>;
   logout: () => Promise<void>;
   displayName: string;
-  onlineUsersCount: number;
+  totalUsersCount: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [onlineUsersCount, setOnlineUsersCount] = useState(1);
+  const [totalUsersCount, setTotalUsersCount] = useState(0);
   const mountedRef = useRef(true);
 
   // Derive a display name synchronously.
@@ -147,31 +147,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Realtime Presence for Online Users
-    const channel = supabase.channel('online-users', {
-      config: {
-        presence: {
-          key: 'user',
-        },
-      },
-    });
+    // Fetch Total Registered Users
+    const fetchTotalUsers = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+        
+        if (error) throw error;
+        if (mountedRef.current) setTotalUsersCount(count || 0);
+      } catch (err) {
+        console.error('Error fetching total users:', err);
+      }
+    };
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const count = Object.keys(state).length;
-        setOnlineUsersCount(count > 0 ? count : 1);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ online_at: new Date().toISOString() });
-        }
-      });
+    fetchTotalUsers();
 
     return () => {
       mountedRef.current = false;
       sub.subscription.unsubscribe();
-      supabase.removeChannel(channel);
     };
   }, [applySession]);
 
@@ -245,7 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithEmail,
         signUpWithEmail,
         logout,
-        onlineUsersCount,
+        totalUsersCount,
       }}
     >
       {children}

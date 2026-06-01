@@ -7,9 +7,42 @@
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#000000" />
     <script>
+      // Enhanced Service Worker Registration with Update Handling
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js');
+          navigator.serviceWorker.register('sw.js').then((registration) => {
+            console.log('[App] Service worker registered:', registration);
+
+            // Check for updates periodically
+            setInterval(() => {
+              registration.update().catch((err) => {
+                console.error('[App] Failed to check for SW updates:', err);
+              });
+            }, 60000); // Check every minute
+
+            // Listen for controller change (new SW activated)
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              console.log('[App] Service worker updated, page will refresh');
+              // Optionally refresh the page to load new assets
+              // window.location.reload();
+            });
+
+            // Listen for messages from service worker
+            navigator.serviceWorker.addEventListener('message', (event) => {
+              const { type, message } = event.data;
+              console.log('[App] Message from SW:', type, message);
+
+              if (type === 'SW_INSTALLED') {
+                console.log('[App] SW installed:', message);
+              } else if (type === 'CACHE_UPDATED') {
+                console.log('[App] Cache updated:', message);
+              } else if (type === 'SYNC_COMPLETE') {
+                console.log('[App] Sync complete:', message);
+              }
+            });
+          }).catch((err) => {
+            console.error('[App] Service worker registration failed:', err);
+          });
         });
       }
 

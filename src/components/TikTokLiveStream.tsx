@@ -72,7 +72,7 @@ function StreamContent({
     // Priority 2: Check for anyone with a published track (likely the host)
     const publishedParticipant = participants.find(p => 
       p.identity !== localParticipant?.identity && 
-      (p.isCameraEnabled || p.isMicrophoneEnabled || p.getTracks().length > 0)
+      (p.isCameraEnabled || p.isMicrophoneEnabled || p.trackPublications.size > 0)
     );
     if (publishedParticipant) return publishedParticipant;
 

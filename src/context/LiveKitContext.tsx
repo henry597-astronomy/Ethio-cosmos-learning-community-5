@@ -55,14 +55,17 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     setActiveSessions(data || []);
   }, []);
 
-  // Clean up stale sessions (older than 30 minutes)
+  // Clean up stale sessions (heartbeat older than 90 seconds or created older than 30 minutes)
   const cleanupStaleSessions = useCallback(async () => {
+    const ninetySecondsAgo = new Date(Date.now() - 90 * 1000).toISOString();
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    
+    // Deactivate sessions with missing heartbeats OR very old sessions
     const { error } = await supabase
       .from('live_sessions')
       .update({ is_active: false })
       .eq('is_active', true)
-      .lt('created_at', thirtyMinutesAgo);
+      .or(`last_heartbeat.lt.${ninetySecondsAgo},created_at.lt.${thirtyMinutesAgo}`);
     
     if (error) {
       console.error('Error cleaning up stale sessions:', error);
@@ -88,15 +91,15 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    // Set up periodic cleanup every 5 minutes
+    // Set up periodic cleanup every 2 minutes (more aggressive)
     const cleanupInterval = setInterval(() => {
       cleanupStaleSessions();
-    }, 5 * 60 * 1000);
+    }, 2 * 60 * 1000);
 
-    // Set up periodic session refresh every 30 seconds
+    // Set up periodic session refresh every 10 seconds (faster updates)
     const refreshInterval = setInterval(() => {
       fetchSessions();
-    }, 30 * 1000);
+    }, 10 * 1000);
 
     return () => {
       supabase.removeChannel(channel);
@@ -104,6 +107,27 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       clearInterval(refreshInterval);
     };
   }, [fetchSessions, cleanupStaleSessions]);
+
+  // Heartbeat system for hosts
+  useEffect(() => {
+    if (!isHosting || !user || !liveRoomName) return;
+
+    const sendHeartbeat = async () => {
+      const { error } = await supabase
+        .from('live_sessions')
+        .update({ last_heartbeat: new Date().toISOString() })
+        .eq('host_id', user.id)
+        .eq('room_name', liveRoomName)
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Heartbeat failed:', error);
+      }
+    };
+
+    const heartbeatInterval = setInterval(sendHeartbeat, 30 * 1000); // Every 30 seconds
+    return () => clearInterval(heartbeatInterval);
+  }, [isHosting, user, liveRoomName]);
 
   const openLiveModal = useCallback(() => {
     setIsLiveModalOpen(true);
@@ -129,6 +153,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         host_name: displayName || 'Anonymous',
         is_active: true,
         host_avatar: user.user_metadata?.avatar_url || null,
+        last_heartbeat: new Date().toISOString(),
       });
 
       if (error) {

@@ -69,13 +69,17 @@ function StreamContent({
     const metaHost = participants.find(p => getMetadata(p).role === 'host');
     if (metaHost) return metaHost;
     
-    // Priority 2: Fallback to ANY remote participant to show content immediately
-    // This ensures viewers see the stream instantly without waiting for metadata propagation
-    // The fallback is typically the host since they join first
+    // Priority 2: Check for anyone with a published track (likely the host)
+    const publishedParticipant = participants.find(p => 
+      p.identity !== localParticipant?.identity && 
+      (p.isCameraEnabled || p.isMicrophoneEnabled || p.getTracks().length > 0)
+    );
+    if (publishedParticipant) return publishedParticipant;
+
+    // Priority 3: Fallback to ANY remote participant to show content immediately
     const firstRemote = participants.find(p => p.identity !== localParticipant?.identity);
     if (firstRemote) return firstRemote;
     
-    // Priority 3: Return null only if truly no one else is in the room
     return null;
   }, [participants, isHost, localParticipant]);
 
@@ -128,7 +132,7 @@ function StreamContent({
 
     const timer = setTimeout(() => {
       setConnectionTimeout(true);
-    }, 15000); // 15 second timeout
+    }, 25000); // Increased to 25 seconds for better stability on slow connections
 
     return () => clearTimeout(timer);
   }, [isHost, hostParticipant]);

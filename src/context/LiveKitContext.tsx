@@ -222,10 +222,10 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // If multiple sessions exist for same room, use the most recent one
-      const session = sessionData.sort((a, b) => 
+      // If multiple sessions exist for same room, sort to find the most recent
+      sessionData.sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )[0];
+      );
 
       const response = await fetch('/api/livekit/token', {
         method: 'POST',

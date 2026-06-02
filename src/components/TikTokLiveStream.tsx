@@ -9,7 +9,7 @@ import {
 } from '@livekit/components-react';
 import { Participant, Track } from 'livekit-client';
 import '@livekit/components-styles';
-import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserPlus, UserMinus } from 'lucide-react';
+import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserMinus } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface TikTokLiveStreamProps {

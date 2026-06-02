@@ -3,6 +3,7 @@ import { X, Loader, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
+import { slugify } from '@/lib/utils';
 
 interface LiveHostModalProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export default function LiveHostModal({
       }
 
       // Call the API to generate a token
+      const slugifiedRoomName = slugify(roomName.trim());
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: {
@@ -50,7 +52,7 @@ export default function LiveHostModal({
         },
         body: JSON.stringify({
           userName: displayName,
-          roomName: roomName.trim(),
+          roomName: slugifiedRoomName,
           isHost: true,
           avatarUrl: profile?.avatar_url || null,
         }),
@@ -72,7 +74,7 @@ export default function LiveHostModal({
         throw new Error('No token received from server');
       }
       
-      onStartStream(roomName.trim(), token);
+      onStartStream(slugifiedRoomName, token);
       setRoomName('');
       console.log('Stream started with identity:', identity, 'metadata:', metadata);
     } catch (err) {

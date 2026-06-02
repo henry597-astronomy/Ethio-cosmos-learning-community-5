@@ -83,6 +83,14 @@ function StreamContent({
     return null;
   }, [participants, isHost, localParticipant]);
 
+  // Track if we have EVER seen a host during this session
+  const [hasSeenHost, setHasSeenHost] = useState(false);
+  useEffect(() => {
+    if (hostParticipant) {
+      setHasSeenHost(true);
+    }
+  }, [hostParticipant]);
+
   // 2. Identify the Co-Host
   const coHostParticipant = useMemo(() => {
     // Combine local and remote participants to ensure we find the co-host even if it's us
@@ -123,19 +131,24 @@ function StreamContent({
     { onlySubscribed: false } // Include local tracks and don't wait for subscription to show UI
   );
 
-  // Connection timeout handler - show error if no host connects within 15 seconds
+  // Connection timeout handler - show error if no host connects within a reasonable timeframe
   useEffect(() => {
-    if (isHost || hostParticipant) {
+    // If I am the host, or if we currently see a host, or if we HAVE seen a host (even if they temporarily dropped)
+    // then don't trigger the "Host not streaming" timeout error.
+    if (isHost || hostParticipant || hasSeenHost) {
       setConnectionTimeout(false);
       return;
     }
 
+    // Increased timeout to 45 seconds to account for slow mobile connections and LiveKit room initialization
     const timer = setTimeout(() => {
-      setConnectionTimeout(true);
-    }, 25000); // Increased to 25 seconds for better stability on slow connections
+      if (!hostParticipant && !hasSeenHost) {
+        setConnectionTimeout(true);
+      }
+    }, 45000);
 
     return () => clearTimeout(timer);
-  }, [isHost, hostParticipant]);
+  }, [isHost, hostParticipant, hasSeenHost]);
 
   // Ensure host enables camera when they join (with retry logic)
   useEffect(() => {
@@ -439,9 +452,13 @@ export default function TikTokLiveStream({
     <LiveKitRoom
       video={isHost}
       audio={isHost}
+      connect={true}
       token={token}
       serverUrl={serverUrl}
       onDisconnected={onClose}
+      onError={(err) => {
+        console.error('LiveKit Room Error:', err);
+      }}
       suppressHydrationWarning
     >
       <StreamContent isHost={isHost} onClose={onClose} roomName={roomName} />

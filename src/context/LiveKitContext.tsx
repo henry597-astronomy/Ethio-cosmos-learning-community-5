@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { supabase } from '@/supabase';
 import { useAuth } from './AuthContext';
+import { slugify } from '@/lib/utils';
 
 interface LiveSession {
   id: string;
@@ -155,8 +156,9 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       setStreamError(null);
       
       // Register session in Supabase
+      const slugifiedRoomName = slugify(roomName);
       const { error } = await supabase.from('live_sessions').insert({
-        room_name: roomName,
+        room_name: slugifiedRoomName,
         host_id: user.id,
         host_name: displayName || 'Anonymous',
         is_active: true,
@@ -174,7 +176,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       }
 
       // Only set state if registration succeeded
-      setLiveRoomName(roomName);
+      setLiveRoomName(slugifiedRoomName);
       setLiveToken(token);
       setIsHosting(true);
       setIsLiveModalOpen(false);
@@ -248,12 +250,13 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     
     try {
       setStreamError(null);
+      const slugifiedRoomName = slugify(roomName);
       
       // First, verify the session is still active in the database
       const { data: sessionData, error: sessionError } = await supabase
         .from('live_sessions')
         .select('*')
-        .eq('room_name', roomName)
+        .eq('room_name', slugifiedRoomName)
         .eq('is_active', true);
 
       // Handle multiple results (should not happen with unique constraint, but be defensive)
@@ -285,7 +288,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         },
         body: JSON.stringify({
           userName: displayName || 'Viewer',
-          roomName: roomName,
+          roomName: slugifiedRoomName,
           isHost: false,
           avatarUrl: user?.user_metadata?.avatar_url || null,
         }),
@@ -297,7 +300,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       }
       
       const { token, identity, metadata } = await response.json();
-      setLiveRoomName(roomName);
+      setLiveRoomName(slugifiedRoomName);
       setLiveToken(token);
       setIsHosting(false); // We are viewing, not hosting
       console.log('Joined stream with identity:', identity, 'metadata:', metadata);

@@ -253,27 +253,27 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       const slugifiedRoomName = slugify(roomName);
       
       // First, verify the session is still active in the database
+      // We try both slugified and original room name to be extremely resilient
       const { data: sessionData, error: sessionError } = await supabase
         .from('live_sessions')
         .select('*')
-        .eq('room_name', slugifiedRoomName)
+        .or(`room_name.eq.${slugifiedRoomName},room_name.eq.${roomName}`)
         .eq('is_active', true);
 
-      // Handle multiple results (should not happen with unique constraint, but be defensive)
       if (sessionError) {
         const errorMsg = `Error fetching session: ${sessionError.message}`;
         console.error(errorMsg);
         setStreamError(errorMsg);
         clearSession();
-        return;
+        throw new Error(errorMsg);
       }
 
       if (!sessionData || sessionData.length === 0) {
-        const errorMsg = 'Session not found or inactive';
+        const errorMsg = 'The stream is no longer active. Please refresh.';
         console.error(errorMsg);
         setStreamError(errorMsg);
         clearSession();
-        return;
+        throw new Error(errorMsg);
       }
 
       // If multiple sessions exist for same room, sort to find the most recent

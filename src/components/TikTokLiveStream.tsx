@@ -35,6 +35,11 @@ function StreamContent({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [connectionTimeout, setConnectionTimeout] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   // Local state for co-host identity to ensure immediate UI feedback
   const [localCoHostId, setLocalCoHostId] = useState<string | null>(null);
@@ -272,6 +277,8 @@ function StreamContent({
     }));
     await send(data, { reliable: true });
   };
+
+  if (!isClient) return null;
 
   return (
     <div ref={containerRef} className="fixed inset-0 bg-black z-50 flex flex-col font-sans" suppressHydrationWarning>

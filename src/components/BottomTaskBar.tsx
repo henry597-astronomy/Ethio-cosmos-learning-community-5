@@ -10,6 +10,7 @@ import ShortsFeed from './ShortsFeed';
 export default function BottomTaskBar() {
   const { user } = useAuth();
   const [isShortsOpen, setIsShortsOpen] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   const {
     isLiveModalOpen,
     isHosting,
@@ -70,20 +71,38 @@ export default function BottomTaskBar() {
               </Button>
             ) : activeSessions.length > 0 && activeSessions.some(s => s.host_id !== user.id) ? (
               <Button
-                onClick={async () => {
+                disabled={isJoining}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
                   const sessionToJoin = activeSessions.find(s => s.host_id !== user.id);
                   if (sessionToJoin) {
                     try {
+                      setIsJoining(true);
+                      // Clear any previous errors
+                      clearStreamError();
                       await joinSession(sessionToJoin.room_name);
                     } catch (error) {
                       console.error('Failed to join session:', error);
+                    } finally {
+                      setIsJoining(false);
                     }
                   }
                 }}
-                className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 shadow-lg shadow-green-500/20 hover:shadow-green-500/40"
+                className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 shadow-lg shadow-green-500/20 hover:shadow-green-500/40 min-w-[120px]"
               >
-                <Radio size={18} className="animate-pulse" />
-                <span>Join Live</span>
+                {isJoining ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Joining...</span>
+                  </>
+                ) : (
+                  <>
+                    <Radio size={18} className="animate-pulse" />
+                    <span>Join Live</span>
+                  </>
+                )}
               </Button>
             ) : (
               <Button

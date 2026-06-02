@@ -457,8 +457,8 @@ export default function TikTokLiveStream({
 }: TikTokLiveStreamProps) {
   return (
     <LiveKitRoom
-      video={isHost}
-      audio={isHost}
+      video={true}
+      audio={true}
       connect={true}
       token={token}
       serverUrl={serverUrl}

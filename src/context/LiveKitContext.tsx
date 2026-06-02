@@ -207,14 +207,25 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         .from('live_sessions')
         .select('*')
         .eq('room_name', roomName)
-        .eq('is_active', true)
-        .single();
+        .eq('is_active', true);
 
-      if (sessionError || !sessionData) {
-        console.error('Session not found or inactive:', sessionError);
+      // Handle multiple results (should not happen with unique constraint, but be defensive)
+      if (sessionError) {
+        console.error('Error fetching session:', sessionError);
         clearSession();
         return;
       }
+
+      if (!sessionData || sessionData.length === 0) {
+        console.error('Session not found or inactive');
+        clearSession();
+        return;
+      }
+
+      // If multiple sessions exist for same room, use the most recent one
+      const session = sessionData.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )[0];
 
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
@@ -229,7 +240,10 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to get token');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to get token');
+      }
       
       const { token, identity, metadata } = await response.json();
       setLiveRoomName(roomName);
@@ -239,6 +253,8 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error joining session:', error);
       clearSession();
+      // Re-throw so the UI can catch and display the error
+      throw error;
     }
   }, [displayName, user, clearSession]);
 

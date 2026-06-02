@@ -133,13 +133,32 @@ function StreamContent({
     return () => clearTimeout(timer);
   }, [isHost, hostParticipant]);
 
-  // Ensure host enables camera when they join
+  // Ensure host enables camera when they join (with retry logic)
   useEffect(() => {
-    if (isHost && localParticipant && !localParticipant.isCameraEnabled) {
-      localParticipant.setCameraEnabled(true).catch(err => {
-        console.warn('Failed to enable host camera:', err);
-      });
-    }
+    if (!isHost || !localParticipant) return;
+
+    let retryCount = 0;
+    const maxRetries = 5;
+    const retryDelay = 500; // ms
+
+    const enableCamera = async () => {
+      try {
+        if (!localParticipant.isCameraEnabled) {
+          await localParticipant.setCameraEnabled(true);
+          console.log('Host camera enabled successfully');
+        }
+      } catch (err) {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          console.warn(`Failed to enable host camera (attempt ${retryCount}/${maxRetries}), retrying...`, err);
+          setTimeout(enableCamera, retryDelay);
+        } else {
+          console.error('Failed to enable host camera after max retries:', err);
+        }
+      }
+    };
+
+    enableCamera();
   }, [isHost, localParticipant]);
 
   const hostTrack = useMemo(() => {
@@ -276,14 +295,23 @@ function StreamContent({
                 {hostTrack ? (
                   <ParticipantTile trackRef={hostTrack} className="w-full h-full" suppressHydrationWarning />
                 ) : hostParticipant ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
-                    <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
-                    <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Enabling Host Camera...</p>
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
+                    <Avatar className="w-20 h-20 mb-4 border-2 border-white/20">
+                      <AvatarImage src={getParticipantAvatar(hostParticipant)} alt="Host" />
+                      <AvatarFallback className="bg-red-600 text-white text-2xl font-bold">
+                        {getInitials(hostParticipant.name || 'Host')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <Loader className="w-6 h-6 text-red-500/60 animate-spin mb-2" />
+                    <p className="text-gray-400 text-[10px] uppercase tracking-tighter font-semibold">Enabling Host Camera...</p>
+                    <p className="text-gray-600 text-[9px] mt-2">Stream starting</p>
                   </div>
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
-                    <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
-                    <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Waiting for Host...</p>
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
+                    <div className="w-24 h-24 mb-4 bg-slate-800 rounded-full border-2 border-white/10 flex items-center justify-center">
+                      <Loader className="w-8 h-8 text-orange-500/40 animate-spin" />
+                    </div>
+                    <p className="text-gray-400 font-medium uppercase tracking-widest text-xs">Waiting for Host...</p>
                   </div>
                 )}
                 <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">
@@ -358,53 +386,39 @@ function StreamContent({
             </h3>
 
             {communityMembers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-gray-700">
-                <p className="text-xs uppercase tracking-widest font-bold">No members yet</p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-3">
+                  <span className="text-2xl">👋</span>
+                </div>
+                <p className="text-gray-500 text-sm">No community members yet</p>
+                <p className="text-gray-600 text-xs mt-1">Viewers will appear here</p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {communityMembers.map((participant) => (
-                  <div 
-                    key={participant.identity} 
-                    className={`flex flex-col items-center gap-3 group ${isHost ? 'cursor-pointer' : ''}`}
-                    onClick={() => handleProfileClick(participant)}
+                  <div
+                    key={participant.identity}
+                    onClick={() => isHost && handleProfileClick(participant)}
+                    className={`flex flex-col items-center p-3 rounded-lg transition-all ${
+                      isHost ? 'cursor-pointer hover:bg-white/10' : ''
+                    } ${coHostParticipant?.identity === participant.identity ? 'bg-orange-600/20 border border-orange-500/50' : 'bg-slate-800/50'}`}
                   >
-                    <div className="relative w-16 h-16 rounded-full p-0.5 bg-slate-800 transition-transform group-hover:scale-110">
-                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-950 bg-slate-900">
-                        <Avatar className="w-full h-full">
-                          <AvatarImage src={getParticipantAvatar(participant)} className="object-cover" />
-                          <AvatarFallback className="text-white font-bold text-xs">
-                            {getInitials(participant.name || 'User')}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-950 shadow-lg" />
-                      
-                      {/* Hover/Host Action Overlay */}
-                      {isHost && (
-                        <div className="absolute inset-0 bg-blue-600/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <UserPlus size={20} className="text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-[10px] font-bold text-gray-500 truncate w-20 text-center uppercase tracking-tighter">
-                      {participant.name || 'User'}
-                    </p>
+                    <Avatar className="w-12 h-12 mb-2 border-2 border-white/20">
+                      <AvatarImage src={getParticipantAvatar(participant)} alt={participant.name} />
+                      <AvatarFallback className="bg-blue-600 text-white font-bold text-sm">
+                        {getInitials(participant.name || 'User')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <p className="text-white text-xs font-semibold text-center truncate w-full">{participant.name}</p>
+                    {coHostParticipant?.identity === participant.identity && (
+                      <span className="text-[10px] text-orange-400 font-bold mt-1">CO-HOST</span>
+                    )}
                   </div>
                 ))}
               </div>
             )}
           </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="bg-slate-950 border-t border-white/5 px-4 py-2.5 text-[10px] text-gray-500 flex items-center justify-between font-bold uppercase tracking-widest">
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-          <span>Live Status: Connected</span>
-        </div>
-        <span>{participants.length + (localParticipant ? 1 : 0)} Active</span>
       </div>
     </div>
   );
@@ -417,50 +431,15 @@ export default function TikTokLiveStream({
   isHost = false,
   roomName,
 }: TikTokLiveStreamProps) {
-  // Removed isConnecting state to allow immediate viewer access and fix TS6133 error
-  const [error, setError] = useState<string | null>(null);
-
-  if (!token || !serverUrl) {
-    return (
-      <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-6">
-        <div className="bg-slate-900 rounded-3xl p-10 max-w-sm w-full border border-white/5 text-center">
-          <h2 className="text-2xl font-black text-white mb-4 uppercase tracking-widest">Stream Error</h2>
-          <p className="text-gray-500 mb-8 text-sm">Connection credentials missing.</p>
-          <button onClick={onClose} className="w-full bg-white text-black py-4 rounded-2xl font-black uppercase tracking-widest">CLOSE</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <LiveKitRoom
       video={isHost}
       audio={isHost}
       token={token}
       serverUrl={serverUrl}
-      connect={true}
-      options={{
-        publishDefaults: {
-          simulcast: true,
-        },
-        adaptiveStream: true,
-        dynacast: true,
-      }}
-      onError={(err) => setError(err.message)}
-      onConnected={() => console.log('Connected to room')}
+      onDisconnected={onClose}
+      suppressHydrationWarning
     >
-      {/* Connection overlay removed - viewers now see content immediately */}
-
-      {error && (
-        <div className="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-6">
-          <div className="bg-slate-900 rounded-3xl p-10 max-w-sm w-full border border-red-500/20 text-center">
-            <h2 className="text-xl font-black text-red-500 mb-4 uppercase tracking-widest">Connection Failed</h2>
-            <p className="text-gray-500 mb-8 text-sm">{error}</p>
-            <button onClick={onClose} className="w-full bg-red-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest">EXIT</button>
-          </div>
-        </div>
-      )}
-
       <StreamContent isHost={isHost} onClose={onClose} roomName={roomName} />
     </LiveKitRoom>
   );

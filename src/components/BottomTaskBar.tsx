@@ -68,10 +68,15 @@ export default function BottomTaskBar() {
               </Button>
             ) : activeSessions.length > 0 && activeSessions.some(s => s.host_id !== user.id) ? (
               <Button
-                onClick={() => {
-                  // Join the first session that isn't hosted by the current user
+                onClick={async () => {
                   const sessionToJoin = activeSessions.find(s => s.host_id !== user.id);
-                  if (sessionToJoin) joinSession(sessionToJoin.room_name);
+                  if (sessionToJoin) {
+                    try {
+                      await joinSession(sessionToJoin.room_name);
+                    } catch (error) {
+                      console.error('Failed to join session:', error);
+                    }
+                  }
                 }}
                 className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 shadow-lg shadow-green-500/20 hover:shadow-green-500/40"
               >

@@ -23,12 +23,14 @@ interface LiveKitContextType {
   activeSessions: LiveSession[];
   liveRoomName: string | null;
   liveToken: string | null;
+  streamError: string | null;
   openLiveModal: () => void;
   closeLiveModal: () => void;
   startHosting: (roomName: string, token: string) => void;
   stopHosting: () => void;
   joinSession: (roomName: string) => Promise<void>;
   clearSession: () => void;
+  clearStreamError: () => void;
 }
 
 const LiveKitContext = createContext<LiveKitContextType | undefined>(undefined);
@@ -40,6 +42,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
   const [activeSessions, setActiveSessions] = useState<LiveSession[]>([]);
   const [liveRoomName, setLiveRoomName] = useState<string | null>(null);
   const [liveToken, setLiveToken] = useState<string | null>(null);
+  const [streamError, setStreamError] = useState<string | null>(null);
 
   // Fetch active sessions
   const fetchSessions = useCallback(async () => {
@@ -141,11 +144,16 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
 
   const startHosting = useCallback(async (roomName: string, token: string) => {
     if (!user) {
-      console.error('User not authenticated');
+      const errorMsg = 'User not authenticated';
+      console.error(errorMsg);
+      setStreamError(errorMsg);
+      setIsLiveModalOpen(true);
       return;
     }
 
     try {
+      setStreamError(null);
+      
       // Register session in Supabase
       const { error } = await supabase.from('live_sessions').insert({
         room_name: roomName,
@@ -157,8 +165,12 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
+        const errorMsg = `Failed to register session: ${error.message}`;
         console.error('Error registering live session:', error);
-        throw new Error(`Failed to register session: ${error.message}`);
+        setStreamError(errorMsg);
+        // Reset modal state to allow retry
+        setIsLiveModalOpen(true);
+        return;
       }
 
       // Only set state if registration succeeded
@@ -168,7 +180,9 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       setIsLiveModalOpen(false);
       console.log('Hosting stream:', roomName);
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred while starting the stream';
       console.error('Error in startHosting:', err);
+      setStreamError(errorMsg);
       // Reset modal state to allow retry
       setIsLiveModalOpen(true);
     }
@@ -191,6 +205,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     setLiveRoomName(null);
     setLiveToken(null);
     setIsHosting(false);
+    setStreamError(null);
     console.log('Stream stopped');
   }, [user, liveRoomName]);
 
@@ -217,7 +232,12 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     setLiveRoomName(null);
     setLiveToken(null);
     setIsHosting(false);
+    setStreamError(null);
     console.log('Session cleared');
+  }, []);
+
+  const clearStreamError = useCallback(() => {
+    setStreamError(null);
   }, []);
 
   const joinSession = useCallback(async (roomName: string) => {
@@ -227,6 +247,8 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     }
     
     try {
+      setStreamError(null);
+      
       // First, verify the session is still active in the database
       const { data: sessionData, error: sessionError } = await supabase
         .from('live_sessions')
@@ -236,13 +258,17 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
 
       // Handle multiple results (should not happen with unique constraint, but be defensive)
       if (sessionError) {
-        console.error('Error fetching session:', sessionError);
+        const errorMsg = `Error fetching session: ${sessionError.message}`;
+        console.error(errorMsg);
+        setStreamError(errorMsg);
         clearSession();
         return;
       }
 
       if (!sessionData || sessionData.length === 0) {
-        console.error('Session not found or inactive');
+        const errorMsg = 'Session not found or inactive';
+        console.error(errorMsg);
+        setStreamError(errorMsg);
         clearSession();
         return;
       }
@@ -277,6 +303,8 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       console.log('Joined stream with identity:', identity, 'metadata:', metadata);
     } catch (error) {
       console.error('Error joining session:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to join session';
+      setStreamError(errorMsg);
       clearSession();
       // Re-throw so the UI can catch and display the error
       throw error;
@@ -291,12 +319,14 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         activeSessions,
         liveRoomName,
         liveToken,
+        streamError,
         openLiveModal,
         closeLiveModal,
         startHosting,
         stopHosting,
         joinSession,
         clearSession,
+        clearStreamError,
       }}
     >
       {children}

@@ -8,12 +8,16 @@ interface LiveHostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStartStream: (roomName: string, token: string) => void;
+  contextError?: string | null;
+  onClearError?: () => void;
 }
 
 export default function LiveHostModal({
   isOpen,
   onClose,
   onStartStream,
+  contextError,
+  onClearError,
 }: LiveHostModalProps) {
   const { displayName, profile } = useAuth();
   const [roomName, setRoomName] = useState('');
@@ -28,8 +32,16 @@ export default function LiveHostModal({
 
     setIsLoading(true);
     setError(null);
+    if (onClearError) {
+      onClearError();
+    }
 
     try {
+      // Validate user is authenticated
+      if (!displayName) {
+        throw new Error('User not authenticated. Please log in first.');
+      }
+
       // Call the API to generate a token
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
@@ -45,16 +57,26 @@ export default function LiveHostModal({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to generate token');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+        }
+        throw new Error(errorData.error || 'Failed to generate token');
       }
 
       const { token, identity, metadata } = await response.json();
+      
+      if (!token) {
+        throw new Error('No token received from server');
+      }
+      
       onStartStream(roomName.trim(), token);
       setRoomName('');
       console.log('Stream started with identity:', identity, 'metadata:', metadata);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while starting the stream';
       setError(errorMessage);
       console.error('Error starting stream:', err);
     } finally {
@@ -78,10 +100,10 @@ export default function LiveHostModal({
           </button>
         </div>
 
-        {error && (
+        {(error || contextError) && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex gap-2">
             <AlertCircle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-red-400 text-sm">{error}</p>
+            <p className="text-red-400 text-sm">{error || contextError}</p>
           </div>
         )}
 
@@ -115,7 +137,12 @@ export default function LiveHostModal({
           <div className="flex gap-3 pt-4">
             <Button
               variant="outline"
-              onClick={onClose}
+              onClick={() => {
+                onClose();
+                if (onClearError) {
+                  onClearError();
+                }
+              }}
               disabled={isLoading}
               className="flex-1"
             >

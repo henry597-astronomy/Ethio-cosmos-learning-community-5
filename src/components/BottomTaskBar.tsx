@@ -16,12 +16,14 @@ export default function BottomTaskBar() {
     activeSessions,
     liveToken,
     liveRoomName,
+    streamError,
     openLiveModal,
     closeLiveModal,
     startHosting,
     stopHosting,
     joinSession,
     clearSession,
+    clearStreamError,
   } = useLiveKit();
 
   const liveKitUrl = import.meta.env.VITE_LIVEKIT_URL || 'wss://ethiocosmos-learning-community-1vp1cr43.livekit.cloud';
@@ -101,6 +103,8 @@ export default function BottomTaskBar() {
         isOpen={isLiveModalOpen}
         onClose={closeLiveModal}
         onStartStream={startHosting}
+        contextError={streamError}
+        onClearError={clearStreamError}
       />
 
       {/* Live Stream Component */}

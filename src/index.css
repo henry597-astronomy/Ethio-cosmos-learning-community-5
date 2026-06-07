@@ -50,8 +50,8 @@
     /* Improve touch performance */
     -webkit-user-select: none;
     user-select: none;
-    /* Allow natural scrolling behavior */
-    overscroll-behavior: auto;
+    /* Disable pull-to-refresh to act like a native app */
+    overscroll-behavior: none;
     /* Prevent text size adjustment on orientation change */
     -webkit-text-size-adjust: 100%;
     /* Optimize for mobile performance */
@@ -66,6 +66,8 @@
     overflow-x: hidden;
     /* Enable smooth scrolling on iOS */
     -webkit-overflow-scrolling: touch;
+    /* Disable pull-to-refresh to act like a native app */
+    overscroll-behavior: none;
     /* Allow default touch actions for scrolling */
     touch-action: auto;
   }

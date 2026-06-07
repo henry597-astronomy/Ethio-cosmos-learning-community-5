@@ -50,8 +50,8 @@
     /* Improve touch performance */
     -webkit-user-select: none;
     user-select: none;
-    /* Disable pull-to-refresh to act like a native app */
-    overscroll-behavior: none;
+    /* Disable pull-to-refresh on Y-axis to act like a native app while allowing scrolling */
+    overscroll-behavior-y: none;
     /* Prevent text size adjustment on orientation change */
     -webkit-text-size-adjust: 100%;
     /* Optimize for mobile performance */
@@ -66,8 +66,8 @@
     overflow-x: hidden;
     /* Enable smooth scrolling on iOS */
     -webkit-overflow-scrolling: touch;
-    /* Disable pull-to-refresh to act like a native app */
-    overscroll-behavior: none;
+    /* Disable pull-to-refresh on Y-axis while allowing normal scrolling */
+    overscroll-behavior-y: none;
     /* Allow default touch actions for scrolling */
     touch-action: auto;
   }

@@ -5,7 +5,7 @@
 
 export const disableLongPressContextMenu = () => {
   // Prevent context menu on right-click and long-press
-  const handleContextMenu = (e: MouseEvent | TouchEvent) => {
+  const handleContextMenu = (e: Event) => {
     e.preventDefault();
     return false;
   };
@@ -19,29 +19,23 @@ export const disableLongPressContextMenu = () => {
   // Prevent long-press on touch devices
   const handleTouchStart = (e: TouchEvent) => {
     const target = e.target as HTMLElement;
-    if (target) {
+    if (target && target.style) {
       target.style.userSelect = 'none';
-      target.style.WebkitUserSelect = 'none';
-      target.style.WebkitTouchCallout = 'none';
+      (target.style as any).webkitUserSelect = 'none';
+      (target.style as any).webkitTouchCallout = 'none';
     }
   };
 
   // Add event listeners
-  document.addEventListener('contextmenu', handleContextMenu as EventListener, { passive: false });
+  document.addEventListener('contextmenu', handleContextMenu, { passive: false });
   document.addEventListener('selectstart', handleSelectStart, { passive: false });
-  document.addEventListener('touchstart', handleTouchStart as EventListener, { passive: true });
-
-  // Also prevent on all elements
-  document.addEventListener('touchhold', (e) => {
-    e.preventDefault();
-    return false;
-  });
+  document.addEventListener('touchstart', handleTouchStart as any, { passive: true });
 
   // Return cleanup function
   return () => {
-    document.removeEventListener('contextmenu', handleContextMenu as EventListener);
+    document.removeEventListener('contextmenu', handleContextMenu);
     document.removeEventListener('selectstart', handleSelectStart);
-    document.removeEventListener('touchstart', handleTouchStart as EventListener);
+    document.removeEventListener('touchstart', handleTouchStart as any);
   };
 };
 
@@ -49,20 +43,16 @@ export const disableLongPressContextMenu = () => {
  * Disable long-press on specific elements
  */
 export const disableLongPressOnElement = (element: HTMLElement) => {
-  if (!element) return;
+  if (!element || !element.style) return;
 
   element.style.userSelect = 'none';
-  element.style.WebkitUserSelect = 'none';
-  element.style.WebkitTouchCallout = 'none';
-  element.style.WebkitUserDrag = 'none';
+  (element.style as any).webkitUserSelect = 'none';
+  (element.style as any).webkitTouchCallout = 'none';
+  (element.style as any).webkitUserDrag = 'none';
 
   element.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     return false;
-  });
-
-  element.addEventListener('touchstart', (e) => {
-    e.preventDefault();
   });
 };
 
@@ -70,10 +60,10 @@ export const disableLongPressOnElement = (element: HTMLElement) => {
  * Enable long-press on specific elements (if needed)
  */
 export const enableLongPressOnElement = (element: HTMLElement) => {
-  if (!element) return;
+  if (!element || !element.style) return;
 
   element.style.userSelect = 'auto';
-  element.style.WebkitUserSelect = 'auto';
-  element.style.WebkitTouchCallout = 'default';
-  element.style.WebkitUserDrag = 'auto';
+  (element.style as any).webkitUserSelect = 'auto';
+  (element.style as any).webkitTouchCallout = 'default';
+  (element.style as any).webkitUserDrag = 'auto';
 };

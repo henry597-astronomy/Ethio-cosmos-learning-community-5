@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { NotificationProvider } from '@/context/NotificationContext';
@@ -26,6 +27,33 @@ import ProgressPage from '@/pages/ProgressPage';
 
 
 function AppRoutes() {
+  // Disable long-press context menu and native browser interactions
+  useEffect(() => {
+    // Prevent context menu on long press
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Prevent long press selection
+    const handleTouchStart = (e: TouchEvent) => {
+      // Allow touch actions but prevent long-press context menu
+      const target = e.target as HTMLElement;
+      if (target) {
+        target.style.userSelect = 'none';
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('contextmenu', handleContextMenu, { passive: false });
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, []);
 
   // Removed the unconditional initial-home-redirect that was causing white screens on refresh.
   // The app now correctly preserves the current URL on hard refresh.
@@ -67,6 +95,23 @@ function AppRoutes() {
 }
 
 function App() {
+  // Disable long-press context menu globally
+  useEffect(() => {
+    // Prevent context menu on long press
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Add event listener
+    document.addEventListener('contextmenu', handleContextMenu, { passive: false });
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+    };
+  }, []);
+
   return (
     <AuthProvider>
       <CmsProvider>

@@ -38,6 +38,15 @@
 @layer base {
   * {
     @apply border-border;
+    /* Disable long-press context menu on all elements */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    /* Prevent text selection on long press */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
   html, body {
     @apply bg-background text-foreground;
@@ -56,6 +65,8 @@
     -webkit-text-size-adjust: 100%;
     /* Optimize for mobile performance */
     -webkit-tap-highlight-color: transparent;
+    /* Disable long-press context menu */
+    -webkit-touch-callout: none;
   }
 
   #root {
@@ -171,4 +182,25 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Disable context menu on long press */
+body {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Ensure images and interactive elements don't show context menu */
+img, a, button, input, textarea, select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Prevent text selection that triggers context menu */
+p, span, div, h1, h2, h3, h4, h5, h6 {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }

@@ -1,13 +1,13 @@
 /**
- * Utility to disable long-press context menus and native browser interactions
- * Makes the PWA feel more like a native app without breaking scrolling
+ * Utility to disable long-press context menus
+ * Minimal implementation to avoid interfering with scrolling
  */
 
 export const disableLongPressContextMenu = () => {
-  // Prevent context menu on right-click and long-press
+  // Prevent context menu globally
   const handleContextMenu = (e: Event) => {
-    // Check if the target is an input or textarea, we might want to allow context menu there
     const target = e.target as HTMLElement;
+    // Allow context menu on inputs and textareas
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
       return true;
     }
@@ -16,54 +16,13 @@ export const disableLongPressContextMenu = () => {
     return false;
   };
 
-  // Prevent text selection that triggers context menu on long press
-  const handleSelectStart = (e: Event) => {
-    const target = e.target as HTMLElement;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-      return true;
-    }
-    e.preventDefault();
-    return false;
-  };
-
-  // Prevent long-press callout on touch devices
-  const handleTouchStart = (e: TouchEvent) => {
-    const target = e.target as HTMLElement;
-    if (target && target.style) {
-      // Only apply to non-input elements
-      if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-        (target.style as any).webkitTouchCallout = 'none';
-        (target.style as any).webkitUserSelect = 'none';
-      }
-    }
-  };
-
-  // Add event listeners
-  // Note: We DO NOT preventDefault on touchstart or touchmove to ensure scrolling works
-  document.addEventListener('contextmenu', handleContextMenu, { passive: false });
-  document.addEventListener('selectstart', handleSelectStart, { passive: false });
-  document.addEventListener('touchstart', handleTouchStart as any, { passive: true });
+  // Add event listener
+  // We ONLY listen to contextmenu. This is the most reliable way to block the menu
+  // without interfering with any touch or scroll gestures.
+  document.addEventListener('contextmenu', handleContextMenu, { capture: true });
 
   // Return cleanup function
   return () => {
-    document.removeEventListener('contextmenu', handleContextMenu);
-    document.removeEventListener('selectstart', handleSelectStart);
-    document.removeEventListener('touchstart', handleTouchStart as any);
+    document.removeEventListener('contextmenu', handleContextMenu, { capture: true });
   };
-};
-
-/**
- * Disable long-press on specific elements
- */
-export const disableLongPressOnElement = (element: HTMLElement) => {
-  if (!element || !element.style) return;
-
-  (element.style as any).webkitTouchCallout = 'none';
-  (element.style as any).webkitUserSelect = 'none';
-  (element.style as any).webkitUserDrag = 'none';
-
-  element.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    return false;
-  });
 };

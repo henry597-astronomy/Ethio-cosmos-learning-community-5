@@ -38,46 +38,46 @@
 @layer base {
   * {
     @apply border-border;
-    /* Disable native long-press callout */
-    -webkit-touch-callout: none;
   }
   
   html, body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* Restore normal scrolling */
-    overflow: auto;
-    position: relative;
-    width: 100%;
-    height: 100%;
-    /* Allow touch actions for scrolling */
-    touch-action: pan-x pan-y;
-    /* Prevent native context menu */
-    -webkit-touch-callout: none;
-    /* Prevent text selection while allowing interaction */
-    -webkit-user-select: none;
-    user-select: none;
-    /* Disable pull-to-refresh on Y-axis to act like a native app while allowing scrolling */
-    overscroll-behavior-y: none;
-    /* Prevent text size adjustment on orientation change */
-    -webkit-text-size-adjust: 100%;
-    /* Optimize for mobile performance */
+    
+    /* Ensure scrolling is enabled */
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    height: auto;
+    min-height: 100%;
+    
+    /* Crucial for PWA native feel without blocking scroll */
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    
+    /* Allow all touch actions for scrolling */
+    touch-action: manipulation;
+    
+    /* Prevent pull-to-refresh */
+    overscroll-behavior-y: none;
   }
 
   #root {
     width: 100%;
     min-height: 100vh;
-    /* Allow natural scrolling */
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    /* Allow natural scrolling on the container */
+    overflow-y: visible;
     overflow-x: hidden;
-    /* Enable smooth scrolling on iOS */
-    -webkit-overflow-scrolling: touch;
-    /* Disable pull-to-refresh on Y-axis while allowing normal scrolling */
-    overscroll-behavior-y: none;
-    /* Allow default touch actions for scrolling */
-    touch-action: pan-x pan-y;
   }
+}
+
+/* Targeted long-press prevention that doesn't block scroll */
+img, a, button, .no-select {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-user-drag: none;
 }
 
 /* Custom scrollbar */
@@ -97,12 +97,6 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
-}
-
-/* Selection color */
-::selection {
-  background: rgba(232, 106, 16, 0.3);
-  color: white;
 }
 
 /* Smooth scrolling */
@@ -127,67 +121,10 @@ html {
 
 /* Animation utilities */
 @keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slide-in-from-top {
-  from {
-    transform: translateY(-10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .animate-in {
-  animation-duration: 0.2s;
-  animation-fill-mode: both;
-}
-
-.fade-in {
-  animation-name: fade-in;
-}
-
-.slide-in-from-top-4 {
-  animation-name: slide-in-from-top;
-}
-
-/* Spectrum Rainbow Animation - Optimized for performance */
-@keyframes spectrum-rainbow {
-  0% { background-color: #FF0000; }      /* Red */
-  14.28% { background-color: #FF7F00; }  /* Orange */
-  28.56% { background-color: #FFFF00; }  /* Yellow */
-  42.84% { background-color: #00FF00; }  /* Green */
-  57.12% { background-color: #0000FF; }  /* Blue */
-  71.4% { background-color: #4B0082; }   /* Indigo */
-  85.68% { background-color: #9400D3; }  /* Violet */
-  100% { background-color: #FF0000; }    /* Back to Red */
-}
-
-/* Performance optimization: Reduce repaints during animations */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Specific elements long-press prevention */
-img, a, button, [role="button"] {
-  -webkit-touch-callout: none !important;
-  -webkit-user-drag: none;
-}
-
-/* Allow text selection in inputs and textareas */
-input, textarea {
-  -webkit-user-select: text !important;
-  user-select: text !important;
+  animation: fade-in 0.2s both;
 }

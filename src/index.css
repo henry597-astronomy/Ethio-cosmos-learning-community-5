@@ -38,25 +38,23 @@
 @layer base {
   * {
     @apply border-border;
-    /* Disable long-press context menu on all elements */
-    -webkit-user-select: none;
-    user-select: none;
+    /* Disable native long-press callout */
     -webkit-touch-callout: none;
-    /* Prevent text selection on long press */
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
   }
+  
   html, body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* Allow normal scrolling */
+    /* Restore normal scrolling */
     overflow: auto;
     position: relative;
     width: 100%;
     height: 100%;
-    /* Improve touch performance */
+    /* Allow touch actions for scrolling */
+    touch-action: pan-x pan-y;
+    /* Prevent native context menu */
+    -webkit-touch-callout: none;
+    /* Prevent text selection while allowing interaction */
     -webkit-user-select: none;
     user-select: none;
     /* Disable pull-to-refresh on Y-axis to act like a native app while allowing scrolling */
@@ -65,8 +63,6 @@
     -webkit-text-size-adjust: 100%;
     /* Optimize for mobile performance */
     -webkit-tap-highlight-color: transparent;
-    /* Disable long-press context menu */
-    -webkit-touch-callout: none;
   }
 
   #root {
@@ -80,7 +76,7 @@
     /* Disable pull-to-refresh on Y-axis while allowing normal scrolling */
     overscroll-behavior-y: none;
     /* Allow default touch actions for scrolling */
-    touch-action: auto;
+    touch-action: pan-x pan-y;
   }
 }
 
@@ -184,23 +180,14 @@ html {
   }
 }
 
-/* Disable context menu on long press */
-body {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+/* Specific elements long-press prevention */
+img, a, button, [role="button"] {
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none;
 }
 
-/* Ensure images and interactive elements don't show context menu */
-img, a, button, input, textarea, select {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* Prevent text selection that triggers context menu */
-p, span, div, h1, h2, h3, h4, h5, h6 {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
+/* Allow text selection in inputs and textareas */
+input, textarea {
+  -webkit-user-select: text !important;
+  user-select: text !important;
 }

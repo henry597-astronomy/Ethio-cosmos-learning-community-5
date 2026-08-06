@@ -121,3 +121,31 @@ html {
 .animate-in {
   animation: fade-in 0.2s both;
 }
+
+/* Light Theme Overrides */
+.light-theme {
+  --background: 0 0% 98%;
+  --foreground: 220 30% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 30% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 30% 10%;
+  --primary: 24 90% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 20% 94%;
+  --secondary-foreground: 220 30% 10%;
+  --muted: 220 20% 90%;
+  --muted-foreground: 220 10% 40%;
+  --accent: 24 90% 50%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 220 20% 80% / 0.4;
+  --input: 220 20% 90%;
+  --ring: 24 90% 50%;
+}
+
+.light-theme body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}

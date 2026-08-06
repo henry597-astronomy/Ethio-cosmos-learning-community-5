@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users } from 'lucide-react';
+import { Menu, X, LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon } from 'lucide-react';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import {
   Sheet,
@@ -34,6 +34,24 @@ export default function Navbar() {
   const { unreadCount } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('ethio_cosmos_theme') as 'dark' | 'light') || 'dark';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ethio_cosmos_theme', theme);
+    if (theme === 'light') {
+      document.documentElement.classList.add('light-theme');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.remove('light-theme');
+      document.documentElement.classList.add('dark');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   // Offline and Prefetch State
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -318,6 +336,20 @@ export default function Navbar() {
                               <span>{isSuperAdmin ? 'Admin Panel' : 'Manage Lessons'}</span>
                             </Link>
                           )}
+                          
+                          {/* Theme Toggle Button */}
+                          <button
+                            onClick={toggleTheme}
+                            className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors text-left"
+                          >
+                            <div className="flex items-center gap-3">
+                              {theme === 'dark' ? <Sun size={18} className="text-orange-400" /> : <Moon size={18} className="text-orange-500" />}
+                              <span>Theme</span>
+                            </div>
+                            <span className="text-xs px-2 py-1 rounded bg-slate-800 text-orange-400 font-medium uppercase">
+                              {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                            </span>
+                          </button>
                         </div>
                       </div>
 

@@ -137,7 +137,7 @@ export default function HomePage() {
       <section 
         className="min-h-screen flex items-center relative overflow-hidden bg-[#0a0e1a]"
         style={{
-          backgroundImage: 'url(/images/hero-bg-new.jpg)',
+          backgroundImage: 'url(/images/hero-bg-new.png)',
           backgroundSize: 'contain',
           backgroundPosition: 'center right',
           backgroundAttachment: 'scroll',

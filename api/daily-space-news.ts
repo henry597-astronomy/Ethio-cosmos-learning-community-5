@@ -35,18 +35,18 @@ function fallbackDraft(apod: NasaApod): DraftContent {
 
 async function createStudentDraft(apod: NasaApod): Promise<{ draft: DraftContent; aiGenerated: boolean }> {
   const fallback = fallbackDraft(apod);
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return { draft: fallback, aiGenerated: false };
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
         temperature: 0.2,
         response_format: { type: 'json_object' },
         messages: [
@@ -78,7 +78,7 @@ async function createStudentDraft(apod: NasaApod): Promise<{ draft: DraftContent
     }
     return { draft, aiGenerated: true };
   } catch (error) {
-    console.error('[daily-space-news] AI draft failed; using source fallback:', error);
+    console.error('[daily-space-news] Groq draft failed; using source fallback:', error);
     return { draft: fallback, aiGenerated: false };
   }
 }

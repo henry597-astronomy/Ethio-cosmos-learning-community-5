@@ -12,11 +12,11 @@ Add these variables to Vercel for Production, Preview, and Development as approp
 NASA_API_KEY=the replacement NASA key
 SUPABASE_SERVICE_ROLE_KEY=the Supabase service-role key
 CRON_SECRET=a long random secret
-OPENAI_API_KEY=optional; enables AI simplification
-OPENAI_MODEL=gpt-4o-mini
+GROQ_API_KEY=optional; enables AI simplification
+GROQ_MODEL=llama-3.3-70b-versatile
 ```
 
-`NASA_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, and `OPENAI_API_KEY` are server-only. They must never use the `VITE_` prefix and must never be committed to GitHub.
+`NASA_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, and `GROQ_API_KEY` are server-only. They must never use the `VITE_` prefix and must never be committed to GitHub.
 
 ## Operation
 
@@ -24,4 +24,4 @@ Vercel invokes `/api/daily-space-news` once per day using the schedule in `verce
 
 An administrator opens the **Admin → space-news** tab, reviews the item, and chooses **Publish**. Published content then appears in the daily card in the Home-page hero area. If no published item exists, the existing Home hero remains unchanged.
 
-If `OPENAI_API_KEY` is absent or the AI request fails, the pipeline keeps a validated source-based draft instead of saving broken content. This fallback is intentionally marked `ai_generated = false` so it can be reviewed honestly.
+If `GROQ_API_KEY` is absent or the Groq request fails, the pipeline keeps a validated source-based draft instead of saving broken content. This fallback is intentionally marked `ai_generated = false` so it can be reviewed honestly.

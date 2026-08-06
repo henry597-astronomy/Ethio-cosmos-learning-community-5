@@ -143,6 +143,9 @@ export default function HomePage() {
             className="w-full h-full object-fill"
           />
         </div>
+
+        {/* Soft uniform dark overlay to tone down brightness across all corners without hiding the background */}
+        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10 w-full">
           <div className="grid md:grid-cols-2 gap-12 items-center">

@@ -145,7 +145,52 @@ html {
   --ring: 24 90% 50%;
 }
 
-.light-theme body {
-  background-color: #f8fafc !important;
+.light-theme body,
+.light-theme #root {
+  background-color: #f1f5f9 !important;
   color: #0f172a !important;
+}
+
+.light-theme .bg-\[\#0a0e1a\],
+.light-theme .bg-slate-950,
+.light-theme .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+.light-theme .bg-slate-800,
+.light-theme .bg-slate-800\/50,
+.light-theme .bg-slate-900\/50,
+.light-theme .bg-slate-950\/80,
+.light-theme .bg-slate-900\/80,
+.light-theme .bg-white\/5,
+.light-theme .bg-white\/10 {
+  background-color: #f8fafc !important;
+}
+
+.light-theme .text-white,
+.light-theme .text-gray-100,
+.light-theme .text-gray-200 {
+  color: #0f172a !important;
+}
+
+.light-theme .text-gray-300,
+.light-theme .text-gray-400,
+.light-theme .text-gray-500 {
+  color: #475569 !important;
+}
+
+.light-theme .border-white\/10,
+.light-theme .border-white\/5,
+.light-theme .border-slate-800,
+.light-theme .border-slate-700,
+.light-theme .border-border {
+  border-color: #cbd5e1 !important;
+}
+
+.light-theme input,
+.light-theme textarea,
+.light-theme select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }

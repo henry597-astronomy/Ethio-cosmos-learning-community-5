@@ -44,21 +44,13 @@
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     
-    /* Ensure scrolling is enabled */
+    /* Ensure scrolling is enabled normally */
     overflow-y: auto !important;
     overflow-x: hidden;
-    height: auto;
-    min-height: 100%;
-    
-    /* Crucial for PWA native feel without blocking scroll */
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    
-    /* Allow all touch actions for scrolling */
-    touch-action: manipulation;
-    
-    /* Prevent pull-to-refresh */
-    overscroll-behavior-y: none;
+    height: 100%;
+    min-height: 100vh;
+    -webkit-overflow-scrolling: touch;
+    touch-action: auto;
   }
 
   #root {
@@ -66,9 +58,10 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    /* Allow natural scrolling on the container */
-    overflow-y: visible;
+    overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: auto;
   }
 }
 

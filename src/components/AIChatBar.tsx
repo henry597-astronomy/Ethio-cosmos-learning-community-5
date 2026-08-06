@@ -137,20 +137,20 @@ export default function AIChatBar() {
       {/* Chat Window */}
       {isOpen && (
         <div 
-          className="absolute w-[350px] sm:w-[400px] h-[500px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
+          className="absolute w-[350px] sm:w-[400px] h-[500px] bg-slate-900/95 dark:bg-slate-900/95 light-theme:bg-[#f8fafc] backdrop-blur-xl border border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
           style={getChatWindowStyle()}
         >
           {/* Header */}
-          <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
+          <div className="p-4 border-b border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] bg-white/5 dark:bg-white/5 light-theme:bg-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">Ethio-Cosmos AI</h3>
+                <h3 className="text-sm font-bold text-white dark:text-white light-theme:text-[#0f172a]">Ethio-Cosmos AI</h3>
                 <div className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Online</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-400 light-theme:text-slate-600 uppercase tracking-wider font-medium">Online</span>
                 </div>
               </div>
             </div>

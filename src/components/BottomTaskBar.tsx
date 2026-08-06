@@ -32,7 +32,7 @@ export default function BottomTaskBar() {
   return (
     <>
       <div 
-        className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-white/10 h-12 flex items-center justify-center px-4"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 dark:bg-slate-950/95 light-theme:bg-white/95 backdrop-blur-md border-t border-white/10 dark:border-white/10 light-theme:border-slate-300 h-12 flex items-center justify-center px-4"
         style={{
           position: 'fixed',
           bottom: 0,

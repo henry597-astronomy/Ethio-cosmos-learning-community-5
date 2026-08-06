@@ -135,15 +135,13 @@ export default function HomePage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="min-h-screen flex items-center relative overflow-hidden bg-[#0a0e1a]">
-        {/* Absolute Logo Emblem background container fitting edge-to-edge perfectly without clipping */}
-        <div className="absolute inset-0 flex items-center justify-end md:justify-center lg:justify-end pointer-events-none opacity-90">
-          <div className="w-full h-full max-w-4xl max-h-[85vh] p-4 flex items-center justify-center">
-            <img 
-              src="/images/hero-bg-new.png" 
-              alt="EthioCosmos Logo Emblem" 
-              className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
-            />
-          </div>
+        {/* Absolute Logo Emblem background container stretched edge-to-edge across the screen area */}
+        <div className="absolute inset-0 pointer-events-none opacity-85">
+          <img 
+            src="/images/hero-bg-new.png" 
+            alt="EthioCosmos Logo Emblem" 
+            className="w-full h-full object-fill"
+          />
         </div>
 
         {/* Dark gradient overlay for text readability */}

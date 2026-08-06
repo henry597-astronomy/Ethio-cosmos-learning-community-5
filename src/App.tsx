@@ -3,6 +3,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { LiveKitProvider } from '@/context/LiveKitContext';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { Toaster } from 'sonner';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
@@ -26,12 +27,12 @@ import ProgressPage from '@/pages/ProgressPage';
 
 
 function AppRoutes() {
-
-  // Removed the unconditional initial-home-redirect that was causing white screens on refresh.
-  // The app now correctly preserves the current URL on hard refresh.
+  const { theme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] flex flex-col overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className={`min-h-screen flex flex-col overflow-y-auto transition-colors duration-300 ${
+      theme === 'light' ? 'bg-[#f1f5f9] text-[#0f172a]' : 'bg-[#0a0e1a] text-white'
+    }`} style={{ WebkitOverflowScrolling: 'touch' }}>
       <Navbar />
       <InstallPrompt />
       <main className="flex-1 pt-28" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
@@ -73,8 +74,10 @@ function App() {
         <Router>
           <NotificationProvider>
             <LiveKitProvider>
-              <AppRoutes />
-              <Toaster position="top-right" theme="dark" />
+              <ThemeProvider>
+                <AppRoutes />
+                <Toaster position="top-right" theme="dark" />
+              </ThemeProvider>
               <AIChatBar />
               <BottomTaskBar />
               

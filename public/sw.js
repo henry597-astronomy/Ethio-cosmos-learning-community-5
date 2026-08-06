@@ -7,7 +7,7 @@
 // 4. Network-first for API calls with cache fallback
 // 5. Cache-first for static assets with network refresh
 
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v13';
 const STATIC_CACHE = `ethio-cosmos-static-${CACHE_VERSION}`;
 const API_CACHE = `ethio-cosmos-api-${CACHE_VERSION}`;
 const IMAGE_CACHE = `ethio-cosmos-images-${CACHE_VERSION}`;
@@ -24,6 +24,7 @@ const STATIC_ASSETS = [
   './images/chat-bg.jpg',
   './images/hero-bg-new.jpg',
   './images/hero-bg-new.png',
+  './images/navbar-logo.png',
   './images/about-hero.jpg',
   './images/learning-hero.jpg',
   './images/materials-hero.jpg',

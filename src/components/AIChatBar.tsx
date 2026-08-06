@@ -137,7 +137,7 @@ export default function AIChatBar() {
       {/* Chat Window */}
       {isOpen && (
         <div 
-          className="absolute w-[350px] sm:w-[400px] h-[500px] bg-slate-900/95 dark:bg-slate-900/95 light-theme:bg-[#f8fafc] backdrop-blur-xl border border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
+          className="absolute w-[350px] sm:w-[400px] h-[500px] bg-slate-900 dark:bg-slate-900 light-theme:bg-[#f8fafc] backdrop-blur-xl border border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
           style={getChatWindowStyle()}
         >
           {/* Header */}
@@ -185,10 +185,10 @@ export default function AIChatBar() {
               >
                 <div 
                   className={cn(
-                    "px-4 py-2 rounded-2xl text-sm",
+                    "px-4 py-2 rounded-2xl text-sm shadow-md",
                     msg.role === 'user' 
-                      ? "bg-blue-600 text-white rounded-tr-none" 
-                      : "bg-slate-800 dark:bg-slate-800 light-theme:bg-white text-slate-200 dark:text-slate-200 light-theme:text-[#0f172a] rounded-tl-none border border-white/5 dark:border-white/5 light-theme:border-[#cbd5e1] light-theme:shadow-sm"
+                      ? "bg-blue-600 text-white rounded-tr-none shadow-blue-500/20" 
+                      : "bg-slate-800 dark:bg-slate-800 light-theme:bg-white text-white dark:text-white light-theme:text-[#0f172a] rounded-tl-none border border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] light-theme:shadow-md"
                   )}
                 >
                   {msg.content}

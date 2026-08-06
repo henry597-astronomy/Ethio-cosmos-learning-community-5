@@ -35,7 +35,7 @@ export default function Navbar() {
   const { unreadCount } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   // Offline and Prefetch State
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -321,19 +321,45 @@ export default function Navbar() {
                             </Link>
                           )}
                           
-                          {/* Theme Toggle Button */}
-                          <button
-                            onClick={toggleTheme}
-                            className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors text-left"
-                          >
-                            <div className="flex items-center gap-3">
-                              {theme === 'dark' ? <Sun size={18} className="text-orange-400" /> : <Moon size={18} className="text-orange-500" />}
-                              <span>Theme</span>
+                          {/* Theme Selection Section */}
+                          <div className="px-4 py-3 border-t border-white/5">
+                            <div className="flex items-center gap-3 mb-2 text-sm text-gray-300 font-medium">
+                              <Sun size={18} className="text-orange-400" />
+                              <span>Select Theme</span>
                             </div>
-                            <span className="text-xs px-2 py-1 rounded bg-slate-800 text-orange-400 font-medium uppercase">
-                              {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
-                            </span>
-                          </button>
+                            <div className="max-h-36 overflow-y-auto space-y-1 pr-1 custom-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+                              <button
+                                onClick={() => {
+                                  const root = document.documentElement;
+                                  root.classList.remove('light-theme');
+                                  root.classList.add('dark');
+                                  localStorage.setItem('ethio_cosmos_theme', 'dark');
+                                  window.location.reload();
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                  theme === 'dark' ? 'bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                }`}
+                              >
+                                <span className="flex items-center gap-2"><Sun size={14} /> Dark Mode</span>
+                                {theme === 'dark' && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const root = document.documentElement;
+                                  root.classList.add('light-theme');
+                                  root.classList.remove('dark');
+                                  localStorage.setItem('ethio_cosmos_theme', 'light');
+                                  window.location.reload();
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                  theme === 'light' ? 'bg-orange-500/25 text-orange-400 font-bold border border-orange-500/40' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                }`}
+                              >
+                                <span className="flex items-center gap-2"><Moon size={14} /> Light Mode</span>
+                                {theme === 'light' && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
 

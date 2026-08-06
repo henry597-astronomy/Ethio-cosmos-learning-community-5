@@ -4,7 +4,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } from '@/hooks/use-cms-data';
 import { Button } from '@/components/ui/button';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ExternalLink } from 'lucide-react';
+import { getLatestPublishedSpaceNews } from '@/services/space-news';
+import type { SpaceNews } from '@/types';
 
 declare global {
   interface Window {
@@ -19,6 +21,17 @@ export default function HomePage() {
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
   const navigate = useNavigate();
+  const [dailyNews, setDailyNews] = useState<SpaceNews | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getLatestPublishedSpaceNews().then((item) => {
+      if (active) setDailyNews(item);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Video sequencing state
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
@@ -147,7 +160,48 @@ export default function HomePage() {
         {/* Soft uniform dark overlay to tone down brightness across all corners without hiding the background */}
         <div className="absolute inset-0 bg-black/40 pointer-events-none" />
         
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative z-10 w-full">
+          {dailyNews && (
+            <article className="mb-10 max-w-5xl mx-auto overflow-hidden rounded-2xl border border-orange-300/30 bg-[#0b1222]/90 shadow-2xl backdrop-blur-sm">
+              <div className="grid md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                <div className="min-h-56 bg-black/30">
+                  {dailyNews.image_url ? (
+                    <img
+                      src={dailyNews.image_url}
+                      alt={dailyNews.title}
+                      className="h-full min-h-56 w-full object-cover"
+                      loading="eager"
+                    />
+                  ) : (
+                    <div className="flex h-full min-h-56 items-center justify-center bg-gradient-to-br from-indigo-950 to-orange-900 p-8 text-center text-5xl">🌌</div>
+                  )}
+                </div>
+                <div className="flex flex-col justify-center p-6 sm:p-8">
+                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-300">
+                    <span>Daily Space News</span>
+                    <span className="text-white/40">•</span>
+                    <span>{dailyNews.category}</span>
+                  </div>
+                  <h2 className="text-2xl font-bold leading-tight text-white sm:text-3xl">{dailyNews.title}</h2>
+                  <p className="mt-4 text-base leading-relaxed text-gray-200">{dailyNews.summary}</p>
+                  <div className="mt-6 flex flex-wrap items-center gap-4">
+                    <Button
+                      asChild
+                      className="bg-orange-500 text-white hover:bg-orange-600"
+                    >
+                      <a href={dailyNews.source_url} target="_blank" rel="noreferrer">
+                        Read more <ExternalLink className="ml-2 h-4 w-4" />
+                      </a>
+                    </Button>
+                    <span className="text-sm text-gray-400">
+                      {dailyNews.source_name} · {new Date(dailyNews.published_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          )}
+
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="max-w-2xl">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">

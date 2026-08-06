@@ -58,6 +58,24 @@ export interface UserProfile {
   updated_at?: string;
 }
 
+export interface SpaceNews {
+  id: string;
+  external_id: string;
+  title: string;
+  summary: string;
+  full_explanation: string | null;
+  fun_fact: string | null;
+  image_url: string | null;
+  source_name: string;
+  source_url: string;
+  category: string;
+  published_date: string;
+  ai_generated: boolean;
+  status: 'draft' | 'published' | 'archived';
+  created_at: string;
+  updated_at: string;
+}
+
 export interface FeaturedTopic {
   id: string;
   title: string;

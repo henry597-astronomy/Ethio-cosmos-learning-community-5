@@ -27,6 +27,7 @@ import type {
   QuizQuestion,
   AboutContent,
   TeamMember,
+  SpaceNews,
 } from '@/types';
 
 const DEFAULT_ABOUT: AboutContent = {
@@ -132,6 +133,50 @@ export default function AdminPage() {
   const [users, setUsers] = useState<{ id: string; email: string; username: string; role: string; is_blocked?: boolean }[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState<string | null>(null);
+  const [spaceNews, setSpaceNews] = useState<SpaceNews[]>([]);
+  const [spaceNewsLoading, setSpaceNewsLoading] = useState(false);
+  const [spaceNewsError, setSpaceNewsError] = useState<string | null>(null);
+
+  const fetchSpaceNews = async () => {
+    setSpaceNewsLoading(true);
+    setSpaceNewsError(null);
+    try {
+      const { data, error } = await supabase
+        .from('space_news')
+        .select('id, external_id, title, summary, full_explanation, fun_fact, image_url, source_name, source_url, category, published_date, ai_generated, status, created_at, updated_at')
+        .order('published_date', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      setSpaceNews((data || []) as SpaceNews[]);
+    } catch (error) {
+      setSpaceNewsError(error instanceof Error ? error.message : 'Failed to load space news');
+    } finally {
+      setSpaceNewsLoading(false);
+    }
+  };
+
+  const updateSpaceNewsStatus = async (id: string, status: SpaceNews['status']) => {
+    const { error } = await supabase.from('space_news').update({ status }).eq('id', id);
+    if (error) {
+      alert(`Could not update item: ${error.message}`);
+      return;
+    }
+    await fetchSpaceNews();
+  };
+
+  const deleteSpaceNews = async (id: string) => {
+    if (!window.confirm('Delete this space-news item?')) return;
+    const { error } = await supabase.from('space_news').delete().eq('id', id);
+    if (error) {
+      alert(`Could not delete item: ${error.message}`);
+      return;
+    }
+    await fetchSpaceNews();
+  };
+
+  useEffect(() => {
+    if (activeTab === 'space-news') fetchSpaceNews();
+  }, [activeTab]);
 
   const fetchUsers = async () => {
     setUsersLoading(true);
@@ -288,8 +333,8 @@ export default function AdminPage() {
   if (!user) return null;
 
   // Define which tabs are available for regular admins vs super admin
-  const regularAdminTabs = ['home', 'lessons'];
-  const allTabs = ['home', 'homepage', 'topics', 'subtopics', 'lessons', 'about', 'materials', 'quizzes', 'users'];
+  const regularAdminTabs = ['home', 'lessons', 'space-news'];
+  const allTabs = ['home', 'homepage', 'topics', 'subtopics', 'lessons', 'space-news', 'about', 'materials', 'quizzes', 'users'];
   const availableTabs = isSuperAdmin ? allTabs : regularAdminTabs;
 
   // If user tries to access a restricted tab, reset to first available tab
@@ -779,6 +824,46 @@ export default function AdminPage() {
               </TabsTrigger>
             ))}
           </TabsList>
+
+          <TabsContent value="space-news" className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Daily Space News</h2>
+                <p className="mt-1 text-sm text-gray-400">Review NASA drafts before they appear on the Home page.</p>
+              </div>
+              <Button onClick={fetchSpaceNews} disabled={spaceNewsLoading} className="bg-orange-500 text-white hover:bg-orange-600">
+                {spaceNewsLoading ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </div>
+            {spaceNewsError && <p className="rounded-lg border border-red-500/30 bg-red-950/30 p-4 text-sm text-red-300">{spaceNewsError}</p>}
+            {!spaceNewsLoading && !spaceNewsError && spaceNews.length === 0 && (
+              <div className="rounded-xl border border-white/10 bg-slate-900/60 p-8 text-center text-gray-400">
+                No items yet. Run the server-side NASA fetch endpoint after the database migration is applied.
+              </div>
+            )}
+            <div className="space-y-4">
+              {spaceNews.map((item) => (
+                <article key={item.id} className="grid gap-5 rounded-xl border border-white/10 bg-slate-900/70 p-5 md:grid-cols-[180px_1fr]">
+                  {item.image_url ? <img src={item.image_url} alt={item.title} className="h-32 w-full rounded-lg object-cover md:h-full" /> : <div className="flex h-32 items-center justify-center rounded-lg bg-indigo-950 text-4xl">🌌</div>}
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide">
+                      <span className={item.status === 'published' ? 'text-green-400' : item.status === 'draft' ? 'text-orange-300' : 'text-gray-500'}>{item.status}</span>
+                      <span className="text-gray-500">{item.source_name}</span>
+                      {item.ai_generated && <span className="text-purple-300">AI draft</span>}
+                    </div>
+                    <h3 className="text-xl font-semibold text-white">{item.title}</h3>
+                    <p className="mt-2 text-gray-300">{item.summary}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {item.status !== 'published' && <Button size="sm" onClick={() => updateSpaceNewsStatus(item.id, 'published')} className="bg-green-600 text-white hover:bg-green-700">Publish</Button>}
+                      {item.status === 'published' && <Button size="sm" variant="outline" onClick={() => updateSpaceNewsStatus(item.id, 'draft')} className="border-white/20 text-white hover:bg-white/10">Unpublish</Button>}
+                      {item.status !== 'archived' && <Button size="sm" variant="outline" onClick={() => updateSpaceNewsStatus(item.id, 'archived')} className="border-white/20 text-white hover:bg-white/10">Archive</Button>}
+                      <Button size="sm" variant="destructive" onClick={() => deleteSpaceNews(item.id)}>Delete</Button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </TabsContent>
 
           {/* ── HOME TAB (User View) ────────────────────────────────────────────── */}
           <TabsContent value="home" className="space-y-8">

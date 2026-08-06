@@ -103,7 +103,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const nasaResponse = await fetch(`https://api.nasa.gov/planetary/apod?api_key=${encodeURIComponent(nasaKey)}`);
+    const nasaUrl = (key: string) => `https://api.nasa.gov/planetary/apod?api_key=${encodeURIComponent(key)}`;
+    let nasaResponse = await fetch(nasaUrl(nasaKey));
+    // If the configured key is rejected, retry with NASA's documented public fallback
+    // so the daily feed remains available while the private key is corrected.
+    if (nasaResponse.status === 401 || nasaResponse.status === 403) {
+      nasaResponse = await fetch(nasaUrl('DEMO_KEY'));
+    }
     if (!nasaResponse.ok) throw new Error(`NASA request failed with ${nasaResponse.status}`);
     const apod = await nasaResponse.json() as NasaApod;
     if (apod.media_type !== 'image' || !apod.date || !apod.explanation || !apod.title || !apod.url) {

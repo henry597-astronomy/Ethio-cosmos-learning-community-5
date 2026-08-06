@@ -124,8 +124,10 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
-              <img src="/images/school-logo.jpg" alt="Logo" className="w-16 h-16 rounded-full object-cover border-2 border-orange-500/50 shadow-lg shadow-orange-500/20" />
+            <Link to="/" className="flex items-center gap-2.5">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-orange-500 shadow-lg shadow-orange-500/30 flex items-center justify-center bg-slate-900">
+                <img src="/images/hero-bg-new.png" alt="EthioCosmos Logo" className="w-full h-full object-contain scale-110" />
+              </div>
               <span className="font-bold text-white text-sm sm:text-base hidden sm:inline">
                 Ethio-cosmos-learning-community
               </span>

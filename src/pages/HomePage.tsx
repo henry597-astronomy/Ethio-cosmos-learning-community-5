@@ -136,16 +136,13 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="min-h-screen flex items-center relative overflow-hidden bg-[#0a0e1a]">
         {/* Absolute Logo Emblem background container stretched edge-to-edge across the screen area */}
-        <div className="absolute inset-0 pointer-events-none opacity-85">
+        <div className="absolute inset-0 pointer-events-none opacity-100">
           <img 
             src="/images/hero-bg-new.png" 
             alt="EthioCosmos Logo Emblem" 
             className="w-full h-full object-fill"
           />
         </div>
-
-        {/* Dark gradient overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0e1a]/95 via-[#0a0e1a]/80 to-transparent md:to-transparent/40" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10 w-full">
           <div className="grid md:grid-cols-2 gap-12 items-center">

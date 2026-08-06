@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
-type Theme = 'dark' | 'light' | 'orange' | 'green' | 'purple' | 'blue' | 'red';
+type Theme = 'dark' | 'light' | 'orange' | 'green' | 'purple' | 'blue' | 'red' | 'cyan' | 'gold' | 'rose' | 'indigo';
 
 interface ThemeContextType {
   theme: Theme;
@@ -18,7 +18,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem('ethio_cosmos_theme', theme);
     const root = document.documentElement;
-    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'dark');
+    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'dark');
     if (theme === 'light') {
       root.classList.add('light-theme');
     } else if (theme === 'orange') {
@@ -31,6 +31,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.classList.add('blue-theme');
     } else if (theme === 'red') {
       root.classList.add('red-theme');
+    } else if (theme === 'cyan') {
+      root.classList.add('cyan-theme');
+    } else if (theme === 'gold') {
+      root.classList.add('gold-theme');
+    } else if (theme === 'rose') {
+      root.classList.add('rose-theme');
+    } else if (theme === 'indigo') {
+      root.classList.add('indigo-theme');
     } else {
       root.classList.add('dark');
     }

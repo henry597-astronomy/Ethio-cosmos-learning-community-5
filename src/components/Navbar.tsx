@@ -333,7 +333,7 @@ export default function Navbar() {
                                 <span>Themes</span>
                               </div>
                               <span className="text-xs text-orange-400 font-medium bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20 flex items-center gap-1">
-                                {theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : theme === 'orange' ? 'Orange' : theme === 'green' ? 'Green' : theme === 'purple' ? 'Purple' : theme === 'blue' ? 'Blue' : 'Red'} {themeDropdownOpen ? '▲' : '▼'}
+                                {theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : theme === 'orange' ? 'Orange' : theme === 'green' ? 'Green' : theme === 'purple' ? 'Purple' : theme === 'blue' ? 'Blue' : theme === 'red' ? 'Red' : theme === 'cyan' ? 'Cyan' : theme === 'gold' ? 'Gold' : theme === 'rose' ? 'Rose' : 'Indigo'} {themeDropdownOpen ? '▲' : '▼'}
                               </span>
                             </button>
 
@@ -456,6 +456,74 @@ export default function Navbar() {
                                 >
                                   <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Red Mode</span>
                                   {theme === 'red' && <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    const root = document.documentElement;
+                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'dark');
+                                    root.classList.add('cyan-theme');
+                                    localStorage.setItem('ethio_cosmos_theme', 'cyan');
+                                    setThemeDropdownOpen(false);
+                                    window.location.reload();
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                    theme === 'cyan' ? 'bg-cyan-600/30 text-cyan-300 font-bold border border-cyan-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-cyan-400 inline-block"></span> Cyan Mode</span>
+                                  {theme === 'cyan' && <span className="text-[10px] bg-cyan-600 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    const root = document.documentElement;
+                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'dark');
+                                    root.classList.add('gold-theme');
+                                    localStorage.setItem('ethio_cosmos_theme', 'gold');
+                                    setThemeDropdownOpen(false);
+                                    window.location.reload();
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                    theme === 'gold' ? 'bg-yellow-600/30 text-yellow-300 font-bold border border-yellow-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span> Gold Mode</span>
+                                  {theme === 'gold' && <span className="text-[10px] bg-yellow-600 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    const root = document.documentElement;
+                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'dark');
+                                    root.classList.add('rose-theme');
+                                    localStorage.setItem('ethio_cosmos_theme', 'rose');
+                                    setThemeDropdownOpen(false);
+                                    window.location.reload();
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                    theme === 'rose' ? 'bg-rose-600/30 text-rose-300 font-bold border border-rose-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-rose-400 inline-block"></span> Rose Mode</span>
+                                  {theme === 'rose' && <span className="text-[10px] bg-rose-600 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    const root = document.documentElement;
+                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'dark');
+                                    root.classList.add('indigo-theme');
+                                    localStorage.setItem('ethio_cosmos_theme', 'indigo');
+                                    setThemeDropdownOpen(false);
+                                    window.location.reload();
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                    theme === 'indigo' ? 'bg-indigo-600/30 text-indigo-300 font-bold border border-indigo-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-indigo-400 inline-block"></span> Indigo Mode</span>
+                                  {theme === 'indigo' && <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded">Active</span>}
                                 </button>
                               </div>
                             )}

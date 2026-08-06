@@ -206,3 +206,61 @@ html {
   background-color: rgba(255, 255, 255, 0.95) !important;
   border-color: #cbd5e1 !important;
 }
+
+
+/* Orange Theme Overrides */
+.orange-theme body,
+.orange-theme #root {
+  background-color: #fffaf0 !important;
+  color: #7c2d12 !important;
+}
+
+.orange-theme .bg-\[\#0a0e1a\],
+.orange-theme .bg-\[\#050810\],
+.orange-theme .bg-slate-950 {
+  background-color: #ffedd5 !important;
+}
+
+.orange-theme .bg-\[\#151c2c\],
+.orange-theme .bg-slate-900,
+.orange-theme .bg-slate-800,
+.orange-theme .bg-slate-800\/50,
+.orange-theme .bg-slate-900\/50,
+.orange-theme .bg-slate-950\/80,
+.orange-theme .bg-slate-950\/90,
+.orange-theme .bg-slate-950\/95,
+.orange-theme .bg-slate-900\/80,
+.orange-theme .bg-white\/5,
+.orange-theme .bg-white\/10 {
+  background-color: #fed7aa !important;
+  box-shadow: 0 4px 6px -1px rgb(234 88 12 / 0.15), 0 2px 4px -2px rgb(234 88 12 / 0.1) !important;
+  border: 1px solid #fdba74 !important;
+}
+
+.orange-theme .text-white,
+.orange-theme .text-gray-100,
+.orange-theme .text-gray-200 {
+  color: #7c2d12 !important;
+}
+
+.orange-theme .text-gray-300,
+.orange-theme .text-gray-400,
+.orange-theme .text-gray-500 {
+  color: #9a3412 !important;
+}
+
+.orange-theme .border-white\/10,
+.orange-theme .border-white\/5,
+.orange-theme .border-slate-800,
+.orange-theme .border-slate-700,
+.orange-theme .border-border {
+  border-color: #fdba74 !important;
+}
+
+.orange-theme input,
+.orange-theme textarea,
+.orange-theme select {
+  background-color: #ffffff !important;
+  color: #7c2d12 !important;
+  border-color: #fdba74 !important;
+}

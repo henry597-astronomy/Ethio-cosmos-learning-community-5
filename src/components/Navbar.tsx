@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon } from 'lucide-react';
+import { Menu, X, LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon, Sparkles } from 'lucide-react';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import {
   Sheet,
@@ -35,6 +35,7 @@ export default function Navbar() {
   const { unreadCount } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const { theme } = useTheme();
 
   // Offline and Prefetch State
@@ -321,44 +322,75 @@ export default function Navbar() {
                             </Link>
                           )}
                           
-                          {/* Theme Selection Section */}
+                          {/* Themes Collapsible Section */}
                           <div className="px-4 py-3 border-t border-white/5">
-                            <div className="flex items-center gap-3 mb-2 text-sm text-gray-300 font-medium">
-                              <Sun size={18} className="text-orange-400" />
-                              <span>Select Theme</span>
-                            </div>
-                            <div className="max-h-36 overflow-y-auto space-y-1 pr-1 custom-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-                              <button
-                                onClick={() => {
-                                  const root = document.documentElement;
-                                  root.classList.remove('light-theme');
-                                  root.classList.add('dark');
-                                  localStorage.setItem('ethio_cosmos_theme', 'dark');
-                                  window.location.reload();
-                                }}
-                                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
-                                  theme === 'dark' ? 'bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                                }`}
-                              >
-                                <span className="flex items-center gap-2"><Sun size={14} /> Dark Mode</span>
-                                {theme === 'dark' && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const root = document.documentElement;
-                                  root.classList.add('light-theme');
-                                  root.classList.remove('dark');
-                                  localStorage.setItem('ethio_cosmos_theme', 'light');
-                                  window.location.reload();
-                                }}
-                                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
-                                  theme === 'light' ? 'bg-orange-500/25 text-orange-400 font-bold border border-orange-500/40' : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                                }`}
-                              >
-                                <span className="flex items-center gap-2"><Moon size={14} /> Light Mode</span>
-                                {theme === 'light' && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
+                              className="w-full flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors py-1"
+                            >
+                              <div className="flex items-center gap-3">
+                                <Sun size={18} className="text-orange-400" />
+                                <span>Themes</span>
+                              </div>
+                              <span className="text-xs text-orange-400 font-medium bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20 flex items-center gap-1">
+                                {theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'Orange'} {themeDropdownOpen ? '▲' : '▼'}
+                              </span>
+                            </button>
+
+                            {themeDropdownOpen && (
+                              <div className="mt-2 max-h-40 overflow-y-auto space-y-1 pr-1 custom-scrollbar animate-in fade-in duration-200 bg-slate-900/80 p-2 rounded-xl border border-white/10" style={{ WebkitOverflowScrolling: 'touch' }}>
+                                <button
+                                  onClick={() => {
+                                    const root = document.documentElement;
+                                    root.classList.remove('light-theme', 'orange-theme');
+                                    root.classList.add('dark');
+                                    localStorage.setItem('ethio_cosmos_theme', 'dark');
+                                    setThemeDropdownOpen(false);
+                                    window.location.reload();
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                    theme === 'dark' ? 'bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2"><Sun size={14} className="text-orange-400" /> Dark Mode</span>
+                                  {theme === 'dark' && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    const root = document.documentElement;
+                                    root.classList.remove('orange-theme', 'dark');
+                                    root.classList.add('light-theme');
+                                    localStorage.setItem('ethio_cosmos_theme', 'light');
+                                    setThemeDropdownOpen(false);
+                                    window.location.reload();
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                    theme === 'light' ? 'bg-orange-500/25 text-orange-400 font-bold border border-orange-500/40' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2"><Moon size={14} className="text-orange-500" /> Light Mode</span>
+                                  {theme === 'light' && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    const root = document.documentElement;
+                                    root.classList.remove('light-theme', 'dark');
+                                    root.classList.add('orange-theme');
+                                    localStorage.setItem('ethio_cosmos_theme', 'orange');
+                                    setThemeDropdownOpen(false);
+                                    window.location.reload();
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                    theme === 'orange' ? 'bg-orange-600/30 text-orange-300 font-bold border border-orange-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2"><Sparkles size={14} className="text-orange-400 animate-pulse" /> Orange Mode</span>
+                                  {theme === 'orange' && <span className="text-[10px] bg-orange-600 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

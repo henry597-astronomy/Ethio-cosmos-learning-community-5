@@ -134,20 +134,22 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section 
-        className="min-h-screen flex items-center relative overflow-hidden bg-[#0a0e1a]"
-        style={{
-          backgroundImage: 'url(/images/hero-bg-new.png)',
-          backgroundSize: 'contain',
-          backgroundPosition: 'center right',
-          backgroundAttachment: 'scroll',
-          backgroundRepeat: 'no-repeat',
-        }}
-      >
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
+      <section className="min-h-screen flex items-center relative overflow-hidden bg-[#0a0e1a]">
+        {/* Absolute Logo Emblem background container fitting edge-to-edge perfectly without clipping */}
+        <div className="absolute inset-0 flex items-center justify-end md:justify-center lg:justify-end pointer-events-none opacity-90">
+          <div className="w-full h-full max-w-4xl max-h-[85vh] p-4 flex items-center justify-center">
+            <img 
+              src="/images/hero-bg-new.png" 
+              alt="EthioCosmos Logo Emblem" 
+              className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+            />
+          </div>
+        </div>
+
+        {/* Dark gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0e1a]/95 via-[#0a0e1a]/80 to-transparent md:to-transparent/40" />
         
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10 w-full">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="max-w-2xl">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">

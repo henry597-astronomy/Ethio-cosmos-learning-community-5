@@ -720,3 +720,239 @@ html {
   color: #312e81 !important;
   border-color: #a5b4fc !important;
 }
+
+/* Gradient Cosmic Nebula Theme */
+.gradient-cosmos body,
+.gradient-cosmos #root {
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%) !important;
+  background-attachment: fixed !important;
+  color: #f8fafc !important;
+}
+
+.gradient-cosmos .bg-\[\#0a0e1a\],
+.gradient-cosmos .bg-\[\#050810\],
+.gradient-cosmos .bg-slate-950 {
+  background: rgba(15, 12, 41, 0.85) !important;
+}
+
+.gradient-cosmos .bg-\[\#151c2c\],
+.gradient-cosmos .bg-slate-900,
+.gradient-cosmos .bg-slate-800,
+.gradient-cosmos .bg-slate-800\/50,
+.gradient-cosmos .bg-slate-900\/50,
+.gradient-cosmos .bg-slate-950\/80,
+.gradient-cosmos .bg-slate-950\/90,
+.gradient-cosmos .bg-slate-950\/95,
+.gradient-cosmos .bg-slate-900\/80,
+.gradient-cosmos .bg-white\/5,
+.gradient-cosmos .bg-white\/10 {
+  background: linear-gradient(135deg, rgba(48, 43, 99, 0.6) 0%, rgba(36, 36, 62, 0.7) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.gradient-cosmos .text-white,
+.gradient-cosmos .text-gray-100,
+.gradient-cosmos .text-gray-200 {
+  color: #f8fafc !important;
+}
+
+.gradient-cosmos .text-gray-300,
+.gradient-cosmos .text-gray-400,
+.gradient-cosmos .text-gray-500 {
+  color: #cbd5e1 !important;
+}
+
+.gradient-cosmos .border-white\/10,
+.gradient-cosmos .border-white\/5,
+.gradient-cosmos .border-slate-800,
+.gradient-cosmos .border-slate-700,
+.gradient-cosmos .border-border {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.gradient-cosmos input,
+.gradient-cosmos textarea,
+.gradient-cosmos select {
+  background: rgba(30, 27, 75, 0.8) !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Gradient Aurora Borealis Theme */
+.gradient-aurora body,
+.gradient-aurora #root {
+  background: linear-gradient(135deg, #052e16 0%, #065f46 50%, #0f172a 100%) !important;
+  background-attachment: fixed !important;
+  color: #f0fdf4 !important;
+}
+
+.gradient-aurora .bg-\[\#0a0e1a\],
+.gradient-aurora .bg-\[\#050810\],
+.gradient-aurora .bg-slate-950 {
+  background: rgba(5, 46, 22, 0.85) !important;
+}
+
+.gradient-aurora .bg-\[\#151c2c\],
+.gradient-aurora .bg-slate-900,
+.gradient-aurora .bg-slate-800,
+.gradient-aurora .bg-slate-800\/50,
+.gradient-aurora .bg-slate-900\/50,
+.gradient-aurora .bg-slate-950\/80,
+.gradient-aurora .bg-slate-950\/90,
+.gradient-aurora .bg-slate-950\/95,
+.gradient-aurora .bg-slate-900\/80,
+.gradient-aurora .bg-white\/5,
+.gradient-aurora .bg-white\/10 {
+  background: linear-gradient(135deg, rgba(6, 95, 70, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(6, 95, 70, 0.3) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(52, 211, 153, 0.2) !important;
+}
+
+.gradient-aurora .text-white,
+.gradient-aurora .text-gray-100,
+.gradient-aurora .text-gray-200 {
+  color: #f0fdf4 !important;
+}
+
+.gradient-aurora .text-gray-300,
+.gradient-aurora .text-gray-400,
+.gradient-aurora .text-gray-500 {
+  color: #a7f3d0 !important;
+}
+
+.gradient-aurora .border-white\/10,
+.gradient-aurora .border-white\/5,
+.gradient-aurora .border-slate-800,
+.gradient-aurora .border-slate-700,
+.gradient-aurora .border-border {
+  border-color: rgba(52, 211, 153, 0.2) !important;
+}
+
+.gradient-aurora input,
+.gradient-aurora textarea,
+.gradient-aurora select {
+  background: rgba(6, 78, 59, 0.8) !important;
+  color: #f0fdf4 !important;
+  border-color: rgba(52, 211, 153, 0.3) !important;
+}
+
+/* Gradient Sunset Glow Theme */
+.gradient-sunset body,
+.gradient-sunset #root {
+  background: linear-gradient(135deg, #2a0845 0%, #6441A5 50%, #ff4e50 100%) !important;
+  background-attachment: fixed !important;
+  color: #fff1f2 !important;
+}
+
+.gradient-sunset .bg-\[\#0a0e1a\],
+.gradient-sunset .bg-\[\#050810\],
+.gradient-sunset .bg-slate-950 {
+  background: rgba(42, 8, 69, 0.85) !important;
+}
+
+.gradient-sunset .bg-\[\#151c2c\],
+.gradient-sunset .bg-slate-900,
+.gradient-sunset .bg-slate-800,
+.gradient-sunset .bg-slate-800\/50,
+.gradient-sunset .bg-slate-900\/50,
+.gradient-sunset .bg-slate-950\/80,
+.gradient-sunset .bg-slate-950\/90,
+.gradient-sunset .bg-slate-950\/95,
+.gradient-sunset .bg-slate-900\/80,
+.gradient-sunset .bg-white\/5,
+.gradient-sunset .bg-white\/10 {
+  background: linear-gradient(135deg, rgba(100, 65, 165, 0.6) 0%, rgba(255, 78, 80, 0.4) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(255, 78, 80, 0.25) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 182, 193, 0.25) !important;
+}
+
+.gradient-sunset .text-white,
+.gradient-sunset .text-gray-100,
+.gradient-sunset .text-gray-200 {
+  color: #fff1f2 !important;
+}
+
+.gradient-sunset .text-gray-300,
+.gradient-sunset .text-gray-400,
+.gradient-sunset .text-gray-500 {
+  color: #fecdd3 !important;
+}
+
+.gradient-sunset .border-white\/10,
+.gradient-sunset .border-white\/5,
+.gradient-sunset .border-slate-800,
+.gradient-sunset .border-slate-700,
+.gradient-sunset .border-border {
+  border-color: rgba(255, 182, 193, 0.25) !important;
+}
+
+.gradient-sunset input,
+.gradient-sunset textarea,
+.gradient-sunset select {
+  background: rgba(75, 43, 118, 0.8) !important;
+  color: #fff1f2 !important;
+  border-color: rgba(255, 182, 193, 0.3) !important;
+}
+
+/* Gradient Emerald Twilight Theme */
+.gradient-emerald body,
+.gradient-emerald #root {
+  background: linear-gradient(135deg, #03001e 0%, #7303c0 50%, #ec38bc 100%) !important;
+  background-attachment: fixed !important;
+  color: #fdf4ff !important;
+}
+
+.gradient-emerald .bg-\[\#0a0e1a\],
+.gradient-emerald .bg-\[\#050810\],
+.gradient-emerald .bg-slate-950 {
+  background: rgba(3, 0, 30, 0.85) !important;
+}
+
+.gradient-emerald .bg-\[\#151c2c\],
+.gradient-emerald .bg-slate-900,
+.gradient-emerald .bg-slate-800,
+.gradient-emerald .bg-slate-800\/50,
+.gradient-emerald .bg-slate-900\/50,
+.gradient-emerald .bg-slate-950\/80,
+.gradient-emerald .bg-slate-950\/90,
+.gradient-emerald .bg-slate-950\/95,
+.gradient-emerald .bg-slate-900\/80,
+.gradient-emerald .bg-white\/5,
+.gradient-emerald .bg-white\/10 {
+  background: linear-gradient(135deg, rgba(115, 3, 192, 0.5) 0%, rgba(236, 56, 188, 0.4) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(115, 3, 192, 0.3) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(244, 114, 182, 0.25) !important;
+}
+
+.gradient-emerald .text-white,
+.gradient-emerald .text-gray-100,
+.gradient-emerald .text-gray-200 {
+  color: #fdf4ff !important;
+}
+
+.gradient-emerald .text-gray-300,
+.gradient-emerald .text-gray-400,
+.gradient-emerald .text-gray-500 {
+  color: #fbcfe8 !important;
+}
+
+.gradient-emerald .border-white\/10,
+.gradient-emerald .border-white\/5,
+.gradient-emerald .border-slate-800,
+.gradient-emerald .border-slate-700,
+.gradient-emerald .border-border {
+  border-color: rgba(244, 114, 182, 0.25) !important;
+}
+
+.gradient-emerald input,
+.gradient-emerald textarea,
+.gradient-emerald select {
+  background: rgba(74, 10, 117, 0.8) !important;
+  color: #fdf4ff !important;
+  border-color: rgba(244, 114, 182, 0.3) !important;
+}

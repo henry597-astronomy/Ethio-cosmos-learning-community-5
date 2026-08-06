@@ -152,10 +152,12 @@ html {
 }
 
 .light-theme .bg-\[\#0a0e1a\],
+.light-theme .bg-\[\#050810\],
 .light-theme .bg-slate-950 {
-  background-color: #ffffff !important;
+  background-color: #f1f5f9 !important;
 }
 
+.light-theme .bg-\[\#151c2c\],
 .light-theme .bg-slate-900,
 .light-theme .bg-slate-800,
 .light-theme .bg-slate-800\/50,
@@ -166,7 +168,7 @@ html {
 .light-theme .bg-white\/10 {
   background-color: #f8fafc !important;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07) !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
 }
 
 .light-theme .text-white,

@@ -198,3 +198,10 @@ html {
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
 }
+
+/* Additional Light Theme Navbar and Taskbar Overrides */
+.light-theme .bg-slate-950\/95,
+.light-theme .bg-slate-950\/80 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #cbd5e1 !important;
+}

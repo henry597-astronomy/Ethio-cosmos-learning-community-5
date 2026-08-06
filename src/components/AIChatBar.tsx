@@ -171,8 +171,8 @@ export default function AIChatBar() {
                 <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
                   <MessageSquare className="w-6 h-6 text-blue-400" />
                 </div>
-                <h4 className="text-white font-medium mb-1">Welcome to Ethio-Cosmos!</h4>
-                <p className="text-sm text-slate-400">Ask me anything about astronomy or our community.</p>
+                <h4 className="text-white dark:text-white light-theme:text-[#0f172a] font-medium mb-1">Welcome to Ethio-Cosmos!</h4>
+                <p className="text-sm text-slate-400 dark:text-slate-400 light-theme:text-slate-600">Ask me anything about astronomy or our community.</p>
               </div>
             )}
             {messages.map((msg, i) => (
@@ -188,7 +188,7 @@ export default function AIChatBar() {
                     "px-4 py-2 rounded-2xl text-sm",
                     msg.role === 'user' 
                       ? "bg-blue-600 text-white rounded-tr-none" 
-                      : "bg-slate-800 text-slate-200 rounded-tl-none border border-white/5"
+                      : "bg-slate-800 dark:bg-slate-800 light-theme:bg-white text-slate-200 dark:text-slate-200 light-theme:text-[#0f172a] rounded-tl-none border border-white/5 dark:border-white/5 light-theme:border-[#cbd5e1] light-theme:shadow-sm"
                   )}
                 >
                   {msg.content}
@@ -197,7 +197,7 @@ export default function AIChatBar() {
             ))}
             {isLoading && (
               <div className="flex items-start mr-auto">
-                <div className="bg-slate-800 text-slate-200 px-4 py-2 rounded-2xl rounded-tl-none border border-white/5">
+                <div className="bg-slate-800 dark:bg-slate-800 light-theme:bg-white text-slate-200 dark:text-slate-200 light-theme:text-[#0f172a] px-4 py-2 rounded-2xl rounded-tl-none border border-white/5 dark:border-white/5 light-theme:border-[#cbd5e1]">
                   <Loader2 className="w-4 h-4 animate-spin" />
                 </div>
               </div>
@@ -206,13 +206,13 @@ export default function AIChatBar() {
           </div>
 
           {/* Input */}
-          <form onSubmit={handleSubmit} className="p-4 border-t border-white/10 bg-white/5">
+          <form onSubmit={handleSubmit} className="p-4 border-t border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] bg-white/5 dark:bg-white/5 light-theme:bg-slate-100">
             <div className="flex gap-2">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask a question..."
-                className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500 focus:ring-blue-500"
+                className="bg-slate-800/50 dark:bg-slate-800/50 light-theme:bg-white border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] text-white dark:text-white light-theme:text-[#0f172a] placeholder:text-slate-500 light-theme:placeholder:text-slate-400 focus:ring-blue-500"
                 disabled={isLoading}
               />
               <Button 

@@ -122,18 +122,18 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex flex-col">
       {/* Top Main Navbar */}
-      <div className="bg-slate-950/90 dark:bg-slate-950/90 light-theme:bg-white/95 backdrop-blur-md border-b border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] light-theme:shadow-sm">
+      <div className="bg-slate-950/90 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-orange-500 shadow-lg shadow-orange-500/30 flex items-center justify-center bg-slate-900 dark:bg-slate-900 light-theme:bg-slate-100">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-orange-500 shadow-lg shadow-orange-500/30 flex items-center justify-center bg-slate-900">
                 <img src="/images/navbar-logo.png" alt="EthioCosmos Logo" className="w-full h-full object-cover scale-105" />
               </div>
-              <span className="font-bold text-white dark:text-white light-theme:text-[#0f172a] text-sm sm:text-base hidden sm:inline">
+              <span className="font-bold text-white text-sm sm:text-base hidden sm:inline">
                 Ethio-cosmos-learning-community
               </span>
-              <span className="font-bold text-white dark:text-white light-theme:text-[#0f172a] text-sm sm:hidden">
+              <span className="font-bold text-white text-sm sm:hidden">
                 Ethio-cosmos
               </span>
             </Link>
@@ -147,7 +147,7 @@ export default function Navbar() {
                   className={`px-3 py-2 text-sm font-medium transition-colors rounded-md relative ${
                     isActive(link.path)
                       ? 'text-orange-500 bg-orange-500/10'
-                      : 'text-gray-300 dark:text-gray-300 light-theme:text-[#334155] hover:text-white dark:hover:text-white light-theme:hover:text-[#0f172a] hover:bg-white/5 dark:hover:bg-white/5 light-theme:hover:bg-slate-100'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   {link.label}

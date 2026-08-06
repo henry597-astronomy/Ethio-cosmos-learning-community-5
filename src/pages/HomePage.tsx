@@ -135,11 +135,11 @@ export default function HomePage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section 
-        className="min-h-screen flex items-center relative overflow-hidden"
+        className="min-h-screen flex items-center relative overflow-hidden bg-[#0a0e1a]"
         style={{
           backgroundImage: 'url(/images/hero-bg-new.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center right',
           backgroundAttachment: 'scroll',
           backgroundRepeat: 'no-repeat',
         }}

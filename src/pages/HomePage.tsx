@@ -164,16 +164,16 @@ export default function HomePage() {
           {dailyNews && (
             <article className="mb-10 max-w-5xl mx-auto overflow-hidden rounded-2xl border border-orange-300/30 bg-[#0b1222]/90 shadow-2xl backdrop-blur-sm">
               <div className="grid md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                <div className="min-h-56 bg-black/30">
+                <div className="h-[180px] md:h-[240px] bg-black/30">
                   {dailyNews.image_url ? (
                     <img
                       src={dailyNews.image_url}
                       alt={dailyNews.title}
-                      className="h-full min-h-56 w-full object-cover"
+                      className="h-full w-full object-cover"
                       loading="eager"
                     />
                   ) : (
-                    <div className="flex h-full min-h-56 items-center justify-center bg-gradient-to-br from-indigo-950 to-orange-900 p-8 text-center text-5xl">🌌</div>
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-indigo-950 to-orange-900 p-8 text-center text-5xl">🌌</div>
                   )}
                 </div>
                 <div className="flex flex-col justify-center p-6 sm:p-8">

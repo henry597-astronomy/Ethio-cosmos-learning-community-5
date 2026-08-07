@@ -524,13 +524,13 @@ export default function ChatPage() {
             {posts.some(post => post.pinned_at) && (
               <button
                 onClick={() => document.getElementById(`channel-post-${posts.find(post => post.pinned_at)?.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="w-full flex items-center gap-3 rounded-xl border border-blue-400/30 bg-blue-950/80 px-4 py-3 text-left shadow-lg backdrop-blur-md transition-colors hover:bg-blue-900/80"
+                className="sticky top-0 z-20 w-full flex items-center gap-3 rounded-xl border border-blue-400/30 bg-blue-950/95 px-4 py-2 text-left shadow-lg backdrop-blur-md transition-colors hover:bg-blue-900/95"
                 title="Jump to pinned post"
               >
-                <Pin className="h-4 w-4 flex-shrink-0 rotate-45 text-blue-300" />
+                <Pin className="h-3.5 w-3.5 flex-shrink-0 rotate-45 text-blue-300" />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-blue-300">Pinned post</span>
-                  <span className="block truncate text-sm text-white">
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-blue-300">Pinned post</span>
+                  <span className="block truncate text-xs text-white">
                     {posts.find(post => post.pinned_at)?.message_text || 'Pinned channel announcement'}
                   </span>
                 </span>

@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon, Sparkles } from 'lucide-react';
+import { Menu, X, LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon, Sparkles } from 'lucide-react';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import {
   Sheet,
@@ -33,6 +33,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const { user, profile, isAdmin, isSuperAdmin, isBlocked, logout, displayName, totalUsersCount } = useAuth();
   const { unreadCount } = useNotifications();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const [colorThemesSubMenuOpen, setColorThemesSubMenuOpen] = useState(false);
@@ -99,6 +100,7 @@ export default function Navbar() {
     try {
       await logout();
       setProfilePanelOpen(false);
+      setMobileMenuOpen(false);
       navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
@@ -249,54 +251,6 @@ export default function Navbar() {
                           </div>
                         </div>
                       </SheetHeader>
-
-                      {/* Mobile navigation inside the profile panel */}
-                      <div className="lg:hidden border-b border-white/5 bg-slate-950/60 p-4">
-                        <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Navigation</p>
-                        <div className="grid grid-cols-2 gap-1">
-                          {publicNavLinks.map((link) => (
-                            <Link
-                              key={link.path}
-                              to={link.path}
-                              onClick={() => setProfilePanelOpen(false)}
-                              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                                isActive(link.path)
-                                  ? 'bg-orange-500/10 text-orange-500'
-                                  : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                              }`}
-                            >
-                              {link.label}
-                            </Link>
-                          ))}
-                          {privateNavLinks.map((link) => (
-                            <Link
-                              key={link.path}
-                              to={link.path}
-                              onClick={() => setProfilePanelOpen(false)}
-                              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                                isActive(link.path)
-                                  ? 'bg-orange-500/10 text-orange-500'
-                                  : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                              }`}
-                            >
-                              {link.label}
-                            </Link>
-                          ))}
-                          {isAdmin && (
-                            <Link
-                              to="/admin"
-                              onClick={() => setProfilePanelOpen(false)}
-                              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                                isActive('/admin')
-                                  ? 'bg-orange-500/10 text-orange-500'
-                                  : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                              }`}
-                            >
-                              {isSuperAdmin ? 'Admin' : 'Lessons'}
-                            </Link>
-                          )}
-                        </div>
-                      </div>
 
                       {/* Main Content Area */}
                       <div className="flex-1 overflow-y-auto">
@@ -711,6 +665,13 @@ export default function Navbar() {
                 </Link>
               )}
 
+              {/* Mobile menu button */}
+              <button
+                className="lg:hidden p-2 text-gray-300 hover:text-white"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
           </div>
         </div>
@@ -758,6 +719,73 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Mobile Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden bg-slate-950 border-b border-white/10 py-4 px-4">
+          <div className="flex flex-col gap-1">
+            {publicNavLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`px-3 py-2 text-sm font-medium transition-colors rounded-md relative ${
+                  isActive(link.path)
+                    ? 'text-orange-500 bg-orange-500/10'
+                    : 'text-gray-300 hover:text-white hover:bg-white/5'
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+            {user && privateNavLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`px-3 py-2 text-sm font-medium transition-colors rounded-md relative ${
+                  isActive(link.path)
+                    ? 'text-orange-500 bg-orange-500/10'
+                    : 'text-gray-300 hover:text-white hover:bg-white/5'
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`px-3 py-2 text-sm font-medium transition-colors rounded-md ${
+                  isActive('/admin')
+                    ? 'text-orange-500 bg-orange-500/10'
+                    : 'text-gray-300 hover:text-white hover:bg-white/5'
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {isSuperAdmin ? 'Admin' : 'Lessons'}
+              </Link>
+            )}
+            {user ? (
+              !isBlocked && (
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-md mt-2 border-t border-white/5 pt-4"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
+              )
+            ) : (
+              <Link
+                to="/login"
+                className="block w-full text-center py-3 mt-4 bg-orange-500 text-white rounded-lg font-bold"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Sign In
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

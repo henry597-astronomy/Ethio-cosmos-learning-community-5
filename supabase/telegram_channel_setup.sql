@@ -1,6 +1,6 @@
 -- ============================================================================
--- EthioCosmos — Telegram-Style Channel Migration
--- Creates channel_posts (admin-only insert), channel_reactions, and channel_comments
+-- EthioCosmos — Telegram-Style Channel Migration (Updated)
+-- Creates channel_posts, channel_reactions, channel_comments, and comment_reactions
 -- ============================================================================
 
 -- 1. Channel Posts Table
@@ -37,7 +37,7 @@ USING (
 );
 
 
--- 2. Channel Reactions Table
+-- 2. Channel Reactions Table (Post reactions)
 CREATE TABLE IF NOT EXISTS public.channel_reactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     post_id UUID REFERENCES public.channel_posts(id) ON DELETE CASCADE,
@@ -97,3 +97,39 @@ USING (
     user_id = auth.uid() OR
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+
+-- 4. Comment Reactions Table (One reaction per user per comment, just like Telegram)
+CREATE TABLE IF NOT EXISTS public.comment_reactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    comment_id UUID REFERENCES public.channel_comments(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    emoji TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT unique_comment_user UNIQUE (comment_id, user_id)
+);
+
+ALTER TABLE public.comment_reactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read comment reactions" ON public.comment_reactions;
+CREATE POLICY "Public read comment reactions"
+ON public.comment_reactions FOR SELECT
+USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Users manage own comment reactions" ON public.comment_reactions;
+CREATE POLICY "Users manage own comment reactions"
+ON public.comment_reactions FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users update own comment reactions" ON public.comment_reactions;
+CREATE POLICY "Users update own comment reactions"
+ON public.comment_reactions FOR UPDATE
+TO authenticated
+USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users delete own comment reactions" ON public.comment_reactions;
+CREATE POLICY "Users delete own comment reactions"
+ON public.comment_reactions FOR DELETE
+TO authenticated
+USING (auth.uid() = user_id);

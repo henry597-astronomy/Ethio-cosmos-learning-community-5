@@ -55,6 +55,14 @@ export interface ChannelReaction {
   created_at: string;
 }
 
+export interface CommentReaction {
+  id: string;
+  comment_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
 export interface ChannelComment {
   id: string;
   post_id: string;
@@ -65,6 +73,7 @@ export interface ChannelComment {
   sender_avatar?: string;
   sender_role?: string;
   sender_email?: string;
+  reactions?: CommentReaction[];
 }
 
 export interface ChannelPost {

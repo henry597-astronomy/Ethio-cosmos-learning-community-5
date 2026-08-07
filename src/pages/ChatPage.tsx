@@ -570,11 +570,21 @@ export default function ChatPage() {
             <div className="bg-slate-900 border border-white/10 rounded-t-3xl sm:rounded-2xl w-full max-w-xl h-[85vh] sm:h-[75vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
               {/* Modal Header */}
               <div className="px-5 py-4 bg-slate-950/80 border-b border-white/10 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-blue-400" />
-                  <h3 className="text-white font-bold text-sm">
-                    Comments ({activePostForComments.comments.length})
-                  </h3>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => { setActivePostForComments(null); setActiveCommentEmojiPicker(null); }}
+                    className="inline-flex items-center gap-1 text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                    title="Back to Channel"
+                  >
+                    <span>←</span>
+                    <span>Back</span>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5 text-blue-400" />
+                    <h3 className="text-white font-bold text-sm">
+                      Comments ({activePostForComments.comments.length})
+                    </h3>
+                  </div>
                 </div>
                 <button
                   onClick={() => { setActivePostForComments(null); setActiveCommentEmojiPicker(null); }}

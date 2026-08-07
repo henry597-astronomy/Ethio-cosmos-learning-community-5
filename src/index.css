@@ -92,6 +92,16 @@ img, a, button, .no-select {
   background: #334155;
 }
 
+/* Hide scrollbars while preserving touch and horizontal scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;

@@ -15,6 +15,11 @@ export default function AIChatBar() {
   // Draggable state
   const [position, setPosition] = useState({ x: window.innerWidth - 88, y: window.innerHeight - 88 });
   const [isDragging, setIsDragging] = useState(false);
+  const [viewport, setViewport] = useState({
+    width: window.visualViewport?.width ?? window.innerWidth,
+    height: window.visualViewport?.height ?? window.innerHeight,
+    offsetTop: window.visualViewport?.offsetTop ?? 0,
+  });
   const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
 
   const scrollToBottom = () => {
@@ -26,6 +31,29 @@ export default function AIChatBar() {
       scrollToBottom();
     }
   }, [messages, isOpen]);
+
+  // Keep the chat window inside the visible viewport when the mobile keyboard opens.
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+    const updateViewport = () => {
+      setViewport({
+        width: visualViewport?.width ?? window.innerWidth,
+        height: visualViewport?.height ?? window.innerHeight,
+        offsetTop: visualViewport?.offsetTop ?? 0,
+      });
+    };
+
+    updateViewport();
+    window.addEventListener('resize', updateViewport);
+    visualViewport?.addEventListener('resize', updateViewport);
+    visualViewport?.addEventListener('scroll', updateViewport);
+
+    return () => {
+      window.removeEventListener('resize', updateViewport);
+      visualViewport?.removeEventListener('resize', updateViewport);
+      visualViewport?.removeEventListener('scroll', updateViewport);
+    };
+  }, []);
 
   // Handle dragging
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
@@ -97,23 +125,14 @@ export default function AIChatBar() {
     }
   };
 
-  // Calculate chat window position to stay on screen and be centered
+  // Calculate a centered chat window inside the currently visible viewport.
+  // visualViewport.height shrinks when the mobile keyboard opens.
   const getChatWindowStyle = () => {
-    const chatWidth = 350;
-    const chatHeight = 500;
-    const padding = 16;
-    
-    // Calculate available space
-    const availableWidth = window.innerWidth;
-    const availableHeight = window.innerHeight;
-    
-    // Center the chat window on screen
-    const centerLeft = (availableWidth - chatWidth) / 2;
-    const centerTop = (availableHeight - chatHeight) / 2;
-    
-    // Ensure minimum padding from edges
-    const left = Math.max(padding, Math.min(centerLeft, availableWidth - chatWidth - padding));
-    const top = Math.max(padding, Math.min(centerTop, availableHeight - chatHeight - padding));
+    const padding = 12;
+    const chatWidth = Math.min(400, Math.max(0, viewport.width - padding * 2));
+    const chatHeight = Math.min(500, Math.max(0, viewport.height - padding * 2));
+    const left = Math.max(padding, (viewport.width - chatWidth) / 2);
+    const top = viewport.offsetTop + Math.max(padding, (viewport.height - chatHeight) / 2);
 
     return {
       position: 'fixed' as const,
@@ -121,6 +140,7 @@ export default function AIChatBar() {
       top: `${top}px`,
       width: `${chatWidth}px`,
       height: `${chatHeight}px`,
+      maxHeight: `calc(100dvh - ${padding * 2}px)`,
       zIndex: 50,
     };
   };
@@ -137,7 +157,7 @@ export default function AIChatBar() {
       {/* Chat Window */}
       {isOpen && (
         <div 
-          className="absolute w-[350px] sm:w-[400px] h-[500px] bg-slate-900 dark:bg-slate-900 light-theme:bg-[#f8fafc] backdrop-blur-xl border border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
+          className="absolute w-full max-w-[400px] min-h-0 bg-slate-900 dark:bg-slate-900 light-theme:bg-[#f8fafc] backdrop-blur-xl border border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
           style={getChatWindowStyle()}
         >
           {/* Header */}
@@ -165,7 +185,7 @@ export default function AIChatBar() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             {messages.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-center p-6">
                 <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
@@ -206,7 +226,7 @@ export default function AIChatBar() {
           </div>
 
           {/* Input */}
-          <form onSubmit={handleSubmit} className="p-4 border-t border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] bg-white/5 dark:bg-white/5 light-theme:bg-slate-100">
+          <form onSubmit={handleSubmit} className="shrink-0 p-3 sm:p-4 border-t border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] bg-white/5 dark:bg-white/5 light-theme:bg-slate-100">
             <div className="flex gap-2">
               <Input
                 value={input}

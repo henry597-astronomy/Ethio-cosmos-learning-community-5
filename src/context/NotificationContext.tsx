@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '@/supabase';
@@ -30,7 +29,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [unreadCount]);
 
-  // Reset unread count when entering chat page
+  // Reset unread count when entering channel page
   useEffect(() => {
     if (isChatPage) {
       setUnreadCount(0);
@@ -40,18 +39,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const showNotification = useCallback((senderName: string, messageText: string | null) => {
     // 1. Browser Notification
     if (Notification.permission === 'granted' && document.visibilityState !== 'visible') {
-      new Notification(`New message from ${senderName}`, {
-        body: messageText || 'Sent an image',
-        icon: '/images/icon-192.png', // Use app icon
+      new Notification(`New announcement from ${senderName}`, {
+        body: messageText || 'New channel broadcast',
+        icon: '/images/icon-192.png',
         badge: '/images/icon-192.png',
-        tag: 'chat-notification',
+        tag: 'channel-notification',
       });
     }
 
     // 2. In-app Toast (if not on chat page)
     if (!isChatPage) {
-      toast(`New message from ${senderName}`, {
-        description: messageText || 'Sent an image',
+      toast(`New announcement from ${senderName}`, {
+        description: messageText || 'New channel broadcast',
         action: {
           label: 'View',
           onClick: () => window.location.href = '/chat',
@@ -66,19 +65,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const loadUnreadCount = async () => {
       try {
-        // Count messages from other users
-        const { data: messages, error } = await supabase
-          .from('chat_messages')
+        const { data: posts, error } = await supabase
+          .from('channel_posts')
           .select('user_id')
           .neq('user_id', user.id);
 
-        if (!error && messages) {
-          // For now, count all messages from other users as unread
-          // In a production app, you'd track last_read_at per user
-          setUnreadCount(messages.length);
+        if (!error && posts) {
+          setUnreadCount(posts.length);
         }
       } catch (err) {
-        console.error('Error loading unread count:', err);
+        console.error('Error loading channel unread count:', err);
       }
     };
 
@@ -94,15 +90,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
 
     const channel = supabase
-      .channel('notifications-realtime')
+      .channel('channel-notifications-realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+        { event: 'INSERT', schema: 'public', table: 'channel_posts' },
         async (payload) => {
-          const newMessage = payload.new as { user_id: string; message_text: string | null; image_url: string | null };
+          const newPost = payload.new as { user_id: string; message_text: string | null; image_url: string | null };
           
-          // Don't notify for own messages
-          if (newMessage.user_id === user.id) return;
+          // Don't notify for own posts
+          if (newPost.user_id === user.id) return;
 
           if (!isChatPage) {
             setUnreadCount((prev) => prev + 1);
@@ -112,11 +108,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           const { data: profileData } = await supabase
             .from('profiles')
             .select('username, email')
-            .eq('id', newMessage.user_id)
+            .eq('id', newPost.user_id)
             .maybeSingle();
 
-          const senderName = profileData?.username || profileData?.email?.split('@')[0] || 'Someone';
-          showNotification(senderName, newMessage.message_text);
+          const senderName = profileData?.username || profileData?.email?.split('@')[0] || 'Admin';
+          showNotification(senderName, newPost.message_text);
         }
       )
       .subscribe();

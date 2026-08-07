@@ -47,6 +47,40 @@ export interface ChatMessage {
   sender_role?: string;
 }
 
+export interface ChannelReaction {
+  id: string;
+  post_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
+export interface ChannelComment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  sender_name?: string;
+  sender_avatar?: string;
+  sender_role?: string;
+  sender_email?: string;
+}
+
+export interface ChannelPost {
+  id: string;
+  user_id: string;
+  message_text?: string | null;
+  image_url?: string | null;
+  created_at: string;
+  sender_name: string;
+  sender_email?: string;
+  sender_avatar?: string;
+  sender_role?: string;
+  reactions: ChannelReaction[];
+  comments: ChannelComment[];
+}
+
 export interface UserProfile {
   id: string;
   username: string | null;

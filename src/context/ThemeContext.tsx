@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
-type Theme = 'dark' | 'light' | 'orange' | 'green' | 'purple' | 'blue' | 'red' | 'cyan' | 'gold' | 'rose' | 'indigo' | 'gradient-cosmos' | 'gradient-aurora' | 'gradient-sunset' | 'gradient-emerald';
+type Theme = 'dark' | 'light' | 'orange' | 'green' | 'purple' | 'blue' | 'red' | 'cyan' | 'gold' | 'rose' | 'indigo' | 'gradient-cosmos' | 'gradient-aurora' | 'gradient-sunset' | 'gradient-emerald' | 'gradient-rainbow';
 
 interface ThemeContextType {
   theme: Theme;
@@ -47,6 +47,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.classList.add('gradient-sunset');
     } else if (theme === 'gradient-emerald') {
       root.classList.add('gradient-emerald');
+    } else if (theme === 'gradient-rainbow') {
+      root.classList.add('gradient-rainbow');
     } else {
       root.classList.add('dark');
     }

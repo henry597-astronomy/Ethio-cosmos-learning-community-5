@@ -334,7 +334,7 @@ export default function Navbar() {
                                 <span>Themes</span>
                               </div>
                               <span className="text-xs text-orange-400 font-medium bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20 flex items-center gap-1">
-                                {theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : theme === 'orange' ? 'Orange' : theme === 'green' ? 'Green' : theme === 'purple' ? 'Purple' : theme === 'blue' ? 'Blue' : theme === 'red' ? 'Red' : theme === 'cyan' ? 'Cyan' : theme === 'gold' ? 'Gold' : theme === 'rose' ? 'Rose' : theme === 'indigo' ? 'Indigo' : theme === 'gradient-cosmos' ? 'Cosmic Nebula' : theme === 'gradient-aurora' ? 'Aurora' : theme === 'gradient-sunset' ? 'Sunset Glow' : 'Emerald Twilight'} {themeDropdownOpen ? '▲' : '▼'}
+                                {theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : theme === 'orange' ? 'Orange' : theme === 'green' ? 'Green' : theme === 'purple' ? 'Purple' : theme === 'blue' ? 'Blue' : theme === 'red' ? 'Red' : theme === 'cyan' ? 'Cyan' : theme === 'gold' ? 'Gold' : theme === 'rose' ? 'Rose' : theme === 'indigo' ? 'Indigo' : theme === 'gradient-cosmos' ? 'Cosmic Nebula' : theme === 'gradient-aurora' ? 'Aurora' : theme === 'gradient-sunset' ? 'Sunset Glow' : theme === 'gradient-emerald' ? 'Emerald Twilight' : theme === 'gradient-rainbow' ? 'Rainbow Glow' : 'Theme'} {themeDropdownOpen ? '▲' : '▼'}
                               </span>
                             </button>
 
@@ -437,7 +437,7 @@ export default function Navbar() {
                                   <button
                                     onClick={() => {
                                       const root = document.documentElement;
-                                      root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'dark');
+                                      root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-rainbow', 'dark');
                                       root.classList.add('gradient-emerald');
                                       localStorage.setItem('ethio_cosmos_theme', 'gradient-emerald');
                                       setThemeDropdownOpen(false);
@@ -449,6 +449,23 @@ export default function Navbar() {
                                   >
                                     <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-700 to-pink-500 inline-block"></span> Emerald Twilight</span>
                                     {theme === 'gradient-emerald' && <span className="text-[10px] bg-pink-600 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      const root = document.documentElement;
+                                      root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'dark');
+                                      root.classList.add('gradient-rainbow');
+                                      localStorage.setItem('ethio_cosmos_theme', 'gradient-rainbow');
+                                      setThemeDropdownOpen(false);
+                                      window.location.reload();
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                      theme === 'gradient-rainbow' ? 'bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 text-white font-bold border border-white/40 shadow-lg' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gradient-to-r from-red-500 via-green-500 to-purple-500 inline-block animate-pulse"></span> Rainbow Glow</span>
+                                    {theme === 'gradient-rainbow' && <span className="text-[10px] bg-gradient-to-r from-purple-600 to-pink-600 text-white px-1.5 py-0.5 rounded font-bold">Active</span>}
                                   </button>
                                 </div>
 

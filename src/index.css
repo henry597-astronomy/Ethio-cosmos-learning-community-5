@@ -956,3 +956,70 @@ html {
   color: #fdf4ff !important;
   border-color: rgba(244, 114, 182, 0.3) !important;
 }
+
+/* Gradient Rainbow Theme */
+.gradient-rainbow body,
+.gradient-rainbow #root {
+  background: linear-gradient(135deg, #ff0000 0%, #ff7f00 16%, #ffff00 33%, #00ff00 50%, #0000ff 66%, #4b0082 83%, #8b00ff 100%) !important;
+  background-size: 400% 400% !important;
+  animation: rainbowAnimation 15s ease infinite !important;
+  background-attachment: fixed !important;
+  color: #ffffff !important;
+}
+
+@keyframes rainbowAnimation {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gradient-rainbow .bg-\[\#0a0e1a\],
+.gradient-rainbow .bg-\[\#050810\],
+.gradient-rainbow .bg-slate-950 {
+  background: rgba(15, 23, 42, 0.88) !important;
+}
+
+.gradient-rainbow .bg-\[\#151c2c\],
+.gradient-rainbow .bg-slate-900,
+.gradient-rainbow .bg-slate-800,
+.gradient-rainbow .bg-slate-800\/50,
+.gradient-rainbow .bg-slate-900\/50,
+.gradient-rainbow .bg-slate-950\/80,
+.gradient-rainbow .bg-slate-950\/90,
+.gradient-rainbow .bg-slate-950\/95,
+.gradient-rainbow .bg-slate-900\/80,
+.gradient-rainbow .bg-white\/5,
+.gradient-rainbow .bg-white\/10 {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(255, 0, 128, 0.25) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.gradient-rainbow .text-white,
+.gradient-rainbow .text-gray-100,
+.gradient-rainbow .text-gray-200 {
+  color: #ffffff !important;
+}
+
+.gradient-rainbow .text-gray-300,
+.gradient-rainbow .text-gray-400,
+.gradient-rainbow .text-gray-500 {
+  color: #f1f5f9 !important;
+}
+
+.gradient-rainbow .border-white\/10,
+.gradient-rainbow .border-white\/5,
+.gradient-rainbow .border-slate-800,
+.gradient-rainbow .border-slate-700,
+.gradient-rainbow .border-border {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.gradient-rainbow input,
+.gradient-rainbow textarea,
+.gradient-rainbow select {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}

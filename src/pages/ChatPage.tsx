@@ -463,17 +463,10 @@ export default function ChatPage() {
 
       <div className="relative z-10 flex flex-col h-full">
         {/* Clean Channel Header */}
-        <div className="bg-slate-900/90 backdrop-blur-md border-b border-white/10 px-4 py-3 flex-shrink-0 shadow-lg">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">
-                🌌
-              </div>
-              <div>
-                <h1 className="text-base font-bold text-white">Ethio-Cosmos Channel</h1>
-                <p className="text-xs text-gray-400">Community Announcements</p>
-              </div>
-            </div>
+        <div className="bg-slate-900/90 backdrop-blur-md border-b border-white/10 px-4 py-1.5 flex-shrink-0 shadow-lg">
+          <div className="max-w-3xl mx-auto">
+            <h1 className="text-sm font-bold leading-tight text-white">Ethio-Cosmos Channel</h1>
+            <p className="text-[10px] leading-tight text-gray-400">Community Announcements</p>
           </div>
         </div>
 

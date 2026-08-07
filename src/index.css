@@ -957,20 +957,29 @@ html {
   border-color: rgba(244, 114, 182, 0.3) !important;
 }
 
-/* Gradient Rainbow Theme */
+/* Gradient True Rainbow Theme */
 .gradient-rainbow body,
 .gradient-rainbow #root {
-  background: linear-gradient(135deg, #ff0000 0%, #ff7f00 16%, #ffff00 33%, #00ff00 50%, #0000ff 66%, #4b0082 83%, #8b00ff 100%) !important;
-  background-size: 400% 400% !important;
-  animation: rainbowAnimation 15s ease infinite !important;
+  background: linear-gradient(135deg, 
+    #ff0000 0%, 
+    #ff7f00 14%, 
+    #ffff00 28%, 
+    #008000 42%, 
+    #0000ff 57%, 
+    #4b0082 71%, 
+    #ee82ee 85%, 
+    #ff1493 100%
+  ) !important;
+  background-size: 300% 300% !important;
+  animation: trueRainbowAnimation 12s ease infinite alternate !important;
   background-attachment: fixed !important;
   color: #ffffff !important;
 }
 
-@keyframes rainbowAnimation {
-  0% { background-position: 0% 50%; }
+@keyframes trueRainbowAnimation {
+  0% { background-position: 0% 0%; }
   50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  100% { background-position: 0% 100%; }
 }
 
 .gradient-rainbow .bg-\[\#0a0e1a\],

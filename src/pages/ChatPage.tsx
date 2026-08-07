@@ -50,7 +50,7 @@ export default function ChatPage() {
   const [commentInput, setCommentInput] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  // Comment reaction picker popup state (commentId -> boolean)
+  // Comment reaction picker popup state
   const [activeCommentEmojiPicker, setActiveCommentEmojiPicker] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,7 +130,7 @@ export default function ChatPage() {
 
       setPosts(mappedPosts);
 
-      // If comment modal is open, keep it synced
+      // Keep active comment modal in sync instantly
       setActivePostForComments(prev => {
         if (!prev) return null;
         const updated = mappedPosts.find(p => p.id === prev.id);
@@ -147,33 +147,48 @@ export default function ChatPage() {
     resetUnreadCount();
     fetchChannelData();
 
-    // Robust real-time subscriptions for posts, reactions, comments, and comment reactions
-    const channel = supabase
-      .channel('telegram-channel-realtime-v2')
+    // Use multiple independent broadcast channels to guarantee instantaneous real-time events without lag
+    const postsChannel = supabase
+      .channel('public:channel_posts')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channel_posts' },
-        async () => { fetchChannelData(); }
+        () => { fetchChannelData(); }
       )
+      .subscribe();
+
+    const reactionsChannel = supabase
+      .channel('public:channel_reactions')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channel_reactions' },
-        async () => { fetchChannelData(); }
+        () => { fetchChannelData(); }
       )
+      .subscribe();
+
+    const commentsChannel = supabase
+      .channel('public:channel_comments')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channel_comments' },
-        async () => { fetchChannelData(); }
+        () => { fetchChannelData(); }
       )
+      .subscribe();
+
+    const commentReactionsChannel = supabase
+      .channel('public:comment_reactions')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'comment_reactions' },
-        async () => { fetchChannelData(); }
+        () => { fetchChannelData(); }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(reactionsChannel);
+      supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(commentReactionsChannel);
     };
   }, [user]);
 
@@ -193,6 +208,7 @@ export default function ChatPage() {
       if (insertError) throw insertError;
       setNewPostText('');
       setError(null);
+      fetchChannelData();
     } catch (err) {
       console.error('Error creating post:', err);
       setError('Failed to publish post. Ensure channel tables exist.');
@@ -238,6 +254,7 @@ export default function ChatPage() {
       if (activePostForComments?.id === postId) {
         setActivePostForComments(null);
       }
+      fetchChannelData();
     } catch (err) {
       console.error('Error deleting post:', err);
       setError('Failed to delete post.');
@@ -263,17 +280,16 @@ export default function ChatPage() {
           emoji,
         });
       }
+      fetchChannelData();
     } catch (err) {
       console.error('Error toggling post reaction:', err);
     }
   };
 
-  // ONE reaction per comment rule (Telegram style)
   const toggleCommentReaction = async (commentId: string, emoji: string) => {
     if (!user) return;
     setActiveCommentEmojiPicker(null);
 
-    // Find comment reactions across activePostForComments
     const comment = activePostForComments?.comments.find(c => c.id === commentId);
     if (!comment) return;
 
@@ -282,14 +298,11 @@ export default function ChatPage() {
     try {
       if (existingReaction) {
         if (existingReaction.emoji === emoji) {
-          // Clicking same emoji removes reaction
           await supabase.from('comment_reactions').delete().eq('id', existingReaction.id);
         } else {
-          // Clicking different emoji updates the reaction (one reaction per user per comment)
           await supabase.from('comment_reactions').update({ emoji }).eq('id', existingReaction.id);
         }
       } else {
-        // Insert new reaction
         await supabase.from('comment_reactions').insert({
           comment_id: commentId,
           user_id: user.id,
@@ -643,9 +656,8 @@ export default function ChatPage() {
                           )}
                         </div>
 
-                        {/* Comment Reactions (Telegram style: one reaction per user per comment) */}
+                        {/* Comment Reactions */}
                         <div className="flex flex-wrap items-center gap-1.5 pt-1 pl-11 relative">
-                          {/* Render existing aggregated reactions */}
                           {AVAILABLE_EMOJIS.map((emoji) => {
                             const matchingReactions = comment.reactions?.filter(r => r.emoji === emoji) || [];
                             if (matchingReactions.length === 0) return null;
@@ -667,7 +679,6 @@ export default function ChatPage() {
                             );
                           })}
 
-                          {/* Add reaction trigger button */}
                           <div className="relative">
                             <button
                               onClick={() => setActiveCommentEmojiPicker(activeCommentEmojiPicker === comment.id ? null : comment.id)}
@@ -678,7 +689,6 @@ export default function ChatPage() {
                               {userCommentReaction && <span>{userCommentReaction.emoji}</span>}
                             </button>
 
-                            {/* Emoji picker popup */}
                             {activeCommentEmojiPicker === comment.id && (
                               <div className="absolute left-0 bottom-full mb-2 bg-slate-900 border border-white/20 rounded-full shadow-2xl p-1.5 flex items-center gap-1.5 z-20 animate-in fade-in zoom-in duration-150">
                                 {AVAILABLE_EMOJIS.map((emoji) => (

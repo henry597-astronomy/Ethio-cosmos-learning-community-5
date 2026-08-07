@@ -13,7 +13,7 @@ export default function AIChatBar() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Draggable state
-  const [position, setPosition] = useState({ x: window.innerWidth - 100, y: window.innerHeight - 100 });
+  const [position, setPosition] = useState({ x: window.innerWidth - 88, y: window.innerHeight - 88 });
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
 
@@ -50,8 +50,8 @@ export default function AIChatBar() {
       const deltaX = clientX - dragRef.current.startX;
       const deltaY = clientY - dragRef.current.startY;
       
-      const newX = Math.min(Math.max(20, dragRef.current.initialX + deltaX), window.innerWidth - 80);
-      const newY = Math.min(Math.max(20, dragRef.current.initialY + deltaY), window.innerHeight - 80);
+      const newX = Math.min(Math.max(20, dragRef.current.initialX + deltaX), window.innerWidth - 68);
+      const newY = Math.min(Math.max(20, dragRef.current.initialY + deltaY), window.innerHeight - 68);
       
       setPosition({ x: newX, y: newY });
     };
@@ -231,7 +231,7 @@ export default function AIChatBar() {
       {/* Toggle Button - 3D Ball */}
       {!isOpen && (
         <div
-          className="relative w-16 h-16 cursor-grab active:cursor-grabbing"
+          className="relative w-14 h-14 cursor-grab active:cursor-grabbing"
           onMouseDown={handleMouseDown}
           onTouchStart={handleMouseDown}
           onClick={() => !isDragging && setIsOpen(true)}
@@ -242,7 +242,7 @@ export default function AIChatBar() {
           {/* Ball base with spectrum animation */}
           <div
             className={cn(
-              "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-visible",
+              "w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-visible",
               "animate-spectrum-rainbow",
               !isDragging && "animate-float"
             )}
@@ -260,7 +260,7 @@ export default function AIChatBar() {
           >
             {/* Glossy highlight - top left */}
             <div 
-              className="absolute top-2 left-2 w-5 h-5 rounded-full pointer-events-none opacity-70"
+              className="absolute top-1.5 left-1.5 w-[18px] h-[18px] rounded-full pointer-events-none opacity-70"
               style={{
                 background: 'radial-gradient(circle at 40% 40%, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 50%, transparent 70%)',
                 boxShadow: '0 2px 4px rgba(255, 255, 255, 0.2)'
@@ -269,7 +269,7 @@ export default function AIChatBar() {
             
             {/* Secondary highlight - subtle */}
             <div 
-              className="absolute top-3 right-3 w-3 h-3 rounded-full pointer-events-none opacity-40"
+              className="absolute top-2.5 right-2.5 w-[10px] h-[10px] rounded-full pointer-events-none opacity-40"
               style={{
                 background: 'radial-gradient(circle, rgba(255,255,255,0.4), transparent 70%)'
               }}
@@ -278,7 +278,7 @@ export default function AIChatBar() {
             {/* Icon */}
             <Sparkles 
               className={cn(
-                "w-7 h-7 text-white group-hover:rotate-12 transition-transform relative z-10",
+                "w-6 h-6 text-white group-hover:rotate-12 transition-transform relative z-10",
                 "drop-shadow-[0_0_15px_rgba(0,255,255,1)]"
               )} 
               style={{
@@ -290,7 +290,7 @@ export default function AIChatBar() {
 
           {/* Soft ground shadow */}
           <div
-            className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-14 h-2 rounded-full pointer-events-none"
+            className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1.5 rounded-full pointer-events-none"
             style={{
               background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3), transparent 70%)',
               filter: 'blur(4px)'

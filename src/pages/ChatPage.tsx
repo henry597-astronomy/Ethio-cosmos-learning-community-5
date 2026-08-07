@@ -4,8 +4,9 @@ import { useNotifications } from '@/context/NotificationContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Paperclip, Send, Trash2, MessageCircle, X, Smile } from 'lucide-react';
+import { Paperclip, Send, Trash2, MessageCircle, X, Smile, ExternalLink } from 'lucide-react';
 import type { ChannelPost, ChannelReaction, ChannelComment, CommentReaction } from '@/types';
+import { extractYouTubeVideoId, getVideoType } from '@/lib/video-utils';
 
 interface PostRow {
   id: string;
@@ -35,6 +36,78 @@ const nameColors = [
 function getNameColor(userId: string): string {
   const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return nameColors[hash % nameColors.length];
+}
+
+function LinkifiedText({ text }: { text: string }) {
+  if (!text) return null;
+
+  // Regex to match URLs
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.match(urlRegex)) {
+          return (
+            <a
+              key={i}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 underline underline-offset-2 break-all inline-flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {part}
+              <ExternalLink className="w-3 h-3 flex-shrink-0" />
+            </a>
+          );
+        }
+        return part;
+      })}
+    </>
+  );
+}
+
+function PostMedia({ text, imageUrl }: { text?: string | null; imageUrl?: string | null }) {
+  const urls = text?.match(/(https?:\/\/[^\s]+)/g) || [];
+  const youtubeUrl = urls.find(url => getVideoType(url) === 'youtube');
+  const videoId = youtubeUrl ? extractYouTubeVideoId(youtubeUrl) : null;
+
+  return (
+    <div className="space-y-3">
+      {text && (
+        <p className="text-sm sm:text-base text-gray-100 whitespace-pre-wrap break-words leading-relaxed">
+          <LinkifiedText text={text} />
+        </p>
+      )}
+
+      {imageUrl && (
+        <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
+          <img 
+            src={imageUrl} 
+            alt="Attachment" 
+            className="w-full max-h-96 object-contain mx-auto"
+          />
+        </div>
+      )}
+
+      {videoId && (
+        <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40 aspect-video shadow-lg">
+          <iframe
+            width="100%"
+            height="100%"
+            src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
+            title="YouTube video player"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full"
+          />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ChatPage() {
@@ -503,22 +576,8 @@ export default function ChatPage() {
                     </div>
 
                     {/* Post Content */}
-                    <div className="px-5 py-4 space-y-3">
-                      {post.message_text && (
-                        <p className="text-sm sm:text-base text-gray-100 whitespace-pre-wrap break-words leading-relaxed">
-                          {post.message_text}
-                        </p>
-                      )}
-
-                      {post.image_url && (
-                        <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
-                          <img 
-                            src={post.image_url} 
-                            alt="Attachment" 
-                            className="w-full max-h-96 object-contain mx-auto"
-                          />
-                        </div>
-                      )}
+                    <div className="px-5 py-4">
+                      <PostMedia text={post.message_text} imageUrl={post.image_url} />
                     </div>
 
                     {/* Reactions & Telegram Comment Button Footer */}
@@ -628,21 +687,7 @@ export default function ChatPage() {
                     </div>
                   </div>
 
-                  {activePostForComments.message_text && (
-                    <p className="text-sm text-gray-100 whitespace-pre-wrap break-words leading-relaxed">
-                      {activePostForComments.message_text}
-                    </p>
-                  )}
-
-                  {activePostForComments.image_url && (
-                    <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
-                      <img 
-                        src={activePostForComments.image_url} 
-                        alt="Post Attachment" 
-                        className="w-full max-h-72 object-contain mx-auto"
-                      />
-                    </div>
-                  )}
+                  <PostMedia text={activePostForComments.message_text} imageUrl={activePostForComments.image_url} />
                 </div>
 
                 <div className="border-t border-white/10 pt-3">
@@ -695,7 +740,7 @@ export default function ChatPage() {
                               </span>
                             </div>
                             <p className="text-gray-200 text-xs sm:text-sm whitespace-pre-wrap break-words leading-relaxed">
-                              {comment.content}
+                              <LinkifiedText text={comment.content} />
                             </p>
                           </div>
 

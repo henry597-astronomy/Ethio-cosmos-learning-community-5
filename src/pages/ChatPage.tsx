@@ -126,8 +126,9 @@ export default function ChatPage() {
 
     fetchChannelData();
 
+    // Robust real-time subscriptions for posts, reactions, and comments
     const channel = supabase
-      .channel('telegram-channel-realtime')
+      .channel('telegram-channel-realtime-full')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channel_posts' },

@@ -126,10 +126,10 @@ export default function Navbar() {
       {/* Top Main Navbar */}
       <div className="bg-slate-950/90 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-orange-500 shadow-lg shadow-orange-500/30 flex items-center justify-center bg-slate-900">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-orange-500 shadow-lg shadow-orange-500/30 flex items-center justify-center bg-slate-900">
                 <img src="/images/navbar-logo.png" alt="EthioCosmos Logo" className="w-full h-full object-cover scale-105" />
               </div>
               <span className="font-bold text-white text-sm sm:text-base hidden sm:inline">

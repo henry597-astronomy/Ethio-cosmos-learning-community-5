@@ -18,7 +18,7 @@ const publicNavLinks = [
   { path: '/', label: 'Home' },
   { path: '/learning', label: 'Learning' },
   { path: '/materials', label: 'Materials' },
-  { path: '/chat', label: 'Chat' },
+  { path: '/chat', label: 'Channel' },
   { path: '/tests', label: 'Tests' },
   { path: '/about', label: 'About' },
 ];

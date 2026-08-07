@@ -366,7 +366,7 @@ export default function ChatPage() {
       className="fixed inset-0 top-28 flex flex-col bg-cover bg-center bg-no-repeat"
       style={{
         backgroundImage: 'url(/images/chat-bg-new.jpg)',
-        bottom: 'calc(5rem + max(0px, env(safe-area-inset-bottom)))',
+        bottom: 'calc(3.5rem + max(0px, env(safe-area-inset-bottom)))',
       }}
     >
       <div className="absolute inset-0 bg-black/75"></div>

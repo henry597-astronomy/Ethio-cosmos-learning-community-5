@@ -568,12 +568,12 @@ export default function ChatPage() {
         {activePostForComments && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 pb-20 sm:pb-4">
             <div className="bg-slate-900 border border-white/10 rounded-t-3xl sm:rounded-2xl w-full max-w-xl h-[85vh] sm:h-[75vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-              {/* Modal Header */}
-              <div className="px-5 py-4 bg-slate-950/80 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+              {/* Modal Header with Back Button */}
+              <div className="px-5 py-4 bg-slate-950/90 border-b border-white/10 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => { setActivePostForComments(null); setActiveCommentEmojiPicker(null); }}
-                    className="inline-flex items-center gap-1 text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                    className="inline-flex items-center gap-1 text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shadow-sm"
                     title="Back to Channel"
                   >
                     <span>←</span>
@@ -594,22 +594,67 @@ export default function ChatPage() {
                 </button>
               </div>
 
-              {/* Original Post Preview Snippet */}
-              <div className="px-5 py-3 bg-slate-800/50 border-b border-white/10 flex-shrink-0 text-xs text-gray-300 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-                  {activePostForComments.sender_name.charAt(0).toUpperCase()}
-                </div>
-                <div className="truncate flex-1">
-                  <span className="font-bold text-white mr-1.5">{activePostForComments.sender_name}:</span>
-                  <span className="text-gray-300">{activePostForComments.message_text || 'Photo attachment'}</span>
-                </div>
-              </div>
-
-              {/* Comments List */}
+              {/* Scrollable Thread Content: Original Post First, then Comments */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* 1. The Original Announcement Post at the Top */}
+                <div className="bg-slate-800/80 border border-blue-500/30 rounded-2xl p-4 shadow-lg space-y-3">
+                  <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                    {activePostForComments.sender_avatar ? (
+                      <img 
+                        src={activePostForComments.sender_avatar} 
+                        alt={activePostForComments.sender_name} 
+                        className="w-9 h-9 rounded-full border border-white/20 object-cover"
+                      />
+                    ) : (
+                      <div 
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                        style={{ backgroundColor: getNameColor(activePostForComments.user_id) }}
+                      >
+                        {activePostForComments.sender_name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white">
+                          {activePostForComments.sender_name}
+                        </span>
+                        <span className="text-[10px] bg-purple-500/30 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30 uppercase tracking-wider font-bold">
+                          Post Author
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-gray-400">
+                        {formatTime(activePostForComments.created_at)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {activePostForComments.message_text && (
+                    <p className="text-sm text-gray-100 whitespace-pre-wrap break-words leading-relaxed">
+                      {activePostForComments.message_text}
+                    </p>
+                  )}
+
+                  {activePostForComments.image_url && (
+                    <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                      <img 
+                        src={activePostForComments.image_url} 
+                        alt="Post Attachment" 
+                        className="w-full max-h-72 object-contain mx-auto"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-white/10 pt-3">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    Discussion ({activePostForComments.comments.length})
+                  </h4>
+                </div>
+
+                {/* 2. Comments List */}
                 {activePostForComments.comments.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500 text-xs italic">
-                    No comments yet. Start the conversation!
+                  <div className="text-center py-10 text-gray-500 text-xs italic bg-slate-900/40 rounded-xl border border-white/5 p-6">
+                    No comments yet. Be the first to reply!
                   </div>
                 ) : (
                   activePostForComments.comments.map((comment) => {

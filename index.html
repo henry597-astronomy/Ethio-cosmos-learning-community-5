@@ -12,21 +12,42 @@
       // Enhanced Service Worker Registration with Update Handling
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js').then((registration) => {
+          sessionStorage.removeItem('sw-reloaded');
+          navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((registration) => {
             console.log('[App] Service worker registered:', registration);
 
-            // Check for updates periodically
+            const activateWaitingWorker = () => {
+              if (registration.waiting) {
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+              }
+            };
+
+            // Check for new builds immediately and periodically in the background.
+            registration.update().catch((err) => {
+              console.error('[App] Failed to check for SW updates:', err);
+            });
             setInterval(() => {
               registration.update().catch((err) => {
                 console.error('[App] Failed to check for SW updates:', err);
               });
-            }, 60000); // Check every minute
+            }, 60000);
 
-            // Listen for controller change (new SW activated)
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (!newWorker) return;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed') {
+                  activateWaitingWorker();
+                }
+              });
+            });
+            activateWaitingWorker();
+
+            // Reload once when the new worker takes control so the latest assets load.
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-              console.log('[App] Service worker updated, page will refresh');
-              // Optionally refresh the page to load new assets
-              // window.location.reload();
+              if (sessionStorage.getItem('sw-reloaded') === '1') return;
+              sessionStorage.setItem('sw-reloaded', '1');
+              window.location.reload();
             });
 
             // Listen for messages from service worker

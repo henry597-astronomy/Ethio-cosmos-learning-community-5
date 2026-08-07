@@ -54,6 +54,7 @@
     min-height: 100vh;
     -webkit-overflow-scrolling: touch;
     touch-action: auto;
+    overscroll-behavior-y: none;
   }
 
   #root {
@@ -67,6 +68,7 @@
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     touch-action: auto;
+    overscroll-behavior-y: none;
   }
 }
 

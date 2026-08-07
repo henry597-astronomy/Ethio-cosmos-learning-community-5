@@ -82,6 +82,7 @@ export interface ChannelPost {
   message_text?: string | null;
   image_url?: string | null;
   created_at: string;
+  pinned_at?: string | null;
   sender_name: string;
   sender_email?: string;
   sender_avatar?: string;

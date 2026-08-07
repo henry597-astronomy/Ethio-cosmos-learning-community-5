@@ -4,7 +4,7 @@ import { useNotifications } from '@/context/NotificationContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Paperclip, Send, Trash2, MessageCircle, X, Smile, ExternalLink } from 'lucide-react';
+import { Paperclip, Send, Trash2, MessageCircle, X, Smile, ExternalLink, Pin } from 'lucide-react';
 import type { ChannelPost, ChannelReaction, ChannelComment, CommentReaction } from '@/types';
 import { extractYouTubeVideoId, getVideoType } from '@/lib/video-utils';
 
@@ -13,6 +13,7 @@ interface PostRow {
   message_text: string | null;
   image_url: string | null;
   created_at: string;
+  pinned_at: string | null;
   user_id: string;
   profiles?: { username?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null;
 }
@@ -133,7 +134,7 @@ export default function ChatPage() {
     try {
       const { data: postsData, error: postsError } = await supabase
         .from('channel_posts')
-        .select(`id, message_text, image_url, created_at, user_id, profiles ( username, email, avatar_url, role )`)
+        .select(`id, message_text, image_url, created_at, pinned_at, user_id, profiles ( username, email, avatar_url, role )`)
         .order('created_at', { ascending: true });
 
       if (postsError) {
@@ -192,6 +193,7 @@ export default function ChatPage() {
           message_text: row.message_text,
           image_url: row.image_url,
           created_at: row.created_at,
+          pinned_at: row.pinned_at,
           sender_name,
           sender_email: profile?.email ?? undefined,
           sender_avatar: profile?.avatar_url ?? undefined,
@@ -330,6 +332,22 @@ export default function ChatPage() {
     } catch (err) {
       console.error('Error deleting post:', err);
       setError('Failed to delete post.');
+    }
+  };
+
+  const togglePinPost = async (postId: string) => {
+    if (!isAdmin) return;
+
+    try {
+      const { error: pinError } = await supabase.rpc('toggle_channel_post_pin', {
+        target_post_id: postId,
+      });
+      if (pinError) throw pinError;
+      setError(null);
+      await fetchChannelData();
+    } catch (err) {
+      console.error('Error toggling channel post pin:', err);
+      setError('Failed to update the pinned post. Please try again.');
     }
   };
 
@@ -510,6 +528,22 @@ export default function ChatPage() {
         {/* Feed Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <div className="max-w-3xl mx-auto space-y-6 pb-12">
+            {posts.some(post => post.pinned_at) && (
+              <button
+                onClick={() => document.getElementById(`channel-post-${posts.find(post => post.pinned_at)?.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="w-full flex items-center gap-3 rounded-xl border border-blue-400/30 bg-blue-950/80 px-4 py-3 text-left shadow-lg backdrop-blur-md transition-colors hover:bg-blue-900/80"
+                title="Jump to pinned post"
+              >
+                <Pin className="h-4 w-4 flex-shrink-0 rotate-45 text-blue-300" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-blue-300">Pinned post</span>
+                  <span className="block truncate text-sm text-white">
+                    {posts.find(post => post.pinned_at)?.message_text || 'Pinned channel announcement'}
+                  </span>
+                </span>
+              </button>
+            )}
+
             {posts.length === 0 ? (
               <div className="text-center py-16 bg-slate-900/40 rounded-2xl border border-white/10 backdrop-blur-sm p-8">
                 <span className="text-4xl mb-3 block">📭</span>
@@ -526,9 +560,10 @@ export default function ChatPage() {
                 const isActualOwner = post.sender_email === 'henokgirma648@gmail.com';
 
                 return (
-                  <div 
+                  <div
+                    id={`channel-post-${post.id}`}
                     key={post.id}
-                    className="bg-slate-900/85 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl overflow-hidden"
+                    className={`bg-slate-900/85 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden scroll-mt-4 ${post.pinned_at ? 'border border-blue-400/50 shadow-blue-950/40' : 'border border-white/10'}`}
                   >
                     {/* Post Header */}
                     <div className="px-5 py-4 flex items-center justify-between border-b border-white/5">
@@ -558,21 +593,40 @@ export default function ChatPage() {
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-gray-400">
-                            {formatTime(post.created_at)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-gray-400">
+                              {formatTime(post.created_at)}
+                            </span>
+                            {post.pinned_at && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/30 bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-300">
+                                <Pin className="h-3 w-3 rotate-45" /> Pinned
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {isAdmin && (
-                        <button
-                          onClick={() => deletePost(post.id)}
-                          className="text-gray-400 hover:text-red-400 p-2 rounded-lg hover:bg-white/5 transition-colors"
-                          title="Delete post"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {isAdmin && (
+                          <button
+                            onClick={() => togglePinPost(post.id)}
+                            className={`p-2 rounded-lg transition-colors ${post.pinned_at ? 'text-blue-300 hover:bg-blue-500/15' : 'text-gray-400 hover:bg-white/5 hover:text-blue-300'}`}
+                            title={post.pinned_at ? 'Unpin post' : 'Pin post'}
+                            aria-label={post.pinned_at ? 'Unpin post' : 'Pin post'}
+                          >
+                            <Pin className={`h-4 w-4 ${post.pinned_at ? 'rotate-45' : ''}`} />
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => deletePost(post.id)}
+                            className="text-gray-400 hover:text-red-400 p-2 rounded-lg hover:bg-white/5 transition-colors"
+                            title="Delete post"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Post Content */}

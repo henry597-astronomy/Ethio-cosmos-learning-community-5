@@ -9,10 +9,12 @@ CREATE TABLE IF NOT EXISTS public.channel_posts (
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     message_text TEXT,
     image_url TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    pinned_at TIMESTAMP WITH TIME ZONE
 );
 
 ALTER TABLE public.channel_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.channel_posts ADD COLUMN IF NOT EXISTS pinned_at TIMESTAMP WITH TIME ZONE;
 
 DROP POLICY IF EXISTS "Public read channel posts" ON public.channel_posts;
 CREATE POLICY "Public read channel posts"
@@ -35,6 +37,45 @@ USING (
     user_id = auth.uid() OR
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "Admins update channel post pins" ON public.channel_posts;
+CREATE POLICY "Admins update channel post pins"
+ON public.channel_posts FOR UPDATE
+TO authenticated
+USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Keep pin/unpin atomic so only one channel post is pinned at a time.
+CREATE OR REPLACE FUNCTION public.toggle_channel_post_pin(target_post_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    target_is_pinned BOOLEAN;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') THEN
+        RAISE EXCEPTION 'Only administrators can pin channel posts';
+    END IF;
+
+    SELECT (pinned_at IS NOT NULL)
+    INTO target_is_pinned
+    FROM public.channel_posts
+    WHERE id = target_post_id;
+
+    IF target_is_pinned IS NULL THEN
+        RAISE EXCEPTION 'Channel post not found';
+    ELSIF target_is_pinned THEN
+        UPDATE public.channel_posts SET pinned_at = NULL WHERE id = target_post_id;
+    ELSE
+        UPDATE public.channel_posts SET pinned_at = NULL WHERE pinned_at IS NOT NULL;
+        UPDATE public.channel_posts SET pinned_at = NOW() WHERE id = target_post_id;
+    END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.toggle_channel_post_pin(UUID) TO authenticated;
 
 
 -- 2. Channel Reactions Table (Post reactions)

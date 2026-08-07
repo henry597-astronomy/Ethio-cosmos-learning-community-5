@@ -680,13 +680,13 @@ export default function Navbar() {
       {/* Second Fixed Navbar (Below Top Navbar) */}
       <div className="bg-slate-950/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center h-12">
+          <div className="flex items-center justify-center h-10">
             <div className="flex items-center gap-4 sm:gap-8 overflow-x-auto no-scrollbar">
               {publicNavLinks.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`relative px-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive(link.path)
                       ? 'text-orange-500'
                       : 'text-gray-400 hover:text-white'
@@ -702,7 +702,7 @@ export default function Navbar() {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`relative px-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive(link.path)
                       ? 'text-orange-500'
                       : 'text-gray-400 hover:text-white'

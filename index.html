@@ -69,6 +69,42 @@
         });
       }
 
+      // Prevent accidental pull-to-refresh only when the app is already at the top.
+      // Normal scrolling inside pages and scrollable panels remains unaffected.
+      let pullStartY = 0;
+      let pullStartX = 0;
+      document.addEventListener('touchstart', function (event) {
+        if (event.touches.length === 1) {
+          pullStartY = event.touches[0].clientY;
+          pullStartX = event.touches[0].clientX;
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchmove', function (event) {
+        if (event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        const deltaY = touch.clientY - pullStartY;
+        const deltaX = touch.clientX - pullStartX;
+        if (deltaY <= 8 || deltaY <= Math.abs(deltaX)) return;
+
+        let element = event.target instanceof Element ? event.target : null;
+        let scrollableCanMoveUp = false;
+        while (element && element !== document.body) {
+          const styles = window.getComputedStyle(element);
+          const canScroll = /(auto|scroll)/.test(styles.overflowY) && element.scrollHeight > element.clientHeight;
+          if (canScroll && element.scrollTop > 0) {
+            scrollableCanMoveUp = true;
+            break;
+          }
+          element = element.parentElement;
+        }
+
+        const pageAtTop = (document.scrollingElement?.scrollTop ?? window.scrollY) <= 0;
+        if (pageAtTop && !scrollableCanMoveUp && event.cancelable) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+
       // Prevent multi-touch zoom while allowing single-touch scrolling
       document.addEventListener('touchstart', function (event) {
         if (event.touches.length > 1) {

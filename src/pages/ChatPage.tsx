@@ -4,7 +4,7 @@ import { useNotifications } from '@/context/NotificationContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Paperclip, Send, Trash2, MessageCircle, Sparkles } from 'lucide-react';
+import { Paperclip, Send, Trash2, MessageCircle } from 'lucide-react';
 import type { ChannelPost, ChannelReaction, ChannelComment } from '@/types';
 
 interface PostRow {
@@ -15,8 +15,6 @@ interface PostRow {
   user_id: string;
   profiles?: { username?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null;
 }
-
-
 
 interface CommentRow {
   id: string;
@@ -51,15 +49,12 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const postsEndRef = useRef<HTMLDivElement>(null);
 
-
-
   useEffect(() => {
     if (!user) return;
     resetUnreadCount();
 
     const fetchChannelData = async () => {
       try {
-        // Fetch posts with profiles
         const { data: postsData, error: postsError } = await supabase
           .from('channel_posts')
           .select(`id, message_text, image_url, created_at, user_id, profiles ( username, email, avatar_url, role )`)
@@ -67,16 +62,14 @@ export default function ChatPage() {
 
         if (postsError) {
           console.error('Error fetching channel posts:', postsError);
-          setError('Channel tables not initialized yet. Please run the migration or contact admin.');
+          setError('Channel tables not initialized yet. Please run migration `supabase/telegram_channel_setup.sql`.');
           return;
         }
 
-        // Fetch reactions
         const { data: reactionsData } = await supabase
           .from('channel_reactions')
           .select('*');
 
-        // Fetch comments with profiles
         const { data: commentsData } = await supabase
           .from('channel_comments')
           .select(`id, post_id, user_id, content, created_at, profiles ( username, email, avatar_url, role )`)
@@ -133,29 +126,22 @@ export default function ChatPage() {
 
     fetchChannelData();
 
-    // Setup real-time subscriptions for posts, reactions, comments
     const channel = supabase
       .channel('telegram-channel-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channel_posts' },
-        async () => {
-          fetchChannelData();
-        }
+        async () => { fetchChannelData(); }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channel_reactions' },
-        async () => {
-          fetchChannelData();
-        }
+        async () => { fetchChannelData(); }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channel_comments' },
-        async () => {
-          fetchChannelData();
-        }
+        async () => { fetchChannelData(); }
       )
       .subscribe();
 
@@ -239,22 +225,13 @@ export default function ChatPage() {
 
     try {
       if (existingReaction) {
-        // Remove reaction
-        const { error } = await supabase
-          .from('channel_reactions')
-          .delete()
-          .eq('id', existingReaction.id);
-        if (error) throw error;
+        await supabase.from('channel_reactions').delete().eq('id', existingReaction.id);
       } else {
-        // Add reaction
-        const { error } = await supabase
-          .from('channel_reactions')
-          .insert({
-            post_id: postId,
-            user_id: user.id,
-            emoji,
-          });
-        if (error) throw error;
+        await supabase.from('channel_reactions').insert({
+          post_id: postId,
+          user_id: user.id,
+          emoji,
+        });
       }
     } catch (err) {
       console.error('Error toggling reaction:', err);
@@ -275,7 +252,6 @@ export default function ChatPage() {
           content,
         });
       if (error) throw error;
-
       setActiveCommentInput(prev => ({ ...prev, [postId]: '' }));
     } catch (err) {
       console.error('Error adding comment:', err);
@@ -288,11 +264,7 @@ export default function ChatPage() {
   const deleteComment = async (commentId: string) => {
     if (!user) return;
     try {
-      const { error } = await supabase
-        .from('channel_comments')
-        .delete()
-        .eq('id', commentId);
-      if (error) throw error;
+      await supabase.from('channel_comments').delete().eq('id', commentId);
     } catch (err) {
       console.error('Error deleting comment:', err);
     }
@@ -317,63 +289,43 @@ export default function ChatPage() {
         bottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))',
       }}
     >
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/70"></div>
+      <div className="absolute inset-0 bg-black/75"></div>
 
-      {/* Content wrapper */}
       <div className="relative z-10 flex flex-col h-full">
-        {/* Telegram Channel Header */}
+        {/* Clean Channel Header */}
         <div className="bg-slate-900/90 backdrop-blur-md border-b border-white/10 px-4 py-3 flex-shrink-0 shadow-lg">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/30">
+              <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">
                 🌌
               </div>
               <div>
-                <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                  Ethio-Cosmos Channel
-                  <span className="text-[10px] bg-blue-500/30 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/40">
-                    Official
-                  </span>
-                </h1>
-                <p className="text-xs text-gray-400">
-                  {isAdmin ? '📢 Admin Broadcast Mode' : '👀 Read-only channel • React & Comment'}
-                </p>
+                <h1 className="text-base font-bold text-white">Ethio-Cosmos Channel</h1>
+                <p className="text-xs text-gray-400">Community Announcements</p>
               </div>
-            </div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-semibold border border-purple-500/30">
-              <Sparkles className="w-3.5 h-3.5 animate-spin" />
-              Telegram Style
             </div>
           </div>
         </div>
 
-        {/* Error notice */}
         {error && (
           <div className="bg-red-500/20 border-b border-red-500/50 px-4 py-2 text-red-400 text-xs text-center flex-shrink-0">
-            {error} (Make sure migration `supabase/telegram_channel_setup.sql` has been executed in Supabase).
+            {error}
           </div>
         )}
 
-        {/* Admin Post Composer (Only visible to Admins) */}
+        {/* Admin Composer */}
         {isAdmin && (
           <div className="bg-slate-900/95 border-b border-white/10 p-4 flex-shrink-0">
             <div className="max-w-3xl mx-auto space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">
-                  Create Channel Broadcast
-                </span>
-                <span className="text-xs text-gray-400">Only Admins can post</span>
-              </div>
               <textarea
                 value={newPostText}
                 onChange={(e) => setNewPostText(e.target.value)}
-                placeholder="Broadcast a new announcement, space update, or lesson..."
+                placeholder="Write a channel post..."
                 rows={3}
                 className="w-full bg-slate-800/80 border border-white/10 rounded-xl p-3 text-white placeholder:text-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
@@ -396,14 +348,14 @@ export default function ChatPage() {
                   className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 py-2 text-xs font-bold shadow-md shadow-blue-600/30 transition-all"
                 >
                   <Send className="w-3.5 h-3.5 mr-1.5" />
-                  Publish Post
+                  Post
                 </Button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Feed area */}
+        {/* Feed Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <div className="max-w-3xl mx-auto space-y-6 pb-12">
             {posts.length === 0 ? (
@@ -412,8 +364,8 @@ export default function ChatPage() {
                 <h3 className="text-white font-semibold text-base mb-1">No channel posts yet</h3>
                 <p className="text-gray-400 text-xs max-w-md mx-auto">
                   {isAdmin 
-                    ? 'Use the broadcast box above to publish the first announcement for your community!' 
-                    : 'Administrators have not posted any announcements yet. Check back soon!'}
+                    ? 'Use the box above to publish your first post!' 
+                    : 'Administrators have not posted any updates yet.'}
                 </p>
               </div>
             ) : (
@@ -424,7 +376,7 @@ export default function ChatPage() {
                 return (
                   <div 
                     key={post.id}
-                    className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl overflow-hidden"
+                    className="bg-slate-900/85 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl overflow-hidden"
                   >
                     {/* Post Header */}
                     <div className="px-5 py-4 flex items-center justify-between border-b border-white/5">
@@ -483,7 +435,7 @@ export default function ChatPage() {
                         <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40">
                           <img 
                             src={post.image_url} 
-                            alt="Channel broadcast attachment" 
+                            alt="Attachment" 
                             className="w-full max-h-96 object-contain mx-auto"
                           />
                         </div>
@@ -492,7 +444,6 @@ export default function ChatPage() {
 
                     {/* Reactions Bar */}
                     <div className="px-5 py-3 bg-slate-950/40 border-t border-white/5 flex flex-wrap items-center gap-2">
-                      <span className="text-xs text-gray-400 mr-1 font-medium">Reactions:</span>
                       {AVAILABLE_EMOJIS.map((emoji) => {
                         const reactionsForEmoji = post.reactions.filter(r => r.emoji === emoji);
                         const count = reactionsForEmoji.length;
@@ -522,10 +473,9 @@ export default function ChatPage() {
                         Comments ({post.comments.length})
                       </div>
 
-                      {/* Comment list */}
                       <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                         {post.comments.length === 0 ? (
-                          <p className="text-xs text-gray-500 italic py-1">No comments yet. Be the first to comment!</p>
+                          <p className="text-xs text-gray-500 italic py-1">No comments yet.</p>
                         ) : (
                           post.comments.map((comment) => {
                             const isCommentAuthor = comment.user_id === user.id;
@@ -580,7 +530,6 @@ export default function ChatPage() {
                         )}
                       </div>
 
-                      {/* Add comment input */}
                       <div className="flex items-center gap-2 pt-1">
                         <Input
                           value={activeCommentInput[post.id] || ''}

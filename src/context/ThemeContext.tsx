@@ -10,13 +10,32 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const DEFAULT_THEME: Theme = 'gradient-aurora';
+const THEMES: readonly Theme[] = [
+  'dark', 'light', 'orange', 'green', 'purple', 'blue', 'red', 'cyan', 'gold', 'rose',
+  'indigo', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow',
+];
+
+const readSavedTheme = (): Theme => {
+  try {
+    const savedTheme = localStorage.getItem('ethio_cosmos_theme');
+    return savedTheme && THEMES.includes(savedTheme as Theme)
+      ? (savedTheme as Theme)
+      : DEFAULT_THEME;
+  } catch {
+    return DEFAULT_THEME;
+  }
+};
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    return (localStorage.getItem('ethio_cosmos_theme') as Theme) || 'dark';
-  });
+  const [theme, setThemeState] = useState<Theme>(readSavedTheme);
 
   useEffect(() => {
-    localStorage.setItem('ethio_cosmos_theme', theme);
+    try {
+      localStorage.setItem('ethio_cosmos_theme', theme);
+    } catch {
+      // Continue rendering when storage is unavailable in private/offline contexts.
+    }
     const root = document.documentElement;
     root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'dark');
     if (theme === 'light') {

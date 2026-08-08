@@ -7,7 +7,7 @@
 // 4. Network-first for API calls with cache fallback
 // 5. Cache-first for static assets with network refresh
 
-const CACHE_VERSION = 'v14';
+const CACHE_VERSION = 'v15';
 const STATIC_CACHE = `ethio-cosmos-static-${CACHE_VERSION}`;
 const API_CACHE = `ethio-cosmos-api-${CACHE_VERSION}`;
 const IMAGE_CACHE = `ethio-cosmos-images-${CACHE_VERSION}`;
@@ -49,6 +49,25 @@ const STATIC_ASSETS = [
   './images/icon-192.png',
   './images/icon-512.png',
 ];
+
+// Discover hashed Vite bundles from the current HTML so new builds boot offline.
+async function getBuildAssets() {
+  try {
+    const response = await fetch('./index.html', { cache: 'no-store' });
+    if (!response.ok) return [];
+    const html = await response.text();
+    const assets = [];
+    const pattern = /(?:src|href)=["']([^"']+\/assets\/[^"']+)["']/g;
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      assets.push(match[1]);
+    }
+    return [...new Set(assets)];
+  } catch (error) {
+    console.warn('[SW] Could not discover build assets:', error);
+    return [];
+  }
+}
 
 // Origins that must NEVER be intercepted (auth, OAuth)
 const BYPASS_ORIGINS = [
@@ -93,8 +112,16 @@ self.addEventListener('install', (event) => {
   
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
-      console.log('[SW] Caching static assets...');
-      return cache.addAll(STATIC_ASSETS);
+      console.log('[SW] Caching static assets and current build bundles...');
+      return getBuildAssets().then((buildAssets) => {
+        const assetsToCache = [...new Set([...STATIC_ASSETS, ...buildAssets])];
+        return Promise.allSettled(assetsToCache.map((asset) => cache.add(asset))).then((results) => {
+          const failed = results.filter((result) => result.status === 'rejected').length;
+          if (failed > 0) {
+            console.warn(`[SW] ${failed} optional assets were not cached during install`);
+          }
+        });
+      });
     }).then(() => {
       console.log('[SW] Static assets cached successfully');
       // Trigger background prefetch after install

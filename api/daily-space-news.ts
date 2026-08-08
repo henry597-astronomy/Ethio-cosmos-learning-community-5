@@ -8,7 +8,6 @@ type NasaApod = {
   url?: string;
   hdurl?: string;
   media_type?: string;
-  service_version?: string;
 };
 
 type DraftContent = {
@@ -41,18 +40,15 @@ async function createStudentDraft(apod: NasaApod): Promise<{ draft: DraftContent
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-        temperature: 0.2,
+        temperature: 0.1,
         response_format: { type: 'json_object' },
         messages: [
           {
             role: 'system',
-            content: 'You are a careful astronomy educator. Rewrite only the supplied NASA text for Ethiopian high-school students in simple English. Do not add facts not supported by the source. Return JSON with title, summary, full_explanation, and fun_fact. Do not include source links or image URLs.',
+            content: 'You are a careful astronomy educator. Rewrite only the supplied NASA text for students in simple English. Do not add facts, dates, names, measurements, claims, source links, or image URLs that are not explicitly supported by the source. Return JSON with title, summary, full_explanation, and fun_fact. Keep the fun_fact as a direct, clearly supported statement from the source.',
           },
           {
             role: 'user',
@@ -83,14 +79,30 @@ async function createStudentDraft(apod: NasaApod): Promise<{ draft: DraftContent
   }
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET' && req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+function dateDaysAgo(days: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}
+
+async function fetchApod(date: string, nasaKey: string): Promise<NasaApod | null> {
+  const request = async (key: string) => fetch(`https://api.nasa.gov/planetary/apod?api_key=${encodeURIComponent(key)}&date=${date}`);
+  let response = await request(nasaKey);
+  if (response.status === 401 || response.status === 403) {
+    response = await request('DEMO_KEY');
   }
+  if (response.status === 404 || response.status === 400) return null;
+  if (!response.ok) throw new Error(`NASA request failed with ${response.status}`);
+  const apod = await response.json() as NasaApod;
+  if (apod.media_type !== 'image' || !apod.date || !apod.explanation || !apod.title || !apod.url) return null;
+  return apod;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const cronSecret = process.env.CRON_SECRET;
-  const authorization = req.headers.authorization;
-  if (!cronSecret || authorization !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -98,36 +110,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!nasaKey || !supabaseUrl || !serviceRoleKey) {
-    console.error('[daily-space-news] Missing NASA_API_KEY, VITE_SUPABASE_URL, or SUPABASE_SERVICE_ROLE_KEY');
+    console.error('[daily-space-news] Missing server configuration');
     return res.status(500).json({ error: 'Server configuration is incomplete' });
   }
 
   try {
-    const nasaUrl = (key: string) => `https://api.nasa.gov/planetary/apod?api_key=${encodeURIComponent(key)}`;
-    let nasaResponse = await fetch(nasaUrl(nasaKey));
-    // If the configured key is rejected, retry with NASA's documented public fallback
-    // so the daily feed remains available while the private key is corrected.
-    if (nasaResponse.status === 401 || nasaResponse.status === 403) {
-      nasaResponse = await fetch(nasaUrl('DEMO_KEY'));
-    }
-    if (!nasaResponse.ok) throw new Error(`NASA request failed with ${nasaResponse.status}`);
-    const apod = await nasaResponse.json() as NasaApod;
-    if (apod.media_type !== 'image' || !apod.date || !apod.explanation || !apod.title || !apod.url) {
-      return res.status(422).json({ error: 'NASA returned an unusable astronomy item' });
-    }
-
     const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-    const externalId = `nasa-apod-${apod.date}`;
-    const { data: existing, error: existingError } = await supabase
-      .from('space_news')
-      .select('id')
-      .eq('external_id', externalId)
-      .limit(1)
-      .maybeSingle();
-    if (existingError) throw existingError;
-    if (existing) return res.status(200).json({ ok: true, skipped: true, reason: 'already_exists' });
+    let selected: NasaApod | null = null;
+    let externalId = '';
 
-    const { draft, aiGenerated } = await createStudentDraft(apod);
+    // Search recent official NASA APOD entries until we find an unseen image.
+    // This lets the two-hour schedule backfill a verified pool without duplicates.
+    for (let daysAgo = 0; daysAgo < 14; daysAgo += 1) {
+      const apod = await fetchApod(dateDaysAgo(daysAgo), nasaKey);
+      if (!apod?.date) continue;
+      const candidateId = `nasa-apod-${apod.date}`;
+      const { data: existing, error: existingError } = await supabase
+        .from('space_news')
+        .select('id')
+        .eq('external_id', candidateId)
+        .limit(1)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (!existing) {
+        selected = apod;
+        externalId = candidateId;
+        break;
+      }
+    }
+
+    if (!selected || !externalId) {
+      return res.status(200).json({ ok: true, skipped: true, reason: 'no_new_verified_nasa_item' });
+    }
+
+    const { draft, aiGenerated } = await createStudentDraft(selected);
+    const sourceDate = selected.date as string;
     const { data, error } = await supabase
       .from('space_news')
       .insert({
@@ -136,20 +153,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         summary: draft.summary,
         full_explanation: draft.full_explanation,
         fun_fact: draft.fun_fact,
-        image_url: apod.hdurl || apod.url,
+        image_url: selected.hdurl || selected.url,
         source_name: 'NASA APOD',
-        source_url: `https://apod.nasa.gov/apod/ap${apod.date.replaceAll('-', '').slice(2)}.html`,
+        source_url: `https://apod.nasa.gov/apod/ap${sourceDate.replaceAll('-', '').slice(2)}.html`,
         category: 'Astronomy',
-        published_date: `${apod.date}T00:00:00.000Z`,
+        published_date: new Date().toISOString(),
         ai_generated: aiGenerated,
-        status: 'draft',
+        status: 'published',
       })
       .select('id, external_id, status')
       .limit(1)
       .single();
     if (error) throw error;
 
-    return res.status(201).json({ ok: true, item: data, status: 'draft', aiGenerated });
+    return res.status(201).json({ ok: true, item: data, status: 'published', aiGenerated });
   } catch (error) {
     console.error('[daily-space-news] pipeline failed:', error);
     return res.status(500).json({ error: 'Daily space-news pipeline failed' });

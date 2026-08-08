@@ -1,6 +1,6 @@
 {
   "crons": [
-    { "path": "/api/daily-space-news", "schedule": "0 6 * * *" }
+    { "path": "/api/daily-space-news", "schedule": "0 */2 * * *" }
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },

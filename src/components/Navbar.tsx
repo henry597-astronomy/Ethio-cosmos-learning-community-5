@@ -378,7 +378,7 @@ export default function Navbar() {
                                 <span>Themes</span>
                               </div>
                               <span className="text-xs text-orange-400 font-medium bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20 flex items-center gap-1">
-                                {theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : theme === 'orange' ? 'Orange' : theme === 'green' ? 'Green' : theme === 'purple' ? 'Purple' : theme === 'blue' ? 'Blue' : theme === 'red' ? 'Red' : theme === 'cyan' ? 'Cyan' : theme === 'gold' ? 'Gold' : theme === 'rose' ? 'Rose' : theme === 'indigo' ? 'Indigo' : theme === 'gradient-cosmos' ? 'Cosmic Nebula' : theme === 'gradient-aurora' ? 'Aurora' : theme === 'gradient-sunset' ? 'Sunset Glow' : theme === 'gradient-emerald' ? 'Emerald Twilight' : theme === 'gradient-rainbow' ? 'Rainbow Glow' : theme === 'gradient-ocean' ? 'Deep Ocean' : theme === 'gradient-forest' ? 'Enchanted Forest' : theme === 'gradient-fire' ? 'Phoenix Fire' : theme === 'gradient-mystic' ? 'Mystic Purple' : theme === 'gradient-sakura' ? 'Sakura Dream' : theme === 'gradient-desert' ? 'Desert Mirage' : theme === 'gradient-arctic' ? 'Arctic Glass' : theme === 'gradient-twilight' ? 'Twilight Bloom' : theme === 'gradient-rose-gold' ? 'Rose Gold' : theme === 'gradient-celestial' ? 'Celestial Light' : 'Theme'} {themeDropdownOpen ? '▲' : '▼'}
+                                {theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : theme === 'gradient-cosmos' ? 'Cosmic Nebula' : theme === 'gradient-aurora' ? 'Aurora' : theme === 'gradient-sunset' ? 'Sunset Glow' : theme === 'gradient-emerald' ? 'Emerald Twilight' : theme === 'gradient-rainbow' ? 'Rainbow Glow' : theme === 'gradient-ocean' ? 'Deep Ocean' : theme === 'gradient-forest' ? 'Enchanted Forest' : theme === 'gradient-fire' ? 'Phoenix Fire' : theme === 'gradient-mystic' ? 'Mystic Purple' : theme === 'gradient-sakura' ? 'Sakura Dream' : theme === 'gradient-desert' ? 'Desert Mirage' : theme === 'gradient-arctic' ? 'Arctic Glass' : theme === 'gradient-twilight' ? 'Twilight Bloom' : theme === 'gradient-rose-gold' ? 'Rose Gold' : theme === 'gradient-celestial' ? 'Celestial Light' : 'Theme'} {themeDropdownOpen ? '▲' : '▼'}
                               </span>
                             </button>
 
@@ -403,35 +403,6 @@ export default function Navbar() {
                                   >
                                     <span className="flex items-center gap-2">{t.icon} {t.label}</span>
                                     {theme === t.id && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                  </button>
-                                ))}
-
-                                {/* Color Themes */}
-                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">Color Themes</div>
-                                {[
-                                  { id: 'orange', label: 'Orange', color: 'bg-orange-500', activeBg: 'bg-orange-600/30', activeText: 'text-orange-300', activeBorder: 'border-orange-500/50', activeBadge: 'bg-orange-600' },
-                                  { id: 'green', label: 'Green', color: 'bg-green-500', activeBg: 'bg-green-600/30', activeText: 'text-green-300', activeBorder: 'border-green-500/50', activeBadge: 'bg-green-600' },
-                                  { id: 'purple', label: 'Purple', color: 'bg-purple-500', activeBg: 'bg-purple-600/30', activeText: 'text-purple-300', activeBorder: 'border-purple-500/50', activeBadge: 'bg-purple-600' },
-                                  { id: 'blue', label: 'Blue', color: 'bg-blue-500', activeBg: 'bg-blue-600/30', activeText: 'text-blue-300', activeBorder: 'border-blue-500/50', activeBadge: 'bg-blue-600' },
-                                  { id: 'red', label: 'Red', color: 'bg-red-500', activeBg: 'bg-red-600/30', activeText: 'text-red-300', activeBorder: 'border-red-500/50', activeBadge: 'bg-red-600' },
-                                  { id: 'cyan', label: 'Cyan', color: 'bg-cyan-400', activeBg: 'bg-cyan-600/30', activeText: 'text-cyan-300', activeBorder: 'border-cyan-500/50', activeBadge: 'bg-cyan-600' },
-                                  { id: 'gold', label: 'Gold', color: 'bg-yellow-400', activeBg: 'bg-yellow-600/30', activeText: 'text-yellow-300', activeBorder: 'border-yellow-500/50', activeBadge: 'bg-yellow-600' },
-                                  { id: 'rose', label: 'Rose', color: 'bg-rose-400', activeBg: 'bg-rose-600/30', activeText: 'text-rose-300', activeBorder: 'border-rose-500/50', activeBadge: 'bg-rose-600' },
-                                  { id: 'indigo', label: 'Indigo', color: 'bg-indigo-400', activeBg: 'bg-indigo-600/30', activeText: 'text-indigo-300', activeBorder: 'border-indigo-500/50', activeBadge: 'bg-indigo-600' }
-                                ].map((t) => (
-                                  <button
-                                    key={t.id}
-                                    onClick={() => {
-                                      setTheme(t.id as any);
-                                      setThemeDropdownOpen(false);
-                                      
-                                    }}
-                                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                      theme === t.id ? `${t.activeBg} ${t.activeText} font-bold border ${t.activeBorder}` : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                    }`}
-                                  >
-                                    <span className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${t.color} inline-block`}></span> {t.label}</span>
-                                    {theme === t.id && <span className={`text-[10px] ${t.activeBadge} text-white px-1.5 py-0.5 rounded`}>Active</span>}
                                   </button>
                                 ))}
 

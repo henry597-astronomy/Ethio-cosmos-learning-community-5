@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
-type Theme = 'dark' | 'light' | 'orange' | 'green' | 'purple' | 'blue' | 'red' | 'cyan' | 'gold' | 'rose' | 'indigo' | 'gradient-cosmos' | 'gradient-aurora' | 'gradient-sunset' | 'gradient-emerald' | 'gradient-rainbow' | 'gradient-ocean' | 'gradient-forest' | 'gradient-fire' | 'gradient-mystic' | 'gradient-sakura' | 'gradient-desert' | 'gradient-arctic' | 'gradient-twilight' | 'gradient-rose-gold' | 'gradient-celestial';
+type Theme = 'dark' | 'light' | 'gradient-cosmos' | 'gradient-aurora' | 'gradient-sunset' | 'gradient-emerald' | 'gradient-rainbow' | 'gradient-ocean' | 'gradient-forest' | 'gradient-fire' | 'gradient-mystic' | 'gradient-sakura' | 'gradient-desert' | 'gradient-arctic' | 'gradient-twilight' | 'gradient-rose-gold' | 'gradient-celestial';
 
 interface ThemeContextType {
   theme: Theme;
@@ -12,8 +12,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const DEFAULT_THEME: Theme = 'gradient-aurora';
 const THEMES: readonly Theme[] = [
-  'dark', 'light', 'orange', 'green', 'purple', 'blue', 'red', 'cyan', 'gold', 'rose',
-  'indigo', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow',
+  'dark', 'light', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow',
   'gradient-ocean', 'gradient-forest', 'gradient-fire', 'gradient-mystic', 'gradient-sakura', 'gradient-desert', 'gradient-arctic', 'gradient-twilight', 'gradient-rose-gold', 'gradient-celestial',
 ];
 
@@ -38,28 +37,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // Continue rendering when storage is unavailable in private/offline contexts.
     }
     const root = document.documentElement;
-    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow', 'gradient-ocean', 'gradient-forest', 'gradient-fire', 'gradient-mystic', 'gradient-sakura', 'gradient-desert', 'gradient-arctic', 'gradient-twilight', 'gradient-rose-gold', 'gradient-celestial', 'dark');
-    if (theme === 'light') {
-      root.classList.add('light-theme');
-    } else if (theme === 'orange') {
-      root.classList.add('orange-theme');
-    } else if (theme === 'green') {
-      root.classList.add('green-theme');
-    } else if (theme === 'purple') {
-      root.classList.add('purple-theme');
-    } else if (theme === 'blue') {
-      root.classList.add('blue-theme');
-    } else if (theme === 'red') {
-      root.classList.add('red-theme');
-    } else if (theme === 'cyan') {
-      root.classList.add('cyan-theme');
-    } else if (theme === 'gold') {
-      root.classList.add('gold-theme');
-    } else if (theme === 'rose') {
-      root.classList.add('rose-theme');
-    } else if (theme === 'indigo') {
-      root.classList.add('indigo-theme');
-    } else if (theme === 'gradient-cosmos') {
+    root.classList.remove('gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow', 'gradient-ocean', 'gradient-forest', 'gradient-fire', 'gradient-mystic', 'gradient-sakura', 'gradient-desert', 'gradient-arctic', 'gradient-twilight', 'gradient-rose-gold', 'gradient-celestial', 'dark');
+    if (theme === 'gradient-cosmos') {
       root.classList.add('gradient-cosmos');
     } else if (theme === 'gradient-aurora') {
       root.classList.add('gradient-aurora');

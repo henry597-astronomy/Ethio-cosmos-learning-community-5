@@ -1320,3 +1320,18 @@ html {
 .gradient-twilight .text-gray-300, .gradient-twilight .text-gray-400, .gradient-twilight .text-gray-500,
 .gradient-rose-gold .text-gray-300, .gradient-rose-gold .text-gray-400, .gradient-rose-gold .text-gray-500,
 .gradient-celestial .text-gray-300, .gradient-celestial .text-gray-400, .gradient-celestial .text-gray-500 { color: rgba(255, 255, 255, 0.78) !important; }
+
+/* Ensure the homepage's opaque sections reveal the selected gradient theme. */
+.gradient-sakura section[class*="bg-[#0a0e1a]"], .gradient-sakura [class*="bg-[#0a0e1a]"] { background: linear-gradient(135deg, rgba(74,25,66,.94), rgba(192,108,132,.82), rgba(248,177,149,.72)) !important; }
+.gradient-desert section[class*="bg-[#0a0e1a]"], .gradient-desert [class*="bg-[#0a0e1a]"] { background: linear-gradient(135deg, rgba(69,26,3,.94), rgba(194,65,12,.82), rgba(251,191,36,.72)) !important; }
+.gradient-arctic section[class*="bg-[#0a0e1a]"], .gradient-arctic [class*="bg-[#0a0e1a]"] { background: linear-gradient(135deg, rgba(8,47,73,.94), rgba(14,116,144,.82), rgba(165,243,252,.72)) !important; }
+.gradient-twilight section[class*="bg-[#0a0e1a]"], .gradient-twilight [class*="bg-[#0a0e1a]"] { background: linear-gradient(135deg, rgba(23,37,84,.94), rgba(126,34,206,.82), rgba(240,171,252,.72)) !important; }
+.gradient-rose-gold section[class*="bg-[#0a0e1a]"], .gradient-rose-gold [class*="bg-[#0a0e1a]"] { background: linear-gradient(135deg, rgba(76,5,25,.94), rgba(190,18,60,.82), rgba(253,164,175,.72)) !important; }
+.gradient-celestial section[class*="bg-[#0a0e1a]"], .gradient-celestial [class*="bg-[#0a0e1a]"] { background: linear-gradient(135deg, rgba(23,37,84,.94), rgba(37,99,235,.82), rgba(196,181,253,.72)) !important; }
+.gradient-sakura [class*="bg-black/40"], .gradient-desert [class*="bg-black/40"], .gradient-arctic [class*="bg-black/40"], .gradient-twilight [class*="bg-black/40"], .gradient-rose-gold [class*="bg-black/40"], .gradient-celestial [class*="bg-black/40"] { background: rgba(15,23,42,.18) !important; }
+.gradient-sakura [class*="bg-[#151c2c]"], .gradient-desert [class*="bg-[#151c2c]"], .gradient-arctic [class*="bg-[#151c2c]"], .gradient-twilight [class*="bg-[#151c2c]"], .gradient-rose-gold [class*="bg-[#151c2c]"], .gradient-celestial [class*="bg-[#151c2c]"] { background: rgba(15,23,42,.48) !important; backdrop-filter: blur(14px); }
+.gradient-sakura [class*="bg-[#0b1222]"], .gradient-desert [class*="bg-[#0b1222]"], .gradient-arctic [class*="bg-[#0b1222]"], .gradient-twilight [class*="bg-[#0b1222]"], .gradient-rose-gold [class*="bg-[#0b1222]"], .gradient-celestial [class*="bg-[#0b1222]"] { background: rgba(15,23,42,.62) !important; }
+.gradient-sakura [class*="bg-black/40"], .gradient-desert [class*="bg-black/40"], .gradient-arctic [class*="bg-black/40"], .gradient-twilight [class*="bg-black/40"], .gradient-rose-gold [class*="bg-black/40"], .gradient-celestial [class*="bg-black/40"] { background: rgba(15,23,42,.18) !important; }
+.gradient-sakura, .gradient-desert, .gradient-arctic, .gradient-twilight, .gradient-rose-gold, .gradient-celestial { isolation: isolate; }
+.gradient-sakura h1, .gradient-sakura h2, .gradient-sakura h3, .gradient-desert h1, .gradient-desert h2, .gradient-desert h3, .gradient-arctic h1, .gradient-arctic h2, .gradient-arctic h3, .gradient-twilight h1, .gradient-twilight h2, .gradient-twilight h3, .gradient-rose-gold h1, .gradient-rose-gold h2, .gradient-rose-gold h3, .gradient-celestial h1, .gradient-celestial h2, .gradient-celestial h3 { color: rgba(255,255,255,.96) !important; }
+

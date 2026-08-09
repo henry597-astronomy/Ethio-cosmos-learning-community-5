@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon } from 'lucide-react';
+import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon, Menu } from 'lucide-react';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import {
   Sheet,
@@ -35,7 +35,7 @@ export default function Navbar() {
   const { unreadCount } = useNotifications();
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
-
+  const [navDropdownOpen, setNavDropdownOpen] = useState(false);
   const { theme } = useTheme();
 
   // Offline and Prefetch State
@@ -292,8 +292,58 @@ export default function Navbar() {
                           )}
                         </div>
 
-                        {/* Navigation Links */}
+                        {/* Navigation Section */}
                         <div className="py-2">
+                          {/* Navigation Collapsible */}
+                          <div className="px-4 py-3 border-b border-white/5">
+                            <button
+                              onClick={() => setNavDropdownOpen(!navDropdownOpen)}
+                              className="w-full flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors py-1"
+                            >
+                              <div className="flex items-center gap-3">
+                                <Menu size={18} className="text-orange-400" />
+                                <span className="font-bold">Navigation</span>
+                              </div>
+                              <span className="text-xs text-orange-400 font-medium bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20 flex items-center gap-1">
+                                {navDropdownOpen ? '▲' : '▼'}
+                              </span>
+                            </button>
+
+                            {navDropdownOpen && (
+                              <div className="mt-2 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                                {publicNavLinks.map((link) => (
+                                  <Link
+                                    key={link.path}
+                                    to={link.path}
+                                    className="flex items-center gap-3 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
+                                    onClick={() => setProfilePanelOpen(false)}
+                                  >
+                                    <span>{link.label}</span>
+                                  </Link>
+                                ))}
+                                {user && privateNavLinks.map((link) => (
+                                  <Link
+                                    key={link.path}
+                                    to={link.path}
+                                    className="flex items-center gap-3 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
+                                    onClick={() => setProfilePanelOpen(false)}
+                                  >
+                                    <span>{link.label}</span>
+                                  </Link>
+                                ))}
+                                {isAdmin && (
+                                  <Link
+                                    to="/admin"
+                                    className="flex items-center gap-3 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
+                                    onClick={() => setProfilePanelOpen(false)}
+                                  >
+                                    <span>{isSuperAdmin ? 'Admin Panel' : 'Manage Lessons'}</span>
+                                  </Link>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
                           <Link
                             to="/progress"
                             className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
@@ -534,43 +584,6 @@ export default function Navbar() {
                         </div>
                       </div>
 
-                      {/* Mobile Navigation Menu - Moved from Hamburger */}
-                      <div className="py-2 border-t border-white/5 lg:hidden">
-                        <div className="px-4 py-2">
-                          <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Navigation</p>
-                        </div>
-                        {publicNavLinks.map((link) => (
-                          <Link
-                            key={link.path}
-                            to={link.path}
-                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                            onClick={() => setProfilePanelOpen(false)}
-                          >
-                            <span>{link.label}</span>
-                          </Link>
-                        ))}
-                        {user && privateNavLinks.map((link) => (
-                          <Link
-                            key={link.path}
-                            to={link.path}
-                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                            onClick={() => setProfilePanelOpen(false)}
-                          >
-                            <span>{link.label}</span>
-                          </Link>
-                        ))}
-                        {isAdmin && (
-                          <Link
-                            to="/admin"
-                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                            onClick={() => setProfilePanelOpen(false)}
-                          >
-                            <Settings size={18} />
-                            <span>{isSuperAdmin ? 'Admin Panel' : 'Manage Lessons'}</span>
-                          </Link>
-                        )}
-                      </div>
-
                       {/* Footer - Logout Button */}
                       <SheetFooter className="border-t border-white/5 bg-slate-950">
                         {!isBlocked && (
@@ -627,7 +640,7 @@ export default function Navbar() {
                     isActive(link.path)
                       ? 'text-orange-500'
                       : 'text-gray-400 hover:text-white'
-                  }`}
+                }`}
                 >
                   {link.label}
                   {isActive(link.path) && (

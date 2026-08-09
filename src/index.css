@@ -1336,9 +1336,7 @@ html {
 .gradient-sakura h1, .gradient-sakura h2, .gradient-sakura h3, .gradient-desert h1, .gradient-desert h2, .gradient-desert h3, .gradient-arctic h1, .gradient-arctic h2, .gradient-arctic h3, .gradient-twilight h1, .gradient-twilight h2, .gradient-twilight h3, .gradient-rose-gold h1, .gradient-rose-gold h2, .gradient-rose-gold h3, .gradient-celestial h1, .gradient-celestial h2, .gradient-celestial h3 { color: rgba(255,255,255,.96) !important; }
 
 
-/* The homepage hero artwork previously covered the theme gradient completely. Keep it as a subtle texture so the selected palette is visible. */
-.gradient-sakura img[src="/images/hero-bg-new.png"], .gradient-desert img[src="/images/hero-bg-new.png"], .gradient-arctic img[src="/images/hero-bg-new.png"], .gradient-twilight img[src="/images/hero-bg-new.png"], .gradient-rose-gold img[src="/images/hero-bg-new.png"], .gradient-celestial img[src="/images/hero-bg-new.png"] { opacity: .12 !important; mix-blend-mode: screen; }
-.gradient-sakura section:first-of-type, .gradient-desert section:first-of-type, .gradient-arctic section:first-of-type, .gradient-twilight section:first-of-type, .gradient-rose-gold section:first-of-type, .gradient-celestial section:first-of-type { background-image: linear-gradient(135deg, rgba(15,23,42,.08), rgba(15,23,42,.12)) !important; }
+/* Keep page artwork and inline hero overlays unchanged across all gradient themes. */
 
 /* Palette-specific light surfaces: these themes must not look like dark theme variants. */
 .gradient-sakura .bg-\[\#0a0e1a\], .gradient-sakura .bg-\[\#050810\], .gradient-sakura .bg-slate-950 { background: rgba(255, 244, 248, .34) !important; color: #4a1942 !important; }

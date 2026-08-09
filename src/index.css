@@ -1047,3 +1047,239 @@ html {
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.3) !important;
 }
+
+/* Gradient Deep Ocean Theme */
+.gradient-ocean body,
+.gradient-ocean #root {
+  background: linear-gradient(135deg, #000428 0%, #004e92 100%) !important;
+  background-attachment: fixed !important;
+  color: #e0f2fe !important;
+}
+
+.gradient-ocean .bg-\[\#0a0e1a\],
+.gradient-ocean .bg-\[\#050810\],
+.gradient-ocean .bg-slate-950 {
+  background: rgba(0, 4, 40, 0.85) !important;
+}
+
+.gradient-ocean .bg-\[\#151c2c\],
+.gradient-ocean .bg-slate-900,
+.gradient-ocean .bg-slate-800,
+.gradient-ocean .bg-slate-800\/50,
+.gradient-ocean .bg-slate-900\/50,
+.gradient-ocean .bg-slate-950\/80,
+.gradient-ocean .bg-slate-950\/90,
+.gradient-ocean .bg-slate-950\/95,
+.gradient-ocean .bg-slate-900\/80,
+.gradient-ocean .bg-white\/5,
+.gradient-ocean .bg-white\/10 {
+  background: linear-gradient(135deg, rgba(0, 78, 146, 0.5) 0%, rgba(0, 4, 40, 0.7) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 78, 146, 0.3) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(56, 189, 248, 0.2) !important;
+}
+
+.gradient-ocean .text-white,
+.gradient-ocean .text-gray-100,
+.gradient-ocean .text-gray-200 {
+  color: #e0f2fe !important;
+}
+
+.gradient-ocean .text-gray-300,
+.gradient-ocean .text-gray-400,
+.gradient-ocean .text-gray-500 {
+  color: #7dd3fc !important;
+}
+
+.gradient-ocean .border-white\/10,
+.gradient-ocean .border-white\/5,
+.gradient-ocean .border-slate-800,
+.gradient-ocean .border-slate-700,
+.gradient-ocean .border-border {
+  border-color: rgba(56, 189, 248, 0.2) !important;
+}
+
+.gradient-ocean input,
+.gradient-ocean textarea,
+.gradient-ocean select {
+  background: rgba(0, 30, 60, 0.8) !important;
+  color: #e0f2fe !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Gradient Enchanted Forest Theme */
+.gradient-forest body,
+.gradient-forest #root {
+  background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%) !important;
+  background-attachment: fixed !important;
+  color: #ecfdf5 !important;
+}
+
+.gradient-forest .bg-\[\#0a0e1a\],
+.gradient-forest .bg-\[\#050810\],
+.gradient-forest .bg-slate-950 {
+  background: rgba(15, 32, 39, 0.85) !important;
+}
+
+.gradient-forest .bg-\[\#151c2c\],
+.gradient-forest .bg-slate-900,
+.gradient-forest .bg-slate-800,
+.gradient-forest .bg-slate-800\/50,
+.gradient-forest .bg-slate-900\/50,
+.gradient-forest .bg-slate-950\/80,
+.gradient-forest .bg-slate-950\/90,
+.gradient-forest .bg-slate-950\/95,
+.gradient-forest .bg-slate-900\/80,
+.gradient-forest .bg-white\/5,
+.gradient-forest .bg-white\/10 {
+  background: linear-gradient(135deg, rgba(32, 58, 67, 0.6) 0%, rgba(44, 83, 100, 0.5) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(16, 185, 129, 0.2) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(52, 211, 153, 0.2) !important;
+}
+
+.gradient-forest .text-white,
+.gradient-forest .text-gray-100,
+.gradient-forest .text-gray-200 {
+  color: #ecfdf5 !important;
+}
+
+.gradient-forest .text-gray-300,
+.gradient-forest .text-gray-400,
+.gradient-forest .text-gray-500 {
+  color: #6ee7b7 !important;
+}
+
+.gradient-forest .border-white\/10,
+.gradient-forest .border-white\/5,
+.gradient-forest .border-slate-800,
+.gradient-forest .border-slate-700,
+.gradient-forest .border-border {
+  border-color: rgba(52, 211, 153, 0.2) !important;
+}
+
+.gradient-forest input,
+.gradient-forest textarea,
+.gradient-forest select {
+  background: rgba(15, 45, 55, 0.8) !important;
+  color: #ecfdf5 !important;
+  border-color: rgba(52, 211, 153, 0.3) !important;
+}
+
+/* Gradient Phoenix Fire Theme */
+.gradient-fire body,
+.gradient-fire #root {
+  background: linear-gradient(135deg, #200122 0%, #6f0000 100%) !important;
+  background-attachment: fixed !important;
+  color: #fff7ed !important;
+}
+
+.gradient-fire .bg-\[\#0a0e1a\],
+.gradient-fire .bg-\[\#050810\],
+.gradient-fire .bg-slate-950 {
+  background: rgba(32, 1, 34, 0.85) !important;
+}
+
+.gradient-fire .bg-\[\#151c2c\],
+.gradient-fire .bg-slate-900,
+.gradient-fire .bg-slate-800,
+.gradient-fire .bg-slate-800\/50,
+.gradient-fire .bg-slate-900\/50,
+.gradient-fire .bg-slate-950\/80,
+.gradient-fire .bg-slate-950\/90,
+.gradient-fire .bg-slate-950\/95,
+.gradient-fire .bg-slate-900\/80,
+.gradient-fire .bg-white\/5,
+.gradient-fire .bg-white\/10 {
+  background: linear-gradient(135deg, rgba(111, 0, 0, 0.5) 0%, rgba(32, 1, 34, 0.7) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(239, 68, 68, 0.3) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(248, 113, 113, 0.2) !important;
+}
+
+.gradient-fire .text-white,
+.gradient-fire .text-gray-100,
+.gradient-fire .text-gray-200 {
+  color: #fff7ed !important;
+}
+
+.gradient-fire .text-gray-300,
+.gradient-fire .text-gray-400,
+.gradient-fire .text-gray-500 {
+  color: #fdba74 !important;
+}
+
+.gradient-fire .border-white\/10,
+.gradient-fire .border-white\/5,
+.gradient-fire .border-slate-800,
+.gradient-fire .border-slate-700,
+.gradient-fire .border-border {
+  border-color: rgba(248, 113, 113, 0.2) !important;
+}
+
+.gradient-fire input,
+.gradient-fire textarea,
+.gradient-fire select {
+  background: rgba(60, 10, 10, 0.8) !important;
+  color: #fff7ed !important;
+  border-color: rgba(248, 113, 113, 0.3) !important;
+}
+
+/* Gradient Mystic Purple Theme */
+.gradient-mystic body,
+.gradient-mystic #root {
+  background: linear-gradient(135deg, #2c3e50 0%, #000000 100%) !important;
+  background-attachment: fixed !important;
+  color: #f5f3ff !important;
+}
+
+.gradient-mystic .bg-\[\#0a0e1a\],
+.gradient-mystic .bg-\[\#050810\],
+.gradient-mystic .bg-slate-950 {
+  background: rgba(44, 62, 80, 0.85) !important;
+}
+
+.gradient-mystic .bg-\[\#151c2c\],
+.gradient-mystic .bg-slate-900,
+.gradient-mystic .bg-slate-800,
+.gradient-mystic .bg-slate-800\/50,
+.gradient-mystic .bg-slate-900\/50,
+.gradient-mystic .bg-slate-950\/80,
+.gradient-mystic .bg-slate-950\/90,
+.gradient-mystic .bg-slate-950\/95,
+.gradient-mystic .bg-slate-900\/80,
+.gradient-mystic .bg-white\/5,
+.gradient-mystic .bg-white\/10 {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(44, 62, 80, 0.7) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.3) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(167, 139, 250, 0.2) !important;
+}
+
+.gradient-mystic .text-white,
+.gradient-mystic .text-gray-100,
+.gradient-mystic .text-gray-200 {
+  color: #f5f3ff !important;
+}
+
+.gradient-mystic .text-gray-300,
+.gradient-mystic .text-gray-400,
+.gradient-mystic .text-gray-500 {
+  color: #c4b5fd !important;
+}
+
+.gradient-mystic .border-white\/10,
+.gradient-mystic .border-white\/5,
+.gradient-mystic .border-slate-800,
+.gradient-mystic .border-slate-700,
+.gradient-mystic .border-border {
+  border-color: rgba(167, 139, 250, 0.2) !important;
+}
+
+.gradient-mystic input,
+.gradient-mystic textarea,
+.gradient-mystic select {
+  background: rgba(30, 20, 50, 0.8) !important;
+  color: #f5f3ff !important;
+  border-color: rgba(167, 139, 250, 0.3) !important;
+}

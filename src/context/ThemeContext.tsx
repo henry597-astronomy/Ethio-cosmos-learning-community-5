@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
-type Theme = 'dark' | 'light' | 'orange' | 'green' | 'purple' | 'blue' | 'red' | 'cyan' | 'gold' | 'rose' | 'indigo' | 'gradient-cosmos' | 'gradient-aurora' | 'gradient-sunset' | 'gradient-emerald' | 'gradient-rainbow';
+type Theme = 'dark' | 'light' | 'orange' | 'green' | 'purple' | 'blue' | 'red' | 'cyan' | 'gold' | 'rose' | 'indigo' | 'gradient-cosmos' | 'gradient-aurora' | 'gradient-sunset' | 'gradient-emerald' | 'gradient-rainbow' | 'gradient-ocean' | 'gradient-forest' | 'gradient-fire' | 'gradient-mystic';
 
 interface ThemeContextType {
   theme: Theme;
@@ -14,6 +14,7 @@ const DEFAULT_THEME: Theme = 'gradient-aurora';
 const THEMES: readonly Theme[] = [
   'dark', 'light', 'orange', 'green', 'purple', 'blue', 'red', 'cyan', 'gold', 'rose',
   'indigo', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow',
+  'gradient-ocean', 'gradient-forest', 'gradient-fire', 'gradient-mystic',
 ];
 
 const readSavedTheme = (): Theme => {
@@ -37,7 +38,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // Continue rendering when storage is unavailable in private/offline contexts.
     }
     const root = document.documentElement;
-    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow', 'dark');
+    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow', 'gradient-ocean', 'gradient-forest', 'gradient-fire', 'gradient-mystic', 'dark');
     if (theme === 'light') {
       root.classList.add('light-theme');
     } else if (theme === 'orange') {
@@ -68,6 +69,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.classList.add('gradient-emerald');
     } else if (theme === 'gradient-rainbow') {
       root.classList.add('gradient-rainbow');
+    } else if (theme === 'gradient-ocean') {
+      root.classList.add('gradient-ocean');
+    } else if (theme === 'gradient-forest') {
+      root.classList.add('gradient-forest');
+    } else if (theme === 'gradient-fire') {
+      root.classList.add('gradient-fire');
+    } else if (theme === 'gradient-mystic') {
+      root.classList.add('gradient-mystic');
     } else {
       root.classList.add('dark');
     }

@@ -1283,3 +1283,40 @@ html {
   color: #f5f3ff !important;
   border-color: rgba(167, 139, 250, 0.3) !important;
 }
+
+
+/* New Linear Gradient Collection */
+.gradient-sakura body,
+.gradient-sakura #root { background: linear-gradient(135deg, #4a1942 0%, #c06c84 52%, #f8b195 100%) !important; background-attachment: fixed !important; color: #fff7fb !important; }
+.gradient-desert body,
+.gradient-desert #root { background: linear-gradient(135deg, #451a03 0%, #c2410c 48%, #fbbf24 100%) !important; background-attachment: fixed !important; color: #fffaf0 !important; }
+.gradient-arctic body,
+.gradient-arctic #root { background: linear-gradient(135deg, #082f49 0%, #0e7490 50%, #a5f3fc 100%) !important; background-attachment: fixed !important; color: #f0fdff !important; }
+.gradient-twilight body,
+.gradient-twilight #root { background: linear-gradient(135deg, #172554 0%, #7e22ce 52%, #f0abfc 100%) !important; background-attachment: fixed !important; color: #fff7ff !important; }
+.gradient-rose-gold body,
+.gradient-rose-gold #root { background: linear-gradient(135deg, #4c0519 0%, #be123c 50%, #fda4af 100%) !important; background-attachment: fixed !important; color: #fff7f8 !important; }
+.gradient-celestial body,
+.gradient-celestial #root { background: linear-gradient(135deg, #172554 0%, #2563eb 48%, #c4b5fd 100%) !important; background-attachment: fixed !important; color: #f8faff !important; }
+
+.gradient-sakura .bg-\[\#0a0e1a\], .gradient-sakura .bg-\[\#050810\], .gradient-sakura .bg-slate-950,
+.gradient-desert .bg-\[\#0a0e1a\], .gradient-desert .bg-\[\#050810\], .gradient-desert .bg-slate-950,
+.gradient-arctic .bg-\[\#0a0e1a\], .gradient-arctic .bg-\[\#050810\], .gradient-arctic .bg-slate-950,
+.gradient-twilight .bg-\[\#0a0e1a\], .gradient-twilight .bg-\[\#050810\], .gradient-twilight .bg-slate-950,
+.gradient-rose-gold .bg-\[\#0a0e1a\], .gradient-rose-gold .bg-\[\#050810\], .gradient-rose-gold .bg-slate-950,
+.gradient-celestial .bg-\[\#0a0e1a\], .gradient-celestial .bg-\[\#050810\], .gradient-celestial .bg-slate-950 { background: rgba(15, 23, 42, 0.78) !important; }
+
+.gradient-sakura .bg-\[\#151c2c\], .gradient-sakura .bg-slate-900, .gradient-sakura .bg-slate-800, .gradient-sakura .bg-slate-800\/50, .gradient-sakura .bg-slate-900\/50, .gradient-sakura .bg-white\/5, .gradient-sakura .bg-white\/10,
+.gradient-desert .bg-\[\#151c2c\], .gradient-desert .bg-slate-900, .gradient-desert .bg-slate-800, .gradient-desert .bg-slate-800\/50, .gradient-desert .bg-slate-900\/50, .gradient-desert .bg-white\/5, .gradient-desert .bg-white\/10,
+.gradient-arctic .bg-\[\#151c2c\], .gradient-arctic .bg-slate-900, .gradient-arctic .bg-slate-800, .gradient-arctic .bg-slate-800\/50, .gradient-arctic .bg-slate-900\/50, .gradient-arctic .bg-white\/5, .gradient-arctic .bg-white\/10,
+.gradient-twilight .bg-\[\#151c2c\], .gradient-twilight .bg-slate-900, .gradient-twilight .bg-slate-800, .gradient-twilight .bg-slate-800\/50, .gradient-twilight .bg-slate-900\/50, .gradient-twilight .bg-white\/5, .gradient-twilight .bg-white\/10,
+.gradient-rose-gold .bg-\[\#151c2c\], .gradient-rose-gold .bg-slate-900, .gradient-rose-gold .bg-slate-800, .gradient-rose-gold .bg-slate-800\/50, .gradient-rose-gold .bg-slate-900\/50, .gradient-rose-gold .bg-white\/5, .gradient-rose-gold .bg-white\/10,
+.gradient-celestial .bg-\[\#151c2c\], .gradient-celestial .bg-slate-900, .gradient-celestial .bg-slate-800, .gradient-celestial .bg-slate-800\/50, .gradient-celestial .bg-slate-900\/50, .gradient-celestial .bg-white\/5, .gradient-celestial .bg-white\/10 { background: rgba(15, 23, 42, 0.48) !important; backdrop-filter: blur(12px); box-shadow: 0 12px 36px rgba(15, 23, 42, 0.24) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; }
+
+.gradient-sakura input, .gradient-sakura textarea, .gradient-sakura select, .gradient-desert input, .gradient-desert textarea, .gradient-desert select, .gradient-arctic input, .gradient-arctic textarea, .gradient-arctic select, .gradient-twilight input, .gradient-twilight textarea, .gradient-twilight select, .gradient-rose-gold input, .gradient-rose-gold textarea, .gradient-rose-gold select, .gradient-celestial input, .gradient-celestial textarea, .gradient-celestial select { background: rgba(15, 23, 42, 0.58) !important; color: #ffffff !important; border-color: rgba(255, 255, 255, 0.28) !important; }
+.gradient-sakura .text-gray-300, .gradient-sakura .text-gray-400, .gradient-sakura .text-gray-500,
+.gradient-desert .text-gray-300, .gradient-desert .text-gray-400, .gradient-desert .text-gray-500,
+.gradient-arctic .text-gray-300, .gradient-arctic .text-gray-400, .gradient-arctic .text-gray-500,
+.gradient-twilight .text-gray-300, .gradient-twilight .text-gray-400, .gradient-twilight .text-gray-500,
+.gradient-rose-gold .text-gray-300, .gradient-rose-gold .text-gray-400, .gradient-rose-gold .text-gray-500,
+.gradient-celestial .text-gray-300, .gradient-celestial .text-gray-400, .gradient-celestial .text-gray-500 { color: rgba(255, 255, 255, 0.78) !important; }

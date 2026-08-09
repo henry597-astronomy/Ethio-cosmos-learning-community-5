@@ -378,7 +378,7 @@ export default function Navbar() {
                                 <span>Themes</span>
                               </div>
                               <span className="text-xs text-orange-400 font-medium bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20 flex items-center gap-1">
-                                {theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : theme === 'orange' ? 'Orange' : theme === 'green' ? 'Green' : theme === 'purple' ? 'Purple' : theme === 'blue' ? 'Blue' : theme === 'red' ? 'Red' : theme === 'cyan' ? 'Cyan' : theme === 'gold' ? 'Gold' : theme === 'rose' ? 'Rose' : theme === 'indigo' ? 'Indigo' : theme === 'gradient-cosmos' ? 'Cosmic Nebula' : theme === 'gradient-aurora' ? 'Aurora' : theme === 'gradient-sunset' ? 'Sunset Glow' : theme === 'gradient-emerald' ? 'Emerald Twilight' : theme === 'gradient-rainbow' ? 'Rainbow Glow' : theme === 'gradient-ocean' ? 'Deep Ocean' : theme === 'gradient-forest' ? 'Enchanted Forest' : theme === 'gradient-fire' ? 'Phoenix Fire' : theme === 'gradient-mystic' ? 'Mystic Purple' : 'Theme'} {themeDropdownOpen ? '▲' : '▼'}
+                                {theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : theme === 'orange' ? 'Orange' : theme === 'green' ? 'Green' : theme === 'purple' ? 'Purple' : theme === 'blue' ? 'Blue' : theme === 'red' ? 'Red' : theme === 'cyan' ? 'Cyan' : theme === 'gold' ? 'Gold' : theme === 'rose' ? 'Rose' : theme === 'indigo' ? 'Indigo' : theme === 'gradient-cosmos' ? 'Cosmic Nebula' : theme === 'gradient-aurora' ? 'Aurora' : theme === 'gradient-sunset' ? 'Sunset Glow' : theme === 'gradient-emerald' ? 'Emerald Twilight' : theme === 'gradient-rainbow' ? 'Rainbow Glow' : theme === 'gradient-ocean' ? 'Deep Ocean' : theme === 'gradient-forest' ? 'Enchanted Forest' : theme === 'gradient-fire' ? 'Phoenix Fire' : theme === 'gradient-mystic' ? 'Mystic Purple' : theme === 'gradient-sakura' ? 'Sakura Dream' : theme === 'gradient-desert' ? 'Desert Mirage' : theme === 'gradient-arctic' ? 'Arctic Glass' : theme === 'gradient-twilight' ? 'Twilight Bloom' : theme === 'gradient-rose-gold' ? 'Rose Gold' : theme === 'gradient-celestial' ? 'Celestial Light' : 'Theme'} {themeDropdownOpen ? '▲' : '▼'}
                               </span>
                             </button>
 
@@ -446,7 +446,13 @@ export default function Navbar() {
                                   { id: 'gradient-ocean', label: 'Deep Ocean', color: 'bg-gradient-to-r from-[#000428] to-[#004e92]' },
                                   { id: 'gradient-forest', label: 'Enchanted Forest', color: 'bg-gradient-to-r from-[#0f2027] to-[#2c5364]' },
                                   { id: 'gradient-fire', label: 'Phoenix Fire', color: 'bg-gradient-to-r from-[#200122] to-[#6f0000]' },
-                                  { id: 'gradient-mystic', label: 'Mystic Purple', color: 'bg-gradient-to-r from-[#2c3e50] to-[#000000]' }
+                                  { id: 'gradient-mystic', label: 'Mystic Purple', color: 'bg-gradient-to-r from-[#2c3e50] to-[#000000]' },
+                                  { id: 'gradient-sakura', label: 'Sakura Dream', color: 'bg-gradient-to-r from-[#4a1942] via-[#c06c84] to-[#f8b195]' },
+                                  { id: 'gradient-desert', label: 'Desert Mirage', color: 'bg-gradient-to-r from-[#451a03] via-[#c2410c] to-[#fbbf24]' },
+                                  { id: 'gradient-arctic', label: 'Arctic Glass', color: 'bg-gradient-to-r from-[#082f49] via-[#0e7490] to-[#a5f3fc]' },
+                                  { id: 'gradient-twilight', label: 'Twilight Bloom', color: 'bg-gradient-to-r from-[#172554] via-[#7e22ce] to-[#f0abfc]' },
+                                  { id: 'gradient-rose-gold', label: 'Rose Gold', color: 'bg-gradient-to-r from-[#4c0519] via-[#be123c] to-[#fda4af]' },
+                                  { id: 'gradient-celestial', label: 'Celestial Light', color: 'bg-gradient-to-r from-[#172554] via-[#2563eb] to-[#c4b5fd]' }
                                 ].map((t) => (
                                   <button
                                     key={t.id}

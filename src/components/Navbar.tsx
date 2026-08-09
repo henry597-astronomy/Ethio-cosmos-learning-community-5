@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon, Sparkles } from 'lucide-react';
+import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon } from 'lucide-react';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import {
   Sheet,
@@ -35,7 +35,7 @@ export default function Navbar() {
   const { unreadCount } = useNotifications();
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
-  const [colorThemesSubMenuOpen, setColorThemesSubMenuOpen] = useState(false);
+
   const { theme } = useTheme();
 
   // Offline and Prefetch State

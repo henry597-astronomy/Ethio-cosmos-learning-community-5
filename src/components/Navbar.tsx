@@ -36,7 +36,7 @@ export default function Navbar() {
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   // Offline and Prefetch State
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -384,196 +384,81 @@ export default function Navbar() {
 
                             {themeDropdownOpen && (
                               <div className="mt-2 max-h-52 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar animate-in fade-in duration-200 bg-slate-900/90 p-2.5 rounded-xl border border-white/10" style={{ WebkitOverflowScrolling: 'touch' }}>
-                                {/* 1. Dark Theme */}
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald');
-                                    root.classList.add('dark');
-                                    localStorage.setItem('ethio_cosmos_theme', 'dark');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
-                                    theme === 'dark' ? 'bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><Sun size={14} className="text-orange-400" /> Dark Theme</span>
-                                  {theme === 'dark' && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
+                                {/* Base Themes */}
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 py-1">Base Themes</div>
+                                {[
+                                  { id: 'dark', label: 'Dark Theme', icon: <Sun size={14} className="text-orange-400" /> },
+                                  { id: 'light', label: 'Light Theme', icon: <Moon size={14} /> }
+                                ].map((t) => (
+                                  <button
+                                    key={t.id}
+                                    onClick={() => {
+                                      setTheme(t.id as any);
+                                      setThemeDropdownOpen(false);
+                                      setTimeout(() => window.location.reload(), 100);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                      theme === t.id ? 'bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-2">{t.icon} {t.label}</span>
+                                    {theme === t.id && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                  </button>
+                                ))}
 
-                                {/* 2. Light Theme */}
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('dark', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald');
-                                    root.classList.add('light-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'light');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
-                                    theme === 'light' ? 'bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><Moon size={14} /> Light Theme</span>
-                                  {theme === 'light' && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
+                                {/* Color Themes */}
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">Color Themes</div>
+                                {[
+                                  { id: 'orange', label: 'Orange', color: 'bg-orange-500', activeBg: 'bg-orange-600/30', activeText: 'text-orange-300', activeBorder: 'border-orange-500/50', activeBadge: 'bg-orange-600' },
+                                  { id: 'green', label: 'Green', color: 'bg-green-500', activeBg: 'bg-green-600/30', activeText: 'text-green-300', activeBorder: 'border-green-500/50', activeBadge: 'bg-green-600' },
+                                  { id: 'purple', label: 'Purple', color: 'bg-purple-500', activeBg: 'bg-purple-600/30', activeText: 'text-purple-300', activeBorder: 'border-purple-500/50', activeBadge: 'bg-purple-600' },
+                                  { id: 'blue', label: 'Blue', color: 'bg-blue-500', activeBg: 'bg-blue-600/30', activeText: 'text-blue-300', activeBorder: 'border-blue-500/50', activeBadge: 'bg-blue-600' },
+                                  { id: 'red', label: 'Red', color: 'bg-red-500', activeBg: 'bg-red-600/30', activeText: 'text-red-300', activeBorder: 'border-red-500/50', activeBadge: 'bg-red-600' },
+                                  { id: 'cyan', label: 'Cyan', color: 'bg-cyan-400', activeBg: 'bg-cyan-600/30', activeText: 'text-cyan-300', activeBorder: 'border-cyan-500/50', activeBadge: 'bg-cyan-600' },
+                                  { id: 'gold', label: 'Gold', color: 'bg-yellow-400', activeBg: 'bg-yellow-600/30', activeText: 'text-yellow-300', activeBorder: 'border-yellow-500/50', activeBadge: 'bg-yellow-600' },
+                                  { id: 'rose', label: 'Rose', color: 'bg-rose-400', activeBg: 'bg-rose-600/30', activeText: 'text-rose-300', activeBorder: 'border-rose-500/50', activeBadge: 'bg-rose-600' },
+                                  { id: 'indigo', label: 'Indigo', color: 'bg-indigo-400', activeBg: 'bg-indigo-600/30', activeText: 'text-indigo-300', activeBorder: 'border-indigo-500/50', activeBadge: 'bg-indigo-600' }
+                                ].map((t) => (
+                                  <button
+                                    key={t.id}
+                                    onClick={() => {
+                                      setTheme(t.id as any);
+                                      setThemeDropdownOpen(false);
+                                      setTimeout(() => window.location.reload(), 100);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                      theme === t.id ? `${t.activeBg} ${t.activeText} font-bold border ${t.activeBorder}` : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${t.color} inline-block`}></span> {t.label}</span>
+                                    {theme === t.id && <span className={`text-[10px] ${t.activeBadge} text-white px-1.5 py-0.5 rounded`}>Active</span>}
+                                  </button>
+                                ))}
 
-                                {/* 3. Orange Theme */}
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'dark', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald');
-                                    root.classList.add('orange-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'orange');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                    theme === 'orange' ? 'bg-orange-600/30 text-orange-300 font-bold border border-orange-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span> Orange</span>
-                                  {theme === 'orange' && <span className="text-[10px] bg-orange-600 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
-
-                                {/* 4. Green Theme */}
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'orange-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'dark');
-                                    root.classList.add('green-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'green');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                    theme === 'green' ? 'bg-green-600/30 text-green-300 font-bold border border-green-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Green</span>
-                                  {theme === 'green' && <span className="text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'dark');
-                                    root.classList.add('purple-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'purple');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                    theme === 'purple' ? 'bg-purple-600/30 text-purple-300 font-bold border border-purple-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-500 inline-block"></span> Purple</span>
-                                  {theme === 'purple' && <span className="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'dark');
-                                    root.classList.add('blue-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'blue');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                    theme === 'blue' ? 'bg-blue-600/30 text-blue-300 font-bold border border-blue-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Blue</span>
-                                  {theme === 'blue' && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'dark');
-                                    root.classList.add('red-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'red');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                    theme === 'red' ? 'bg-red-600/30 text-red-300 font-bold border border-red-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Red</span>
-                                  {theme === 'red' && <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'dark');
-                                    root.classList.add('cyan-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'cyan');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                    theme === 'cyan' ? 'bg-cyan-600/30 text-cyan-300 font-bold border border-cyan-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-cyan-400 inline-block"></span> Cyan</span>
-                                  {theme === 'cyan' && <span className="text-[10px] bg-cyan-600 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'dark');
-                                    root.classList.add('gold-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'gold');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                    theme === 'gold' ? 'bg-yellow-600/30 text-yellow-300 font-bold border border-yellow-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span> Gold</span>
-                                  {theme === 'gold' && <span className="text-[10px] bg-yellow-600 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'dark');
-                                    root.classList.add('rose-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'rose');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                    theme === 'rose' ? 'bg-rose-600/30 text-rose-300 font-bold border border-rose-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-rose-400 inline-block"></span> Rose</span>
-                                  {theme === 'rose' && <span className="text-[10px] bg-rose-600 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    const root = document.documentElement;
-                                    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'dark');
-                                    root.classList.add('indigo-theme');
-                                    localStorage.setItem('ethio_cosmos_theme', 'indigo');
-                                    setThemeDropdownOpen(false);
-                                    window.location.reload();
-                                  }}
-                                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                    theme === 'indigo' ? 'bg-indigo-600/30 text-indigo-300 font-bold border border-indigo-500/50' : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-indigo-400 inline-block"></span> Indigo</span>
-                                  {theme === 'indigo' && <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded">Active</span>}
-                                </button>
+                                {/* Linear Gradients */}
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">Linear Gradients</div>
+                                {[
+                                  { id: 'gradient-cosmos', label: 'Cosmic Nebula', color: 'bg-gradient-to-r from-[#0f0c29] to-[#24243e]' },
+                                  { id: 'gradient-aurora', label: 'Aurora', color: 'bg-gradient-to-r from-[#052e16] to-[#0f172a]' },
+                                  { id: 'gradient-sunset', label: 'Sunset Glow', color: 'bg-gradient-to-r from-[#2a0845] to-[#ff4e50]' },
+                                  { id: 'gradient-emerald', label: 'Emerald Twilight', color: 'bg-gradient-to-r from-[#03001e] to-[#ec38bc]' },
+                                  { id: 'gradient-rainbow', label: 'Rainbow Glow', color: 'bg-gradient-to-r from-red-500 via-green-500 to-blue-500' }
+                                ].map((t) => (
+                                  <button
+                                    key={t.id}
+                                    onClick={() => {
+                                      setTheme(t.id as any);
+                                      setThemeDropdownOpen(false);
+                                      setTimeout(() => window.location.reload(), 100);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                      theme === t.id ? 'bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${t.color} inline-block`}></span> {t.label}</span>
+                                    {theme === t.id && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                  </button>
+                                ))}
                               </div>
                             )}
                           </div>

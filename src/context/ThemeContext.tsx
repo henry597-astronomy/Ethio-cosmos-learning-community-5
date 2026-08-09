@@ -37,7 +37,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // Continue rendering when storage is unavailable in private/offline contexts.
     }
     const root = document.documentElement;
-    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'dark');
+    root.classList.remove('light-theme', 'orange-theme', 'green-theme', 'purple-theme', 'blue-theme', 'red-theme', 'cyan-theme', 'gold-theme', 'rose-theme', 'indigo-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow', 'dark');
     if (theme === 'light') {
       root.classList.add('light-theme');
     } else if (theme === 'orange') {

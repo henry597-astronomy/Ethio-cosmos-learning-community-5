@@ -395,7 +395,7 @@ export default function Navbar() {
                                     onClick={() => {
                                       setTheme(t.id as any);
                                       setThemeDropdownOpen(false);
-                                      setTimeout(() => window.location.reload(), 100);
+                                      
                                     }}
                                     className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
                                       theme === t.id ? 'bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30' : 'text-gray-300 hover:bg-white/5 hover:text-white'
@@ -424,7 +424,7 @@ export default function Navbar() {
                                     onClick={() => {
                                       setTheme(t.id as any);
                                       setThemeDropdownOpen(false);
-                                      setTimeout(() => window.location.reload(), 100);
+                                      
                                     }}
                                     className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
                                       theme === t.id ? `${t.activeBg} ${t.activeText} font-bold border ${t.activeBorder}` : 'text-gray-300 hover:bg-white/5 hover:text-white'
@@ -459,7 +459,7 @@ export default function Navbar() {
                                     onClick={() => {
                                       setTheme(t.id as any);
                                       setThemeDropdownOpen(false);
-                                      setTimeout(() => window.location.reload(), 100);
+                                      
                                     }}
                                     className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${
                                       theme === t.id ? 'bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30' : 'text-gray-300 hover:bg-white/5 hover:text-white'

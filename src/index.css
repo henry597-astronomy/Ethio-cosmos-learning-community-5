@@ -1339,3 +1339,20 @@ html {
 /* The homepage hero artwork previously covered the theme gradient completely. Keep it as a subtle texture so the selected palette is visible. */
 .gradient-sakura img[src="/images/hero-bg-new.png"], .gradient-desert img[src="/images/hero-bg-new.png"], .gradient-arctic img[src="/images/hero-bg-new.png"], .gradient-twilight img[src="/images/hero-bg-new.png"], .gradient-rose-gold img[src="/images/hero-bg-new.png"], .gradient-celestial img[src="/images/hero-bg-new.png"] { opacity: .12 !important; mix-blend-mode: screen; }
 .gradient-sakura section:first-of-type, .gradient-desert section:first-of-type, .gradient-arctic section:first-of-type, .gradient-twilight section:first-of-type, .gradient-rose-gold section:first-of-type, .gradient-celestial section:first-of-type { background-image: linear-gradient(135deg, rgba(15,23,42,.08), rgba(15,23,42,.12)) !important; }
+
+/* Palette-specific light surfaces: these themes must not look like dark theme variants. */
+.gradient-sakura .bg-\[\#0a0e1a\], .gradient-sakura .bg-\[\#050810\], .gradient-sakura .bg-slate-950 { background: rgba(255, 244, 248, .34) !important; color: #4a1942 !important; }
+.gradient-sakura .bg-\[\#151c2c\], .gradient-sakura .bg-slate-900, .gradient-sakura .bg-slate-800, .gradient-sakura .bg-slate-800\/50, .gradient-sakura .bg-slate-900\/50, .gradient-sakura .bg-white\/5, .gradient-sakura .bg-white\/10 { background: rgba(255, 247, 250, .55) !important; color: #4a1942 !important; border-color: rgba(122, 55, 85, .25) !important; box-shadow: 0 12px 32px rgba(122, 55, 85, .16) !important; backdrop-filter: blur(14px); }
+.gradient-sakura input, .gradient-sakura textarea, .gradient-sakura select { background: rgba(255, 250, 252, .72) !important; color: #4a1942 !important; border-color: rgba(122, 55, 85, .3) !important; }
+.gradient-sakura input::placeholder, .gradient-sakura textarea::placeholder { color: rgba(74, 25, 66, .62) !important; }
+.gradient-sakura .text-white, .gradient-sakura .text-gray-100, .gradient-sakura .text-gray-200, .gradient-sakura .text-gray-300, .gradient-sakura .text-gray-400, .gradient-sakura .text-gray-500 { color: #4a1942 !important; }
+.gradient-sakura nav, .gradient-sakura header { background: rgba(255, 244, 248, .72) !important; border-color: rgba(122, 55, 85, .22) !important; color: #4a1942 !important; }
+
+.gradient-desert .bg-\[\#0a0e1a\], .gradient-desert .bg-\[\#050810\], .gradient-desert .bg-slate-950 { background: rgba(255, 247, 229, .34) !important; color: #5b2506 !important; }
+.gradient-desert .bg-\[\#151c2c\], .gradient-desert .bg-slate-900, .gradient-desert .bg-slate-800, .gradient-desert .bg-slate-800\/50, .gradient-desert .bg-slate-900\/50, .gradient-desert .bg-white\/5, .gradient-desert .bg-white\/10 { background: rgba(255, 249, 235, .58) !important; color: #5b2506 !important; border-color: rgba(146, 64, 14, .26) !important; box-shadow: 0 12px 32px rgba(120, 53, 15, .18) !important; backdrop-filter: blur(14px); }
+.gradient-desert input, .gradient-desert textarea, .gradient-desert select { background: rgba(255, 252, 242, .76) !important; color: #5b2506 !important; border-color: rgba(146, 64, 14, .34) !important; }
+.gradient-desert input::placeholder, .gradient-desert textarea::placeholder { color: rgba(91, 37, 6, .62) !important; }
+.gradient-desert .text-white, .gradient-desert .text-gray-100, .gradient-desert .text-gray-200, .gradient-desert .text-gray-300, .gradient-desert .text-gray-400, .gradient-desert .text-gray-500 { color: #5b2506 !important; }
+.gradient-desert nav, .gradient-desert header { background: rgba(255, 247, 229, .76) !important; border-color: rgba(146, 64, 14, .24) !important; color: #5b2506 !important; }
+.gradient-sakura .text-orange-400, .gradient-sakura .text-orange-500, .gradient-desert .text-orange-400, .gradient-desert .text-orange-500 { color: #9a3412 !important; }
+.gradient-sakura .border-white\/10, .gradient-sakura .border-white\/20, .gradient-desert .border-white\/10, .gradient-desert .border-white\/20 { border-color: rgba(120, 53, 15, .22) !important; }

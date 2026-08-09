@@ -13,6 +13,8 @@ import type {
   UserProgress,
   Bookmark,
   AboutContent,
+  GroupedMaterials,
+  MaterialGroup,
 } from "@/types";
 
 // Helper to fetch single site content item
@@ -90,6 +92,121 @@ export const getMaterialsPdfs = () =>
   getSiteContent<PdfItem[]>("materials_pdfs");
 export const updateMaterialsPdfs = (data: PdfItem[]) =>
   updateSiteContent("materials_pdfs", data);
+
+// --- Material Groups (admin-created categories) ---
+// Stored as a single row under the key `materials_groups`. Every save
+// appends new groups/items to the existing payload, so previous content is
+// never lost when the admin adds a new category or new materials.
+const EMPTY_GROUPED: GroupedMaterials = {
+  groups: [],
+  gallery: [],
+  videos: [],
+  pdfs: [],
+};
+
+export const getMaterialsGroups = async (): Promise<GroupedMaterials> => {
+  const data = await getSiteContent<GroupedMaterials>("materials_groups");
+  return data ?? { ...EMPTY_GROUPED };
+};
+
+export const updateMaterialsGroups = (data: GroupedMaterials) =>
+  updateSiteContent("materials_groups", data);
+
+// Merge helpers: existing payload is preserved; only the provided changes
+// (new groups, newly added items) are appended.
+export const appendMaterialGroups = async (
+  partial: Partial<GroupedMaterials>
+): Promise<GroupedMaterials> => {
+  const current = await getMaterialsGroups();
+  const next: GroupedMaterials = {
+    groups: [...(current.groups ?? [])],
+    gallery: [...(current.gallery ?? [])],
+    videos: [...(current.videos ?? [])],
+    pdfs: [...(current.pdfs ?? [])],
+  };
+  if (partial.groups) next.groups = [...next.groups, ...partial.groups];
+  if (partial.gallery) next.gallery = [...next.gallery, ...partial.gallery];
+  if (partial.videos) next.videos = [...next.videos, ...partial.videos];
+  if (partial.pdfs) next.pdfs = [...next.pdfs, ...partial.pdfs];
+  await updateMaterialsGroups(next);
+  return next;
+};
+
+export const updateMaterialsGroupsFull = async (
+  next: GroupedMaterials
+): Promise<void> => {
+  await updateMaterialsGroups(next);
+};
+
+export const deleteMaterialGroup = async (groupId: string): Promise<GroupedMaterials> => {
+  const current = await getMaterialsGroups();
+  const next: GroupedMaterials = {
+    ...current,
+    groups: (current.groups ?? []).filter((g) => g.id !== groupId),
+    gallery: (current.gallery ?? []).map((item) =>
+      item.group_id === groupId ? { ...item, group_id: undefined } : item
+    ),
+    videos: (current.videos ?? []).map((item) =>
+      item.group_id === groupId ? { ...item, group_id: undefined } : item
+    ),
+    pdfs: (current.pdfs ?? []).map((item) =>
+      item.group_id === groupId ? { ...item, group_id: undefined } : item
+    ),
+  };
+  await updateMaterialsGroups(next);
+  return next;
+};
+
+export const renameMaterialGroup = async (
+  groupId: string,
+  name: string,
+  description?: string
+): Promise<GroupedMaterials> => {
+  const current = await getMaterialsGroups();
+  const next = {
+    ...current,
+    groups: (current.groups ?? []).map((g) =>
+      g.id === groupId ? { ...g, name, description } : g
+    ),
+  };
+  await updateMaterialsGroups(next);
+  return next;
+};
+
+export const moveMaterialGroup = async (
+  groupId: string,
+  direction: -1 | 1
+): Promise<GroupedMaterials> => {
+  const current = await getMaterialsGroups();
+  const groups = [...(current.groups ?? [])].sort((a, b) => a.order_index - b.order_index);
+  const index = groups.findIndex((g) => g.id === groupId);
+  if (index < 0) return current;
+  const swapIndex = index + direction;
+  if (swapIndex < 0 || swapIndex >= groups.length) return current;
+  const temp = groups[index].order_index;
+  groups[index] = { ...groups[index], order_index: groups[swapIndex].order_index };
+  groups[swapIndex] = { ...groups[swapIndex], order_index: temp };
+  await updateMaterialsGroups({ ...current, groups });
+  return { ...current, groups };
+};
+
+export const assignItemsToGroup = async (
+  groupId: string,
+  type: MaterialGroup["type"],
+  itemIds: string[]
+): Promise<GroupedMaterials> => {
+  const current = await getMaterialsGroups();
+  const key = type === "gallery" ? "gallery" : type === "video" ? "videos" : "pdfs";
+  const next = {
+    ...current,
+    [key]: (current[key] ?? []).map((item: { id: string; group_id?: string }) => ({
+      ...item,
+      group_id: itemIds.includes(item.id) ? groupId : item.group_id === groupId ? undefined : item.group_id,
+    })),
+  };
+  await updateMaterialsGroups(next);
+  return next;
+};
 
 // --- Topics ---
 export const getTopics = async (): Promise<Topic[]> => {

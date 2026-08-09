@@ -8,6 +8,7 @@ import {
   getMaterialsGalleryImages, updateMaterialsGalleryImages,
   getMaterialsVideos, updateMaterialsVideos,
   getMaterialsPdfs, updateMaterialsPdfs,
+  getMaterialsGroups, appendMaterialGroups, updateMaterialsGroupsFull, deleteMaterialGroup, renameMaterialGroup, moveMaterialGroup, assignItemsToGroup,
   getTopics, createTopic, updateTopic, deleteTopic,
   getSubtopicsByTopicId, createSubtopic, updateSubtopic, deleteSubtopic,
   getLessonBySubtopicId, createLesson, updateLesson,
@@ -16,7 +17,7 @@ import {
 } from '@/services/cms';
 import type {
   Topic, Subtopic, Lesson, FeaturedTopic, FeatureCard, GalleryImage, VideoItem, PdfItem,
-  Quiz, QuizQuestion, AboutContent
+  Quiz, QuizQuestion, AboutContent, GroupedMaterials, MaterialGroup, MaterialType
 } from '@/types';
 
 // --- Homepage Hooks ---
@@ -367,6 +368,82 @@ export function useMaterialsPdfs() {
   }, []);
 
   return { pdfs, loading, error, savePdfs };
+}
+
+// --- Material Groups Hook ---
+// Single hook that loads the grouped-materials payload (groups + all items)
+// so admins and users always work with the latest merged state. Saves use
+// append-only helpers, so adding a new group or new materials never removes
+// existing content.
+export function useMaterialsGroups() {
+  const [grouped, setGrouped] = useState<GroupedMaterials>({
+    groups: [],
+    gallery: [],
+    videos: [],
+    pdfs: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchGroups = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getMaterialsGroups();
+      setGrouped(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load material groups.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
+
+  // Append new groups (existing payload untouched).
+  const addGroups = useCallback(async (groups: MaterialGroup[]) => {
+    const next = await appendMaterialGroups({ groups });
+    setGrouped(next);
+    return next;
+  }, []);
+
+  const renameGroup = useCallback(async (groupId: string, name: string, description?: string) => {
+    const next = await renameMaterialGroup(groupId, name, description);
+    setGrouped(next);
+    return next;
+  }, []);
+
+  const removeGroup = useCallback(async (groupId: string) => {
+    const next = await deleteMaterialGroup(groupId);
+    setGrouped(next);
+    return next;
+  }, []);
+
+  const reorderGroup = useCallback(async (groupId: string, direction: -1 | 1) => {
+    const next = await moveMaterialGroup(groupId, direction);
+    setGrouped(next);
+    return next;
+  }, []);
+
+  // Assign items to a group. `itemIds` = ids to place in the group; items
+  // already assigned elsewhere get unassigned from their previous group.
+  const assignItems = useCallback(async (groupId: string, type: MaterialType, itemIds: string[]) => {
+    const next = await assignItemsToGroup(groupId, type, itemIds);
+    setGrouped(next);
+    return next;
+  }, []);
+
+  // Full-payload save used for item-level edits (titles/URLs) so field edits
+  // persist correctly.
+  const saveFull = useCallback(async (data: GroupedMaterials) => {
+    await updateMaterialsGroupsFull(data);
+    setGrouped(data);
+  }, []);
+
+  return { grouped, loading, error, fetchGroups, addGroups, renameGroup, removeGroup, reorderGroup, assignItems, saveFull };
 }
 
 // --- Topics Hooks ---

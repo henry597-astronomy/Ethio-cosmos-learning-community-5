@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
-import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics, useAboutContent, useMaterialsGalleryImages, useMaterialsVideos, useMaterialsPdfs, useTopics, useQuizzes } from '@/hooks/use-cms-data';
+import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics, useAboutContent, useMaterialsGalleryImages, useMaterialsVideos, useMaterialsPdfs, useMaterialsGroups, useTopics, useQuizzes } from '@/hooks/use-cms-data';
 import {
   useSubtopics,
   useLesson,
@@ -28,7 +28,10 @@ import type {
   AboutContent,
   TeamMember,
   SpaceNews,
+  MaterialGroup,
+  MaterialType,
 } from '@/types';
+import { toast } from 'sonner';
 
 const DEFAULT_ABOUT: AboutContent = {
   missionText: '',
@@ -123,6 +126,7 @@ export default function AdminPage() {
   const materialsGalleryImages = useMaterialsGalleryImages();
   const materialsVideos = useMaterialsVideos();
   const materialsPdfs = useMaterialsPdfs();
+  const materialsGroups = useMaterialsGroups();
   const topicsHook = useTopics();
   const quizzesHook = useQuizzes();
 
@@ -316,6 +320,16 @@ export default function AdminPage() {
   // Local state for PDFs
   const [pdfsLocal, setPdfsLocal] = useState(materialsPdfs.pdfs);
   const [pdfsModified, setPdfsModified] = useState(false);
+
+  // ── Material Groups (admin-created categories) ──────────────────────
+  const [selectedGroupTab, setSelectedGroupTab] = useState<MaterialType>('gallery');
+  const [showGroupForm, setShowGroupForm] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDesc, setNewGroupDesc] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editGroupName, setEditGroupName] = useState('');
+  const [editGroupDesc, setEditGroupDesc] = useState('');
 
   // Parameterized hooks are called directly here (proper React hooks usage)
   // instead of through factory functions on the context.
@@ -745,6 +759,82 @@ export default function AdminPage() {
   const deletePdfLocal = (id: string) => {
     setPdfsLocal(pdfsLocal.filter(pdf => pdf.id !== id));
     setPdfsModified(true);
+  };
+
+  // ── Material Groups handlers ────────────────────────────────────────
+  const handleAddGroup = async () => {
+    const name = newGroupName.trim();
+    if (!name) {
+      toast.error('Please enter a category name.');
+      return;
+    }
+    try {
+      const nextOrder = materialsGroups.grouped.groups
+        .filter((g) => g.type === selectedGroupTab)
+        .reduce((max, g) => Math.max(max, g.order_index), -1) + 1;
+      const group: Omit<MaterialGroup, 'created_at' | 'updated_at'> = {
+        id: newId(),
+        type: selectedGroupTab,
+        name,
+        description: newGroupDesc.trim() || undefined,
+        order_index: nextOrder,
+      };
+      await materialsGroups.addGroups([group]);
+      setNewGroupName('');
+      setNewGroupDesc('');
+      setShowGroupForm(false);
+      toast.success(`Category "${name}" created.`);
+    } catch (err) {
+      console.error('Failed to add group:', err);
+      toast.error('Failed to create category.');
+    }
+  };
+
+  const handleRenameGroup = async (groupId: string) => {
+    const name = editGroupName.trim();
+    if (!name) {
+      toast.error('Please enter a category name.');
+      return;
+    }
+    try {
+      await materialsGroups.renameGroup(groupId, name, editGroupName.trim() ? editGroupDesc.trim() || undefined : undefined);
+      setEditingGroupId(null);
+      toast.success('Category updated.');
+    } catch (err) {
+      console.error('Failed to rename group:', err);
+      toast.error('Failed to update category.');
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!confirm('Delete this category? Materials inside it will be moved to "All Materials" (not deleted).')) return;
+    try {
+      await materialsGroups.removeGroup(groupId);
+      if (selectedGroupId === groupId) setSelectedGroupId(null);
+      if (editingGroupId === groupId) setEditingGroupId(null);
+      toast.success('Category deleted.');
+    } catch (err) {
+      console.error('Failed to delete group:', err);
+      toast.error('Failed to delete category.');
+    }
+  };
+
+  const handleMoveGroup = async (groupId: string, direction: -1 | 1) => {
+    try {
+      await materialsGroups.reorderGroup(groupId, direction);
+    } catch (err) {
+      console.error('Failed to reorder group:', err);
+    }
+  };
+
+  const handleAssignItems = async (groupId: string, type: MaterialType, ids: string[]) => {
+    try {
+      await materialsGroups.assignItems(groupId, type, ids);
+      toast.success('Materials assigned to category.');
+    } catch (err) {
+      console.error('Failed to assign items:', err);
+      toast.error('Failed to assign materials.');
+    }
   };
 
   // ── Quizzes ─────────────────────────────────────────────────────────────────
@@ -1625,6 +1715,203 @@ export default function AdminPage() {
                   <Plus size={18} className="mr-2" /> Add PDF
                 </Button>
               </div>
+            </div>
+
+            {/* ── MATERIAL CATEGORIES (admin-created groups) ─────────── */}
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-orange-500/30">
+              <h2 className="text-xl font-bold text-white mb-2">Material Categories</h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Create named categories so users can browse downloads, galleries
+                and videos by collection instead of a long list. New categories
+                and materials are added on top of what already exists — nothing
+                previously added is ever removed.
+              </p>
+
+              {/* Category type tabs */}
+              <Tabs value={selectedGroupTab} onValueChange={(v) => { setSelectedGroupTab(v as MaterialType); setSelectedGroupId(null); }}>
+                <TabsList className="mb-4 bg-slate-800">
+                  <TabsTrigger value="gallery" className="text-white data-[state=active]:bg-orange-500">Galleries</TabsTrigger>
+                  <TabsTrigger value="video" className="text-white data-[state=active]:bg-orange-500">Videos</TabsTrigger>
+                  <TabsTrigger value="pdf" className="text-white data-[state=active]:bg-orange-500">Downloads</TabsTrigger>
+                </TabsList>
+
+                {/* Group list */}
+                <div className="space-y-3 mb-4">
+                  {materialsGroups.grouped.groups
+                    .filter((g) => g.type === selectedGroupTab)
+                    .sort((a, b) => a.order_index - b.order_index)
+                    .map((group) => {
+                      const itemKey = group.type === 'gallery' ? 'gallery' : group.type === 'video' ? 'videos' : 'pdfs';
+                      const groupItems = (materialsGroups.grouped[itemKey] ?? []).filter((i) => i.group_id === group.id);
+                      const unassigned = (materialsGroups.grouped[itemKey] ?? []).filter((i) => !i.group_id);
+                      return (
+                        <div key={group.id} className="p-4 bg-slate-800 rounded-lg border border-white/10">
+                          {editingGroupId === group.id ? (
+                            <div className="space-y-2">
+                              <Input
+                                value={editGroupName}
+                                onChange={(e) => setEditGroupName(e.target.value)}
+                                placeholder="Category name"
+                                className="bg-slate-700 border-white/20 text-white"
+                              />
+                              <Input
+                                value={editGroupDesc}
+                                onChange={(e) => setEditGroupDesc(e.target.value)}
+                                placeholder="Description (optional)"
+                                className="bg-slate-700 border-white/20 text-white"
+                              />
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => handleRenameGroup(group.id)} className="bg-green-600 hover:bg-green-700 text-white">
+                                  <Check size={14} className="mr-1" /> Save
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => setEditingGroupId(null)} className="border-white/20 text-white hover:bg-white/10">
+                                  <X size={14} className="mr-1" /> Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-start gap-3">
+                              <div className="flex flex-col gap-1">
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white" onClick={() => handleMoveGroup(group.id, -1)}>
+                                  <ArrowUp size={14} />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white" onClick={() => handleMoveGroup(group.id, 1)}>
+                                  <ArrowDown size={14} />
+                                </Button>
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <h3 className="text-white font-semibold">{group.name}</h3>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-gray-400 hover:text-white h-8"
+                                      onClick={() => {
+                                        setEditGroupName(group.name);
+                                        setEditGroupDesc(group.description || '');
+                                        setEditingGroupId(group.id);
+                                      }}
+                                    >
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8"
+                                      onClick={() => handleDeleteGroup(group.id)}
+                                    >
+                                      <Trash2 size={14} />
+                                    </Button>
+                                  </div>
+                                </div>
+                                {group.description && (
+                                  <p className="text-gray-400 text-sm mt-1">{group.description}</p>
+                                )}
+                                <p className="text-gray-500 text-xs mt-2">
+                                  {groupItems.length} {groupItems.length === 1 ? 'item' : 'items'} in this category •{' '}
+                                  {unassigned.length} {unassigned.length === 1 ? 'item' : 'items'} unassigned
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Assign / unassign materials */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-3 border-white/20 text-white hover:bg-white/10"
+                            onClick={() => setSelectedGroupId(selectedGroupId === group.id ? null : group.id)}
+                          >
+                            {selectedGroupId === group.id ? 'Hide Materials' : 'Assign Materials'}
+                          </Button>
+
+                          {selectedGroupId === group.id && (
+                            <div className="mt-3 space-y-3">
+                              <p className="text-gray-400 text-sm">Check the materials you want to put in this category (unchecking removes them):</p>
+
+                              {/* Unassigned pool */}
+                              <div className="space-y-2">
+                                <p className="text-orange-500 text-xs font-semibold uppercase">Unassigned</p>
+                                {unassigned.map((item: { id: string; title?: string; label?: string }) => (
+                                  <label key={item.id} className="flex items-center gap-2 p-2 bg-slate-700 rounded border border-white/10 text-sm text-white cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      className="accent-orange-500"
+                                      onChange={(e) => {
+                                        const ids = e.target.checked
+                                          ? [...groupItems.map((i) => i.id), item.id]
+                                          : groupItems.map((i) => i.id);
+                                        handleAssignItems(group.id, group.type, ids);
+                                      }}
+                                    />
+                                    <span className="truncate">{item.title || item.label}</span>
+                                  </label>
+                                ))}
+                                {unassigned.length === 0 && (
+                                  <p className="text-gray-500 text-xs">All materials are already assigned.</p>
+                                )}
+                              </div>
+
+                              {/* Currently assigned */}
+                              {groupItems.length > 0 && (
+                                <div className="space-y-2">
+                                  <p className="text-gray-400 text-xs font-semibold uppercase">In this category</p>
+                                  {groupItems.map((item: { id: string; title?: string; label?: string }) => (
+                                    <label key={item.id} className="flex items-center gap-2 p-2 bg-orange-500/10 rounded border border-orange-500/30 text-sm text-white cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked
+                                        className="accent-orange-500"
+                                        onChange={() => handleAssignItems(group.id, group.type, groupItems.filter((i) => i.id !== item.id).map((i) => i.id))}
+                                      />
+                                      <span className="truncate">{item.title || item.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                  {materialsGroups.grouped.groups.filter((g) => g.type === selectedGroupTab).length === 0 && (
+                    <p className="text-gray-500 text-center py-4">No categories yet. Create your first one below.</p>
+                  )}
+
+                  {/* Create category form */}
+                  {showGroupForm ? (
+                    <div className="p-4 bg-slate-800 rounded-lg border border-orange-500/30 space-y-2">
+                      <Input
+                        value={newGroupName}
+                        onChange={(e) => setNewGroupName(e.target.value)}
+                        placeholder="Category name (e.g. Observation Night Photos)"
+                        className="bg-slate-700 border-white/20 text-white"
+                        autoFocus
+                      />
+                      <Input
+                        value={newGroupDesc}
+                        onChange={(e) => setNewGroupDesc(e.target.value)}
+                        placeholder="Description (optional)"
+                        className="bg-slate-700 border-white/20 text-white"
+                      />
+                      <div className="flex gap-2">
+                        <Button onClick={handleAddGroup} className="bg-green-600 hover:bg-green-700 text-white">
+                          <Check size={16} className="mr-2" /> Create Category
+                        </Button>
+                        <Button variant="outline" onClick={() => setShowGroupForm(false)} className="border-white/20 text-white hover:bg-white/10">
+                          <X size={16} className="mr-2" /> Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button onClick={() => setShowGroupForm(true)} className="bg-orange-500 hover:bg-orange-600 text-white">
+                      <Plus size={18} className="mr-2" /> Create Category for {selectedGroupTab === 'gallery' ? 'Galleries' : selectedGroupTab === 'video' ? 'Videos' : 'Downloads'}
+                    </Button>
+                  )}
+                </div>
+              </Tabs>
             </div>
           </TabsContent>
 

@@ -140,6 +140,7 @@ export interface GalleryImage {
   id: string;
   url: string;
   title: string;
+  group_id?: string;
 }
 
 export interface VideoItem {
@@ -147,6 +148,7 @@ export interface VideoItem {
   url: string;
   thumbnail: string;
   title: string;
+  group_id?: string;
 }
 
 export interface PdfItem {
@@ -154,6 +156,7 @@ export interface PdfItem {
   url: string;
   title: string;
   label: string;
+  group_id?: string;
 }
 
 // Shape of the `about_content` row in `site_content`. Matches the JSON
@@ -226,7 +229,29 @@ export type SiteContentKey =
   | 'about_content'
   | 'materials_gallery_images'
   | 'materials_videos'
-  | 'materials_pdfs';
+  | 'materials_pdfs'
+  | 'materials_groups';
+
+// Material groups: admin-created named categories for downloads, galleries
+// and videos. Users browse materials grouped under these categories.
+export type MaterialType = 'gallery' | 'video' | 'pdf';
+
+export interface MaterialGroup {
+  id: string;
+  type: MaterialType;
+  name: string;
+  description?: string;
+  order_index: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface GroupedMaterials {
+  groups: MaterialGroup[];
+  gallery: GalleryImage[];
+  videos: VideoItem[];
+  pdfs: PdfItem[];
+}
 
 export type SiteContentValue = 
   | { heroTitle: string; heroSubtitle: string; videoUrl?: string; videoVisible?: boolean }
@@ -235,7 +260,8 @@ export type SiteContentValue =
   | AboutContent
   | GalleryImage[]
   | VideoItem[]
-  | PdfItem[];
+  | PdfItem[]
+  | GroupedMaterials;
 
 export interface SiteContent {
   key: SiteContentKey;

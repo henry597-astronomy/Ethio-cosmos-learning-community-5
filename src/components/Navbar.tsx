@@ -217,35 +217,31 @@ export default function Navbar() {
                   {/* Profile Side Panel */}
                   <Sheet open={profilePanelOpen} onOpenChange={setProfilePanelOpen}>
                     <SheetContent side="right" className="w-1/2 bg-slate-900 border-l border-white/10 p-0 flex flex-col">
-                      <SheetHeader className="border-b border-white/5 bg-slate-950">
-                        <div className="flex items-center gap-3 mb-2">
+                      <SheetHeader className="border-b border-white/5 bg-slate-950 py-4 px-4">
+                        <div className="flex items-center gap-3">
                           {avatarUrl ? (
                             <img 
                               src={avatarUrl} 
                               alt="Profile" 
-                              className="w-12 h-12 rounded-full border border-orange-500/50"
+                              className="w-14 h-14 rounded-full border border-orange-500/50 shrink-0"
                               referrerPolicy="no-referrer"
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500 font-semibold text-lg">
+                            <div className="w-14 h-14 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500 font-semibold text-lg shrink-0">
                               {avatarLetter}
                             </div>
                           )}
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <SheetTitle className="text-white text-base">{displayName}</SheetTitle>
                             <p className="text-xs text-gray-400 truncate">{user.email}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-start mt-3">
                           <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit ${
                             isOnline ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                           }`}>
                             {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
                             {isOnline ? 'Online' : 'Offline'}
-                          </div>
-                          <div className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit bg-blue-500/20 text-blue-400">
-                            <Users size={12} />
-                            <span>{totalUsersCount} Registered {totalUsersCount === 1 ? 'Member' : 'Members'}</span>
                           </div>
                         </div>
                       </SheetHeader>
@@ -253,7 +249,7 @@ export default function Navbar() {
                       {/* Main Content Area */}
                       <div className="flex-1 overflow-y-auto">
                         {/* Prefetch Progress Section */}
-                        <div className="px-4 py-4 border-b border-white/5">
+                        <div className="px-4 py-2 border-b border-white/5">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs text-gray-400 uppercase font-bold tracking-wider">Offline Content</span>
                             <span className="text-xs text-gray-400">{formatBytes(cacheSize)}</span>
@@ -584,17 +580,25 @@ export default function Navbar() {
                         </div>
                       </div>
 
-                      {/* Footer - Logout Button */}
+                      {/* Footer - Stats & Logout Button */}
                       <SheetFooter className="border-t border-white/5 bg-slate-950">
-                        {!isBlocked && (
-                          <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors rounded-md"
-                          >
-                            <LogOut size={18} />
-                            <span>Sign Out</span>
-                          </button>
-                        )}
+                        <div className="w-full space-y-1">
+                          <div className="flex items-center gap-2 px-4 pb-2">
+                            <div className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit bg-blue-500/20 text-blue-400">
+                              <Users size={12} />
+                              <span>{totalUsersCount} Registered {totalUsersCount === 1 ? 'Member' : 'Members'}</span>
+                            </div>
+                          </div>
+                          {!isBlocked && (
+                            <button
+                              onClick={handleLogout}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors rounded-md"
+                            >
+                              <LogOut size={18} />
+                              <span>Sign Out</span>
+                            </button>
+                          )}
+                        </div>
                       </SheetFooter>
                     </SheetContent>
                   </Sheet>

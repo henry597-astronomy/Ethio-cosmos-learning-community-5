@@ -662,6 +662,41 @@ export default function AdminPage() {
   };
 
   // ── Materials ───────────────────────────────────────────────────────────────
+  const getMaterialItems = (type: MaterialType) => {
+    const key = type === 'gallery' ? 'gallery' : type === 'video' ? 'videos' : 'pdfs';
+    const localItems = type === 'gallery' ? galleryImagesLocal : type === 'video' ? videosLocal : pdfsLocal;
+    const groupedItems = materialsGroups.grouped[key] ?? [];
+    const groupedById = new Map(groupedItems.map((item) => [item.id, item]));
+
+    // The editor's legacy material keys and the category payload are both
+    // supported. Merge their group IDs so newly created materials are also
+    // available for assignment before a category payload has been rebuilt.
+    return localItems.map((item) => ({
+      ...item,
+      group_id: item.group_id ?? groupedById.get(item.id)?.group_id,
+    }));
+  };
+
+  const persistMaterialItems = async (type: MaterialType, items: GalleryImage[] | VideoItem[] | PdfItem[]) => {
+    const key = type === 'gallery' ? 'gallery' : type === 'video' ? 'videos' : 'pdfs';
+    const nextGrouped = { ...materialsGroups.grouped, [key]: items };
+    await materialsGroups.saveFull(nextGrouped);
+
+    if (type === 'gallery') {
+      await materialsGalleryImages.saveGalleryImages(items as GalleryImage[]);
+      setGalleryImagesLocal(items as GalleryImage[]);
+      setGalleryImagesModified(false);
+    } else if (type === 'video') {
+      await materialsVideos.saveVideos(items as VideoItem[]);
+      setVideosLocal(items as VideoItem[]);
+      setVideosModified(false);
+    } else {
+      await materialsPdfs.savePdfs(items as PdfItem[]);
+      setPdfsLocal(items as PdfItem[]);
+      setPdfsModified(false);
+    }
+  };
+
   const updateGalleryImageLocal = (id: string, field: keyof GalleryImage, value: string) => {
     const updated = galleryImagesLocal.map(img => 
       img.id === id ? { ...img, [field]: value } : img
@@ -672,8 +707,7 @@ export default function AdminPage() {
 
   const saveGalleryImages = async () => {
     try {
-      await materialsGalleryImages.saveGalleryImages(galleryImagesLocal);
-      setGalleryImagesModified(false);
+      await persistMaterialItems('gallery', galleryImagesLocal);
     } catch (err) {
       console.error('Failed to save gallery images:', err);
     }
@@ -705,8 +739,7 @@ export default function AdminPage() {
 
   const saveVideos = async () => {
     try {
-      await materialsVideos.saveVideos(videosLocal);
-      setVideosModified(false);
+      await persistMaterialItems('video', videosLocal);
     } catch (err) {
       console.error('Failed to save videos:', err);
     }
@@ -738,8 +771,7 @@ export default function AdminPage() {
 
   const savePdfs = async () => {
     try {
-      await materialsPdfs.savePdfs(pdfsLocal);
-      setPdfsModified(false);
+      await persistMaterialItems('pdf', pdfsLocal);
     } catch (err) {
       console.error('Failed to save PDFs:', err);
     }
@@ -829,7 +861,20 @@ export default function AdminPage() {
 
   const handleAssignItems = async (groupId: string, type: MaterialType, ids: string[]) => {
     try {
-      await materialsGroups.assignItems(groupId, type, ids);
+      const currentItems = getMaterialItems(type);
+      const updatedItems = currentItems.map((item) => ({
+        ...item,
+        group_id: ids.includes(item.id)
+          ? groupId
+          : item.group_id === groupId
+            ? undefined
+            : item.group_id,
+      }));
+
+      // Persist the assignment in the same records used by both the editor
+      // and the public materials page. This avoids the old split-brain state
+      // where a category existed but its materials were not assignable.
+      await persistMaterialItems(type, updatedItems);
       toast.success('Materials assigned to category.');
     } catch (err) {
       console.error('Failed to assign items:', err);
@@ -1741,9 +1786,9 @@ export default function AdminPage() {
                     .filter((g) => g.type === selectedGroupTab)
                     .sort((a, b) => a.order_index - b.order_index)
                     .map((group) => {
-                      const itemKey = group.type === 'gallery' ? 'gallery' : group.type === 'video' ? 'videos' : 'pdfs';
-                      const groupItems = (materialsGroups.grouped[itemKey] ?? []).filter((i) => i.group_id === group.id);
-                      const unassigned = (materialsGroups.grouped[itemKey] ?? []).filter((i) => !i.group_id);
+                      const materialItems = getMaterialItems(group.type);
+                      const groupItems = materialItems.filter((i) => i.group_id === group.id);
+                      const unassigned = materialItems.filter((i) => !i.group_id);
                       return (
                         <div key={group.id} className="p-4 bg-slate-800 rounded-lg border border-white/10">
                           {editingGroupId === group.id ? (

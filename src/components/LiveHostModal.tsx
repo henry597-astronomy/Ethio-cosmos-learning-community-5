@@ -20,7 +20,7 @@ export default function LiveHostModal({
   contextError,
   onClearError,
 }: LiveHostModalProps) {
-  const { displayName, profile } = useAuth();
+  const { displayName, avatarUrl } = useAuth();
   const [roomName, setRoomName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +54,7 @@ export default function LiveHostModal({
           userName: displayName,
           roomName: slugifiedRoomName,
           isHost: true,
-          avatarUrl: profile?.avatar_url || null,
+          avatarUrl: avatarUrl || null,
         }),
       });
 

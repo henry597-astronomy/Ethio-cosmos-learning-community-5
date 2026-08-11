@@ -15,7 +15,7 @@ interface PostRow {
   created_at: string;
   pinned_at: string | null;
   user_id: string;
-  profiles?: { username?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null;
+  profiles?: { username?: string | null; bio?: string | null; avatar_url?: string | null; role?: string | null } | null;
 }
 
 interface CommentRow {
@@ -24,7 +24,7 @@ interface CommentRow {
   user_id: string;
   content: string;
   created_at: string;
-  profiles?: { username?: string | null; email?: string | null; avatar_url?: string | null; role?: string | null } | null;
+  profiles?: { username?: string | null; bio?: string | null; avatar_url?: string | null; role?: string | null } | null;
 }
 
 const AVAILABLE_EMOJIS = ['👍', '❤️', '🔥', '🚀', '⭐', '🌌'];
@@ -112,7 +112,11 @@ function PostMedia({ text, imageUrl }: { text?: string | null; imageUrl?: string
 }
 
 export default function ChatPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, profile } = useAuth();
+  // Super admin user id resolved client-side from the signed-in profile when
+  // the current user is the admin — avoids hardcoding or exposing any email.
+  const adminUserId = profile?.role === 'admin' ? profile.id : null;
+  const isSuperAdminSignedIn = user?.email === 'henokgirma648@gmail.com';
   const { resetUnreadCount } = useNotifications();
   const [posts, setPosts] = useState<ChannelPost[]>([]);
   const [newPostText, setNewPostText] = useState('');
@@ -134,7 +138,7 @@ export default function ChatPage() {
     try {
       const { data: postsData, error: postsError } = await supabase
         .from('channel_posts')
-        .select(`id, message_text, image_url, created_at, pinned_at, user_id, profiles ( username, email, avatar_url, role )`)
+        .select(`id, message_text, image_url, created_at, pinned_at, user_id, profiles ( username, bio, avatar_url, role )`)
         .order('created_at', { ascending: true });
 
       if (postsError) {
@@ -149,7 +153,7 @@ export default function ChatPage() {
 
       const { data: commentsData } = await supabase
         .from('channel_comments')
-        .select(`id, post_id, user_id, content, created_at, profiles ( username, email, avatar_url, role )`)
+        .select(`id, post_id, user_id, content, created_at, profiles ( username, bio, avatar_url, role )`)
         .order('created_at', { ascending: true });
 
       const { data: commentReactionsData } = await supabase
@@ -161,7 +165,7 @@ export default function ChatPage() {
 
       const mappedComments: ChannelComment[] = (commentsData as unknown as CommentRow[] || []).map(c => {
         const p = c.profiles;
-        const sender_name = p?.username || (p?.email ? p.email.split('@')[0] : 'Unknown');
+        const sender_name = p?.username || 'Unknown';
         const cReactions = mappedCommentReactions.filter(cr => cr.comment_id === c.id);
         return {
           id: c.id,
@@ -172,7 +176,7 @@ export default function ChatPage() {
           sender_name,
           sender_avatar: p?.avatar_url ?? undefined,
           sender_role: p?.role ?? 'user',
-          sender_email: p?.email ?? undefined,
+          sender_email: undefined,
           reactions: cReactions,
         };
       });
@@ -181,7 +185,6 @@ export default function ChatPage() {
         const profile = row.profiles;
         const sender_name =
           profile?.username ||
-          (profile?.email ? profile.email.split('@')[0] : undefined) ||
           'Admin';
         
         const postReactions = mappedReactions.filter(r => r.post_id === row.id);
@@ -195,7 +198,7 @@ export default function ChatPage() {
           created_at: row.created_at,
           pinned_at: row.pinned_at,
           sender_name,
-          sender_email: profile?.email ?? undefined,
+          sender_email: undefined,
           sender_avatar: profile?.avatar_url ?? undefined,
           sender_role: profile?.role ?? 'admin',
           reactions: postReactions,
@@ -550,7 +553,11 @@ export default function ChatPage() {
             ) : (
               posts.map((post) => {
                 const isAdminPost = post.sender_role === 'admin';
-                const isActualOwner = post.sender_email === 'henokgirma648@gmail.com';
+                // Ownership check by user id — never expose the super admin email.
+                // Deletable-by-owner applies when the signed-in admin owns the post
+                // (self-match) or the super admin is signed in (global owner).
+                const isActualOwner =
+                  (adminUserId !== null && post.user_id === adminUserId) || isSuperAdminSignedIn;
 
                 return (
                   <div

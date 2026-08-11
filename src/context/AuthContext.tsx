@@ -10,6 +10,7 @@ import {
 import { supabase } from '@/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import type { UserProfile } from '@/types';
+import { getGravatarUrl } from '@/lib/gravatar';
 
 interface AuthContextType {
   user: User | null;
@@ -28,6 +29,8 @@ interface AuthContextType {
     username?: string
   ) => Promise<{ needsEmailConfirmation: boolean }>;
   logout: () => Promise<void>;
+  updateProfile: (fields: { username?: string | null; bio?: string | null }) => Promise<void>;
+  avatarUrl: string | null;   // Uploaded avatar or Gravatar derived from email (email never exposed)
   displayName: string;
   totalUsersCount: number;
 }
@@ -59,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, email, avatar_url, role, created_at, updated_at, is_blocked')
+        .select('id, username, bio, email, avatar_url, role, created_at, updated_at, is_blocked')
         .eq('id', userId)
         .maybeSingle();
 
@@ -88,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const optimisticProfile: UserProfile = {
           id: nextUser.id,
           email: nextUser.email || '',
+          bio: null,
           username: metadata?.full_name || metadata?.name || (nextUser.email ? nextUser.email.split('@')[0] : 'User'),
           avatar_url: (metadata?.avatar_url as string | undefined) || null,
           role: 'user', // Default to user until DB confirms
@@ -223,6 +227,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateProfile = useCallback(
+    async (fields: { username?: string | null; bio?: string | null }) => {
+      if (!user) throw new Error('Not signed in');
+
+      // Persist to the database
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          username: fields.username,
+          bio: fields.bio,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+      if (error) throw error;
+
+      // Refresh the local profile
+      await fetchProfile(user.id);
+    },
+    [user, fetchProfile]
+  );
+
+  // Fallback avatar derived from the user's email (Gravatar). Kept private —
+  // Gravatar keys avatars by MD5 hash, so the raw email is never exposed.
+  const avatarUrl = profile?.avatar_url || (user?.email ? getGravatarUrl(user.email) : null);
+
   return (
     <AuthContext.Provider
       value={{
@@ -239,6 +268,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithEmail,
         signUpWithEmail,
         logout,
+        updateProfile,
+        avatarUrl,
         totalUsersCount,
       }}
     >

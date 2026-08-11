@@ -4,7 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon, Menu } from 'lucide-react';
+import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon, Menu, Pencil } from 'lucide-react';
+import EditProfileDialog from '@/components/EditProfileDialog';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import {
   Sheet,
@@ -31,11 +32,12 @@ const privateNavLinks = [
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, isAdmin, isSuperAdmin, isBlocked, logout, displayName, totalUsersCount } = useAuth();
+  const { user, profile, isAdmin, isSuperAdmin, isBlocked, logout, displayName, avatarUrl, totalUsersCount } = useAuth();
   const { unreadCount } = useNotifications();
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const { theme, setTheme } = useTheme();
 
   // Offline and Prefetch State
@@ -112,11 +114,6 @@ export default function Navbar() {
     return location.pathname.startsWith(path);
   };
 
-  const metadata = user?.user_metadata as
-    | { avatar_url?: string; full_name?: string; name?: string }
-    | undefined;
-
-  const avatarUrl = profile?.avatar_url || metadata?.avatar_url || null;
   const avatarLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
 
   return (
@@ -233,8 +230,19 @@ export default function Navbar() {
                           )}
                           <div className="flex-1 min-w-0">
                             <SheetTitle className="text-white text-base">{displayName}</SheetTitle>
-                            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                            {profile?.bio ? (
+                              <p className="text-xs text-gray-400 line-clamp-2 mt-0.5">{profile.bio}</p>
+                            ) : (
+                              <p className="text-xs text-gray-500 italic mt-0.5">No bio yet</p>
+                            )}
                           </div>
+                          <button
+                            onClick={() => setEditProfileOpen(true)}
+                            className="p-2 rounded-full hover:bg-white/5 text-gray-400 hover:text-orange-400 transition-colors"
+                            title="Edit profile"
+                          >
+                            <Pencil size={16} />
+                          </button>
                         </div>
                         <div className="flex items-center justify-start mt-3">
                           <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit ${
@@ -468,6 +476,8 @@ export default function Navbar() {
                       </SheetFooter>
                     </SheetContent>
                   </Sheet>
+
+                  <EditProfileDialog open={editProfileOpen} onOpenChange={setEditProfileOpen} />
                 </>
               ) : (
                 <Link to="/login">

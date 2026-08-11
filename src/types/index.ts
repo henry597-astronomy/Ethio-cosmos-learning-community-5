@@ -94,6 +94,7 @@ export interface ChannelPost {
 export interface UserProfile {
   id: string;
   username: string | null;
+  bio: string | null;
   email: string | null;
   avatar_url: string | null;
   role: 'user' | 'admin';

@@ -68,30 +68,51 @@ export default function Navbar() {
 
       const scrollWidth = scrollContainer.scrollWidth;
       const setWidth = scrollWidth / 3;
-      const clientWidth = scrollContainer.clientWidth;
-      
-      // The auto-scroll range is within the middle set [setWidth, setWidth + (setWidth - clientWidth)]
-      const minAutoScroll = setWidth;
-      const maxAutoScroll = setWidth + Math.max(0, setWidth - clientWidth);
-
       if (setWidth > 0) {
-        // Continuous flow: traverse full set width in 25 seconds (50 seconds per lap)
-        const pixelsPerMs = setWidth / 25000;
-        
-        if (scrollDirectionRef.current === 'right') {
-          virtualScrollRef.current += pixelsPerMs * deltaTime;
-          if (virtualScrollRef.current >= maxAutoScroll) {
-            virtualScrollRef.current = maxAutoScroll;
-            scrollDirectionRef.current = 'left';
+        // Find specific positions for Ping-Pong boundaries
+        // We want to ping between Progress (Set 0) and About (Set 1)
+        const getLinkPos = (setIdx: number, label: string) => {
+          const container = scrollContainer.querySelector('.taskbar-marquee-container');
+          if (!container) return null;
+          const set = container.children[setIdx] as HTMLElement;
+          if (!set) return null;
+          
+          const links = Array.from(set.querySelectorAll('a'));
+          const link = links.find(l => l.textContent === label) || links[links.length - 1];
+          if (!link) return null;
+
+          const containerRect = scrollContainer.getBoundingClientRect();
+          const linkRect = link.getBoundingClientRect();
+          return scrollContainer.scrollLeft + (linkRect.left - containerRect.left);
+        };
+
+        const posAbout = getLinkPos(1, 'About') || (setWidth + setWidth * 0.6);
+        const posProgress = getLinkPos(0, 'Progress') || (setWidth - setWidth * 0.2);
+
+        // Auto-scroll range: from Progress (Set 0) to About (Set 1)
+        const minAutoScroll = posProgress;
+        const maxAutoScroll = posAbout;
+        const range = maxAutoScroll - minAutoScroll;
+
+        if (range > 0) {
+          // Speed: Full lap (range * 2) in 50 seconds
+          const pixelsPerMs = (range * 2) / 50000;
+          
+          if (scrollDirectionRef.current === 'right') {
+            virtualScrollRef.current += pixelsPerMs * deltaTime;
+            if (virtualScrollRef.current >= maxAutoScroll) {
+              virtualScrollRef.current = maxAutoScroll;
+              scrollDirectionRef.current = 'left';
+            }
+          } else {
+            virtualScrollRef.current -= pixelsPerMs * deltaTime;
+            if (virtualScrollRef.current <= minAutoScroll) {
+              virtualScrollRef.current = minAutoScroll;
+              scrollDirectionRef.current = 'right';
+            }
           }
-        } else {
-          virtualScrollRef.current -= pixelsPerMs * deltaTime;
-          if (virtualScrollRef.current <= minAutoScroll) {
-            virtualScrollRef.current = minAutoScroll;
-            scrollDirectionRef.current = 'right';
-          }
+          scrollContainer.scrollLeft = virtualScrollRef.current;
         }
-        scrollContainer.scrollLeft = virtualScrollRef.current;
 
         // Always handle infinite loop jumping for manual scrolling
         if (scrollContainer.scrollLeft >= setWidth * 2) {

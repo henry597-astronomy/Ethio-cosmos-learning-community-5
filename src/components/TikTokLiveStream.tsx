@@ -63,6 +63,12 @@ function StreamContent({
 
   useEffect(() => {
     setIsClient(true);
+    // Cleanup function when the stream ends/component unmounts
+    return () => {
+      setComments([]);
+      setTotalWordsUsed(0);
+      setCommentDraft('');
+    };
   }, []);
   
   // Local state for co-host identity to ensure immediate UI feedback

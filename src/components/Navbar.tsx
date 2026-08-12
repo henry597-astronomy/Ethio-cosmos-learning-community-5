@@ -17,7 +17,7 @@ import {
 
 const publicNavLinks = [
   { path: '/', label: 'Home' },
-  { path: '/learning', label: 'Learning' },
+  { path: '/learning', label: 'Lesson' },
   { path: '/materials', label: 'Materials' },
   { path: '/chat', label: 'Channel' },
   { path: '/tests', label: 'Tests' },
@@ -45,7 +45,6 @@ export default function Navbar() {
   const lastInteractionRef = useRef<number>(Date.now());
   const animationRef = useRef<number | null>(null);
   const virtualScrollRef = useRef<number>(0);
-  const scrollDirectionRef = useRef<'right' | 'left'>('right');
   const isInteractingRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -77,66 +76,10 @@ export default function Navbar() {
     window.addEventListener('touchend', handleInteractionEnd);
     window.addEventListener('mouseup', handleInteractionEnd);
 
-    let lastTime = performance.now();
-
-    const animate = (time: number) => {
-      const deltaTime = time - lastTime;
-      lastTime = time;
-
+    const animate = () => {
       const scrollWidth = scrollContainer.scrollWidth;
       const setWidth = scrollWidth / 3;
       if (setWidth > 0) {
-        // Find specific positions for Ping-Pong boundaries
-        // We want to ping between Progress (Set 0) and About (Set 1)
-        const getLinkPos = (setIdx: number, label: string) => {
-          const container = scrollContainer.querySelector('.taskbar-marquee-container');
-          if (!container) return null;
-          const set = container.children[setIdx] as HTMLElement;
-          if (!set) return null;
-          
-          const links = Array.from(set.querySelectorAll('a'));
-          const link = links.find(l => l.textContent === label) || links[links.length - 1];
-          if (!link) return null;
-
-          const containerRect = scrollContainer.getBoundingClientRect();
-          const linkRect = link.getBoundingClientRect();
-          return scrollContainer.scrollLeft + (linkRect.left - containerRect.left);
-        };
-
-        const posHome = getLinkPos(1, 'Home') || setWidth;
-        const posAbout = getLinkPos(1, 'About') || (setWidth + setWidth * 0.6);
-
-        // Auto-scroll range: from Home (Set 1) to About (Set 1)
-        const minAutoScroll = posHome;
-        const maxAutoScroll = posAbout;
-        const range = maxAutoScroll - minAutoScroll;
-
-        const timeSinceLastInteraction = Date.now() - lastInteractionRef.current;
-        const isUserActive = isInteractingRef.current || timeSinceLastInteraction < 800;
-
-        if (range > 0 && !isUserActive) {
-          // Speed: Full lap (range * 2) in 50 seconds
-          const pixelsPerMs = (range * 2) / 50000;
-          
-          if (scrollDirectionRef.current === 'right') {
-            virtualScrollRef.current += pixelsPerMs * deltaTime;
-            if (virtualScrollRef.current >= maxAutoScroll) {
-              virtualScrollRef.current = maxAutoScroll;
-              scrollDirectionRef.current = 'left';
-            }
-          } else {
-            virtualScrollRef.current -= pixelsPerMs * deltaTime;
-            if (virtualScrollRef.current <= minAutoScroll) {
-              virtualScrollRef.current = minAutoScroll;
-              scrollDirectionRef.current = 'right';
-            }
-          }
-          scrollContainer.scrollLeft = virtualScrollRef.current;
-        } else if (isUserActive) {
-          // Keep virtual scroll in sync with user's manual scroll
-          virtualScrollRef.current = scrollContainer.scrollLeft;
-        }
-
         // Always handle infinite loop jumping for manual scrolling
         if (scrollContainer.scrollLeft >= setWidth * 2) {
           scrollContainer.scrollLeft -= setWidth;

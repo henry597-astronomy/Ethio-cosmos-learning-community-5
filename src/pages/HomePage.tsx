@@ -181,7 +181,7 @@ export default function HomePage() {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative z-10 w-full">
           {dailyNews && (
-            <article className="mb-10 max-w-5xl mx-auto overflow-hidden rounded-2xl border border-orange-300/30 bg-[#0b1222]/90 shadow-2xl backdrop-blur-sm">
+            <article className="mb-6 max-w-5xl mx-auto overflow-hidden rounded-xl border border-orange-300/30 bg-[#0b1222]/90 shadow-2xl backdrop-blur-sm">
               <div className="grid md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
                 <div className="h-[180px] md:h-[240px] bg-black/30">
                   {dailyNews.image_url ? (
@@ -195,15 +195,15 @@ export default function HomePage() {
                     <div className="flex h-full items-center justify-center bg-gradient-to-br from-indigo-950 to-orange-900 p-8 text-center text-5xl">🌌</div>
                   )}
                 </div>
-                <div className="flex flex-col justify-center p-6 sm:p-8">
-                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-300">
+                <div className="flex flex-col justify-center p-3 sm:p-4">
+                  <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-300">
                     <span>Daily Space News</span>
                     <span className="text-white/40">•</span>
                     <span>{dailyNews.category}</span>
                   </div>
                   <h2 className="text-2xl font-bold leading-tight text-white sm:text-3xl">{dailyNews.title}</h2>
-                  <p className="mt-4 text-base leading-relaxed text-gray-200">{dailyNews.summary}</p>
-                  <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <p className="mt-2 text-base leading-relaxed text-gray-200">{dailyNews.summary}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Button
                       asChild
                       className="bg-orange-500 text-white hover:bg-orange-600"
@@ -316,10 +316,10 @@ export default function HomePage() {
       </section>
 
       {/* Feature Cards Section */}
-      <section id="feature-cards" className="py-16 bg-[#0a0e1a]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="feature-cards" className="py-8 bg-[#0a0e1a]">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
           {homepageFeatureCards.loading ? (
-            <div className="grid md:grid-cols-3 gap-6 -mt-32 relative z-10">
+            <div className="grid md:grid-cols-3 gap-2 sm:gap-3 -mt-32 relative z-10">
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
@@ -332,16 +332,16 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-6 -mt-32 relative z-10">
+            <div className="grid md:grid-cols-3 gap-2 sm:gap-3 -mt-32 relative z-10">
               {homepageFeatureCards.featureCards.map((card, i) => (
                 <div 
                   key={i}
-                  className="bg-[#151c2c] rounded-xl p-8 shadow-xl border border-white/5 hover:border-orange-500/30 transition-all duration-300 group"
+                  className="bg-[#151c2c] rounded-lg p-3 shadow-xl border border-white/5 hover:border-orange-500/30 transition-all duration-300 group"
                 >
-                  <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">
                     {card.icon}
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{card.title}</h3>
+                  <h3 className="text-xl font-bold text-white mb-1">{card.title}</h3>
                   <p className="text-gray-400 leading-relaxed">
                     {card.description}
                   </p>
@@ -353,14 +353,14 @@ export default function HomePage() {
       </section>
 
       {/* Featured Topics Section */}
-      <section className="py-24 bg-[#0a0e1a]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Featured Topics</h2>
+      <section className="py-8 bg-[#0a0e1a]">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">Featured Topics</h2>
             <div className="w-24 h-1 bg-orange-500 mx-auto rounded-full" />
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
             {homepageFeaturedTopics.loading ? (
               [0, 1, 2, 3].map((i) => (
                 <div key={i} className="rounded-xl overflow-hidden bg-white/5 animate-pulse h-64" />
@@ -369,7 +369,7 @@ export default function HomePage() {
               homepageFeaturedTopics.featuredTopics.map((topic) => (
                 <div 
                   key={topic.id}
-                  className="group rounded-xl overflow-hidden cursor-pointer bg-[#151c2c] border border-white/10 hover:border-orange-500/30 transition-all duration-300 flex flex-col h-full"
+                  className="group rounded-lg overflow-hidden cursor-pointer bg-[#151c2c] border border-white/10 hover:border-orange-500/30 transition-all duration-300 flex flex-col h-full"
                   onClick={() => navigate('/learning')}
                 >
                   <img 
@@ -378,8 +378,8 @@ export default function HomePage() {
                     loading="lazy"
                     className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-lg font-bold text-white mb-3">{topic.title}</h3>
+                  <div className="p-3 flex-1 flex flex-col">
+                    <h3 className="text-lg font-bold text-white mb-2">{topic.title}</h3>
                     <p className="text-sm text-gray-300 leading-relaxed flex-1">
                       {topic.description}
                     </p>
@@ -389,7 +389,7 @@ export default function HomePage() {
             )}
           </div>
 
-          <div className="text-center mt-12">
+          <div className="text-center mt-6">
             <Button 
               onClick={() => navigate('/learning')}
               className="bg-transparent border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8"

@@ -22,6 +22,51 @@ export default function AIChatBar() {
   });
   const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
   const didDragRef = useRef(false);
+  const positionRef = useRef(position);
+  const snapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isSnapping, setIsSnapping] = useState(false);
+
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
+
+  const clearSnapTimeout = () => {
+    if (snapTimeoutRef.current !== null) {
+      window.clearTimeout(snapTimeoutRef.current);
+      snapTimeoutRef.current = null;
+    }
+  };
+
+  const scheduleCornerSnap = () => {
+    clearSnapTimeout();
+    snapTimeoutRef.current = window.setTimeout(() => {
+      const bubbleSize = 56;
+      const inset = 20;
+      const maxX = Math.max(inset, window.innerWidth - bubbleSize - inset);
+      const maxY = Math.max(inset, window.innerHeight - bubbleSize - inset);
+      const currentX = Math.min(Math.max(0, positionRef.current.x), maxX);
+      const currentY = Math.min(Math.max(0, positionRef.current.y), maxY);
+      const corners = [
+        { x: inset, y: inset },
+        { x: maxX, y: inset },
+        { x: inset, y: maxY },
+        { x: maxX, y: maxY },
+      ];
+
+      const nearestCorner = corners.reduce((nearest, corner) => {
+        const nearestDistance = Math.hypot(nearest.x - currentX, nearest.y - currentY);
+        const cornerDistance = Math.hypot(corner.x - currentX, corner.y - currentY);
+        return cornerDistance < nearestDistance ? corner : nearest;
+      });
+
+      setIsSnapping(true);
+      positionRef.current = nearestCorner;
+      setPosition(nearestCorner);
+      snapTimeoutRef.current = null;
+    }, 5000);
+  };
+
+  useEffect(() => () => clearSnapTimeout(), []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,6 +104,8 @@ export default function AIChatBar() {
   // Handle dragging
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     if (isOpen) return;
+    clearSnapTimeout();
+    setIsSnapping(false);
     setIsDragging(true);
     didDragRef.current = false;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -91,14 +138,20 @@ export default function AIChatBar() {
         e.preventDefault();
       }
       
-      const newX = Math.min(Math.max(20, dragRef.current.initialX + deltaX), window.innerWidth - 68);
-      const newY = Math.min(Math.max(20, dragRef.current.initialY + deltaY), window.innerHeight - 68);
-      
-      setPosition({ x: newX, y: newY });
+      const newPosition = {
+        x: Math.min(Math.max(20, dragRef.current.initialX + deltaX), window.innerWidth - 68),
+        y: Math.min(Math.max(20, dragRef.current.initialY + deltaY), window.innerHeight - 68),
+      };
+
+      positionRef.current = newPosition;
+      setPosition(newPosition);
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      if (didDragRef.current) {
+        scheduleCornerSnap();
+      }
     };
 
     if (isDragging) {
@@ -164,7 +217,7 @@ export default function AIChatBar() {
       style={{ 
         left: position.x, 
         top: position.y,
-        transition: 'none'
+        transition: isSnapping ? 'left 500ms cubic-bezier(0.22, 1, 0.36, 1), top 500ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
       }}
     >
       {/* Chat Window */}

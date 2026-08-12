@@ -46,19 +46,36 @@ export default function Navbar() {
   const animationRef = useRef<number | null>(null);
   const virtualScrollRef = useRef<number>(0);
   const scrollDirectionRef = useRef<'right' | 'left'>('right');
+  const isInteractingRef = useRef<boolean>(false);
 
   useEffect(() => {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer) return;
 
-    const handleInteraction = () => {
+    const handleInteractionStart = () => {
+      isInteractingRef.current = true;
       lastInteractionRef.current = Date.now();
       virtualScrollRef.current = scrollContainer.scrollLeft;
     };
 
-    scrollContainer.addEventListener('scroll', handleInteraction, { passive: true });
-    scrollContainer.addEventListener('touchstart', handleInteraction, { passive: true });
-    scrollContainer.addEventListener('mousedown', handleInteraction, { passive: true });
+    const handleInteractionEnd = () => {
+      isInteractingRef.current = false;
+      lastInteractionRef.current = Date.now();
+      virtualScrollRef.current = scrollContainer.scrollLeft;
+    };
+
+    const handleScroll = () => {
+      if (isInteractingRef.current) {
+        lastInteractionRef.current = Date.now();
+        virtualScrollRef.current = scrollContainer.scrollLeft;
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    scrollContainer.addEventListener('touchstart', handleInteractionStart, { passive: true });
+    scrollContainer.addEventListener('mousedown', handleInteractionStart, { passive: true });
+    window.addEventListener('touchend', handleInteractionEnd);
+    window.addEventListener('mouseup', handleInteractionEnd);
 
     let lastTime = performance.now();
 
@@ -94,7 +111,10 @@ export default function Navbar() {
         const maxAutoScroll = posAbout;
         const range = maxAutoScroll - minAutoScroll;
 
-        if (range > 0) {
+        const timeSinceLastInteraction = Date.now() - lastInteractionRef.current;
+        const isUserActive = isInteractingRef.current || timeSinceLastInteraction < 800;
+
+        if (range > 0 && !isUserActive) {
           // Speed: Full lap (range * 2) in 50 seconds
           const pixelsPerMs = (range * 2) / 50000;
           
@@ -112,6 +132,9 @@ export default function Navbar() {
             }
           }
           scrollContainer.scrollLeft = virtualScrollRef.current;
+        } else if (isUserActive) {
+          // Keep virtual scroll in sync with user's manual scroll
+          virtualScrollRef.current = scrollContainer.scrollLeft;
         }
 
         // Always handle infinite loop jumping for manual scrolling
@@ -142,9 +165,11 @@ export default function Navbar() {
 
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      scrollContainer.removeEventListener('scroll', handleInteraction);
-      scrollContainer.removeEventListener('touchstart', handleInteraction);
-      scrollContainer.removeEventListener('mousedown', handleInteraction);
+      scrollContainer.removeEventListener('scroll', handleScroll);
+      scrollContainer.removeEventListener('touchstart', handleInteractionStart);
+      scrollContainer.removeEventListener('mousedown', handleInteractionStart);
+      window.removeEventListener('touchend', handleInteractionEnd);
+      window.removeEventListener('mouseup', handleInteractionEnd);
     };
   }, []);
 

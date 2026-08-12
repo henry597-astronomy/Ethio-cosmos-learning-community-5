@@ -194,7 +194,11 @@ function isMediaUrl(url) {
 // ── Install: Cache all static assets ──────────────────────────────────────
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
-  self.skipWaiting();
+  // First install should activate immediately; later updates wait so the app
+  // can ask the user whether to use the live update or prepare offline content.
+  if (!self.registration.active) {
+    self.skipWaiting();
+  }
   
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {

@@ -8,6 +8,7 @@ import { Toaster } from 'sonner';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import InstallPrompt from '@/components/InstallPrompt';
+import AppUpdatePrompt from '@/components/AppUpdatePrompt';
 import AIChatBar from '@/components/AIChatBar';
 import BottomTaskBar from '@/components/BottomTaskBar';
 
@@ -45,6 +46,7 @@ function AppRoutes() {
     }`} style={{ WebkitOverflowScrolling: 'touch', background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
       <Navbar />
       <InstallPrompt />
+      <AppUpdatePrompt />
       <main className="flex-1 pt-24" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))', background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
         <Routes>
           {/* Login is always accessible */}

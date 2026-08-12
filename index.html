@@ -16,10 +16,11 @@
           navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((registration) => {
             console.log('[App] Service worker registered:', registration);
 
-            const activateWaitingWorker = () => {
-              if (registration.waiting) {
-                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-              }
+            const notifyAboutUpdate = () => {
+              if (!registration.waiting || !navigator.serviceWorker.controller) return;
+              window.dispatchEvent(new CustomEvent('ethio:sw-update', {
+                detail: { registration },
+              }));
             };
 
             // Check for new builds immediately and periodically in the background.
@@ -37,16 +38,18 @@
               if (!newWorker) return;
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed') {
-                  activateWaitingWorker();
+                  notifyAboutUpdate();
                 }
               });
             });
-            activateWaitingWorker();
+            // If an update was already waiting when the page loaded, let the app
+            // present the online/offline choice immediately.
+            notifyAboutUpdate();
 
-            // Reload once when the new worker takes control so the latest assets load.
+            // Reload only after the user explicitly chooses to activate the update.
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-              if (sessionStorage.getItem('sw-reloaded') === '1') return;
-              sessionStorage.setItem('sw-reloaded', '1');
+              if (sessionStorage.getItem('ethio-sw-reload-requested') !== '1') return;
+              sessionStorage.removeItem('ethio-sw-reload-requested');
               window.location.reload();
             });
 

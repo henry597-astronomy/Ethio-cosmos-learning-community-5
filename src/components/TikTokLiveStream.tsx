@@ -10,7 +10,7 @@ import {
 } from '@livekit/components-react';
 import { Participant, Track } from 'livekit-client';
 import '@livekit/components-styles';
-import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserMinus, Mic, MicOff, MonitorUp, MonitorOff } from 'lucide-react';
+import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserMinus, Mic, MicOff, MonitorUp, MonitorOff, Send, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface TikTokLiveStreamProps {
@@ -20,6 +20,15 @@ interface TikTokLiveStreamProps {
   isHost?: boolean;
   roomName?: string;
   hostUserId?: string;
+}
+
+interface LiveComment {
+  id: string;
+  senderIdentity: string;
+  senderName: string;
+  senderAvatar?: string | null;
+  text: string;
+  createdAt: number;
 }
 
 function StreamContent({
@@ -43,6 +52,9 @@ function StreamContent({
   const [isCommunityMicAllowed] = useState(true);
   const [mutedCommunityIds, setMutedCommunityIds] = useState<Set<string>>(new Set());
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [comments, setComments] = useState<LiveComment[]>([]);
+  const [commentDraft, setCommentDraft] = useState('');
+  const commentsEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [connectionTimeout, setConnectionTimeout] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -59,6 +71,19 @@ function StreamContent({
   const { send } = useDataChannel('co-host-signaling', (message) => {
     try {
       const data = JSON.parse(new TextDecoder().decode(message.payload));
+      if (data.type === 'LIVE_COMMENT' && data.text) {
+        setComments((previous) => {
+          if (previous.some((comment) => comment.id === data.id)) return previous;
+          return [...previous, {
+            id: data.id || `${Date.now()}-${data.senderIdentity || 'community'}`,
+            senderIdentity: data.senderIdentity || 'community',
+            senderName: data.senderName || 'Community member',
+            senderAvatar: data.senderAvatar || null,
+            text: String(data.text).slice(0, 300),
+            createdAt: Number(data.createdAt) || Date.now(),
+          }].slice(-100);
+        });
+      }
       if (data.type === 'CO_HOST_UPDATE') {
         setLocalCoHostId(data.coHostIdentity);
       }
@@ -452,6 +477,31 @@ function StreamContent({
     return metadata.avatar_url || null;
   };
 
+  useEffect(() => {
+    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [comments]);
+
+  const handleSendComment = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const text = commentDraft.trim().slice(0, 300);
+    if (!text || !localParticipant) return;
+
+    const metadata = getMetadata(localParticipant);
+    const comment: LiveComment = {
+      id: `${Date.now()}-${localParticipant.identity}`,
+      senderIdentity: localParticipant.identity,
+      senderName: localParticipant.name || metadata.display_name || 'Community member',
+      senderAvatar: metadata.avatar_url || null,
+      text,
+      createdAt: Date.now(),
+    };
+
+    setComments((previous) => [...previous, comment].slice(-100));
+    setCommentDraft('');
+    const encoder = new TextEncoder();
+    await send(encoder.encode(JSON.stringify({ type: 'LIVE_COMMENT', ...comment })), { reliable: true });
+  };
+
   const handleProfileClick = async (participant: Participant) => {
     if (!isHost || !localParticipant) return;
     
@@ -479,7 +529,7 @@ function StreamContent({
   return (
     <div ref={containerRef} className="fixed inset-0 bg-black z-50 flex flex-col font-sans" suppressHydrationWarning>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-950/95 backdrop-blur-md">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-slate-950/95 backdrop-blur-md min-h-14">
         <div className="flex-1">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -630,88 +680,122 @@ function StreamContent({
         </div>
 
         {/* BOTTOM: Community */}
-        <div className="h-1/2 bg-slate-950 overflow-y-auto">
-          <div className="p-5">
-            <h3 className="text-white font-bold flex items-center justify-between text-sm uppercase tracking-wider mb-6">
-              <div className="flex items-center gap-2">
-                <span className="text-blue-500 text-lg">👥</span>
-                Community ({communityMembers.length})
-              </div>
-              <div className="flex items-center gap-3">
-                {isModerator && (
-                  <button
-                    type="button"
-                    onClick={handleCommunityMuteAllToggle}
-                    aria-label={isCommunityMuted ? 'Unmute all community microphones' : 'Mute all community microphones'}
-                    title={isCommunityMuted ? 'Unmute all community microphones' : 'Mute all community microphones'}
-                    className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[10px] font-bold normal-case tracking-normal text-blue-200 hover:bg-white/10"
-                  >
-                    {isCommunityMuted ? <Mic size={13} /> : <MicOff size={13} />}
-                    {isCommunityMuted ? 'Unmute all' : 'Mute all'}
-                  </button>
-                )}
-                {isHost && (
-                  <span className="text-[10px] text-blue-400 font-medium lowercase">
-                    (Tap a profile to co-host)
-                  </span>
-                )}
-              </div>
-            </h3>
+        <div className="h-[54%] min-h-0 bg-slate-950 flex flex-col overflow-hidden">
+          <div className="px-3 pt-2 pb-1 border-b border-white/5 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <MessageCircle size={15} className="text-yellow-300 shrink-0" />
+              <h3 className="text-white font-bold text-xs uppercase tracking-wide truncate">Live comments</h3>
+              <span className="text-[10px] text-white/40">({comments.length})</span>
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              {isModerator && (
+                <button
+                  type="button"
+                  onClick={handleCommunityMuteAllToggle}
+                  aria-label={isCommunityMuted ? 'Unmute all community microphones' : 'Mute all community microphones'}
+                  title={isCommunityMuted ? 'Unmute all community microphones' : 'Mute all community microphones'}
+                  className="inline-flex items-center gap-1 rounded-md border border-white/10 px-1.5 py-1 text-[9px] font-bold text-blue-200 hover:bg-white/10"
+                >
+                  {isCommunityMuted ? <Mic size={12} /> : <MicOff size={12} />}
+                  <span className="hidden xs:inline">{isCommunityMuted ? 'Unmute all' : 'Mute all'}</span>
+                </button>
+              )}
+              {isHost && <span className="text-[9px] text-blue-400 truncate">Tap a profile to co-host</span>}
+            </div>
+          </div>
 
-            {communityMembers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-3">
-                  <span className="text-2xl">👋</span>
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 py-1.5 space-y-1">
+            {comments.length === 0 ? (
+              <p className="py-3 text-center text-[11px] text-white/35">Be the first to comment</p>
+            ) : (
+              comments.map((comment) => (
+                <div key={comment.id} className="flex items-center gap-1.5 min-w-0">
+                  <Avatar className="w-5 h-5 shrink-0 border border-white/10">
+                    <AvatarImage src={comment.senderAvatar || undefined} alt={comment.senderName} />
+                    <AvatarFallback className="bg-blue-600 text-white text-[8px] font-bold">
+                      {getInitials(comment.senderName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <p className="min-w-0 text-[11px] leading-4 text-white/90 break-words">
+                    <span className="font-bold text-yellow-200 mr-1">{comment.senderName}</span>
+                    {comment.text}
+                  </p>
                 </div>
-                <p className="text-gray-500 text-sm">No community members yet</p>
-                <p className="text-gray-600 text-xs mt-1">Viewers will appear here</p>
+              ))
+            )}
+            <div ref={commentsEndRef} />
+          </div>
+
+          <form onSubmit={handleSendComment} className="px-3 py-1.5 border-t border-white/5 shrink-0">
+            <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-1">
+              <input
+                value={commentDraft}
+                onChange={(event) => setCommentDraft(event.target.value.slice(0, 300))}
+                placeholder="Say something..."
+                aria-label="Type a live comment"
+                className="min-w-0 flex-1 bg-transparent px-1 text-xs text-white outline-none placeholder:text-white/35"
+                maxLength={300}
+              />
+              <button
+                type="submit"
+                disabled={!commentDraft.trim() || !localParticipant}
+                aria-label="Send comment"
+                title="Send comment"
+                className="rounded-full p-1.5 text-yellow-300 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <Send size={15} />
+              </button>
+            </div>
+          </form>
+
+          <div className="shrink-0 border-t border-white/5 px-3 pt-1.5 pb-2">
+            <div className="mb-1.5 flex items-center justify-between">
+              <h3 className="text-white font-bold text-xs uppercase tracking-wide">
+                Community ({communityMembers.length})
+              </h3>
+              <span className="text-[9px] text-white/35">8 per row · scroll</span>
+            </div>
+            {communityMembers.length === 0 ? (
+              <div className="flex items-center justify-center py-3 text-center text-[10px] text-white/35">
+                Viewers will appear here
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {communityMembers.map((participant) => (
-                  <div
-                    key={participant.identity}
-                    onClick={() => isHost && handleProfileClick(participant)}
-                    className={`flex flex-col items-center p-3 rounded-lg transition-all ${
-                      isHost ? 'cursor-pointer hover:bg-white/10' : ''
-                    } ${coHostParticipant?.identity === participant.identity ? 'bg-orange-600/20 border border-orange-500/50' : 'bg-slate-800/50'}`}
-                  >
-                    <Avatar className="w-12 h-12 mb-2 border-2 border-white/20">
-                      <AvatarImage src={getParticipantAvatar(participant)} alt={participant.name} />
-                      <AvatarFallback className="bg-blue-600 text-white font-bold text-sm">
-                        {getInitials(participant.name || 'User')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex items-center gap-1 w-full min-w-0">
-                      <p className="text-white text-xs font-semibold text-center truncate flex-1">{participant.name}</p>
+              <div className="grid max-h-[126px] grid-cols-8 gap-x-1 gap-y-2 overflow-y-auto pr-0.5">
+                {communityMembers.map((participant) => {
+                  const participantMuted = mutedCommunityIds.has(participant.identity) || isCommunityMuted;
+                  return (
+                    <div
+                      key={participant.identity}
+                      onClick={() => isHost && handleProfileClick(participant)}
+                      className={`relative flex min-w-0 flex-col items-center rounded-md py-1 transition-all ${
+                        isHost ? 'cursor-pointer hover:bg-white/10' : ''
+                      } ${coHostParticipant?.identity === participant.identity ? 'bg-orange-600/20 ring-1 ring-orange-500/50' : ''}`}
+                    >
+                      <Avatar className="h-8 w-8 border border-white/20">
+                        <AvatarImage src={getParticipantAvatar(participant)} alt={participant.name} />
+                        <AvatarFallback className="bg-blue-600 text-white text-[9px] font-bold">
+                          {getInitials(participant.name || 'User')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <p className="mt-0.5 w-full truncate px-0.5 text-center text-[8px] font-semibold text-white/85">
+                        {participant.name || 'User'}
+                      </p>
                       {isModerator ? (
                         <button
                           type="button"
                           onClick={(event) => handleCommunityMuteToggle(event, participant)}
-                          aria-label={mutedCommunityIds.has(participant.identity) || isCommunityMuted ? `Unmute ${participant.name}` : `Mute ${participant.name}`}
-                          title={mutedCommunityIds.has(participant.identity) || isCommunityMuted ? `Unmute ${participant.name}` : `Mute ${participant.name}`}
-                          className="shrink-0 rounded-full p-1 text-white/80 hover:bg-white/10"
+                          aria-label={participantMuted ? `Unmute ${participant.name}` : `Mute ${participant.name}`}
+                          title={participantMuted ? `Unmute ${participant.name}` : `Mute ${participant.name}`}
+                          className="absolute right-0 top-0 rounded-full bg-slate-950/80 p-0.5 text-white/80 hover:bg-white/10"
                         >
-                          {mutedCommunityIds.has(participant.identity) || isCommunityMuted
-                            ? <MicOff size={13} />
-                            : <Mic size={13} />}
+                          {participantMuted ? <MicOff size={9} /> : <Mic size={9} />}
                         </button>
                       ) : (
-                        <Mic
-                          size={13}
-                          aria-label="Community microphone status"
-                          className={mutedCommunityIds.has(participant.identity) || isCommunityMuted ? 'text-red-300' : 'text-emerald-300'}
-                        />
+                        <Mic size={9} className={participantMuted ? 'text-red-300' : 'text-emerald-300'} aria-label="Microphone status" />
                       )}
                     </div>
-                    {(mutedCommunityIds.has(participant.identity) || isCommunityMuted) && (
-                      <span className="text-[10px] text-red-300 font-bold mt-1">MUTED</span>
-                    )}
-                    {coHostParticipant?.identity === participant.identity && (
-                      <span className="text-[10px] text-orange-400 font-bold mt-1">CO-HOST</span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

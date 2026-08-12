@@ -44,6 +44,7 @@ export default function Navbar() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastInteractionRef = useRef<number>(Date.now());
   const animationRef = useRef<number | null>(null);
+  const virtualScrollRef = useRef<number>(0);
 
   useEffect(() => {
     const scrollContainer = scrollRef.current;
@@ -51,6 +52,7 @@ export default function Navbar() {
 
     const handleInteraction = () => {
       lastInteractionRef.current = Date.now();
+      virtualScrollRef.current = scrollContainer.scrollLeft;
     };
 
     // Add listeners to detect user activity
@@ -74,15 +76,18 @@ export default function Navbar() {
         if (timeSinceLastInteraction > 4000) {
           // Calculate speed: one full cycle (setWidth) in 40 seconds
           const pixelsPerMs = setWidth / 40000;
-          scrollContainer.scrollLeft += pixelsPerMs * deltaTime;
+          virtualScrollRef.current += pixelsPerMs * deltaTime;
+          scrollContainer.scrollLeft = virtualScrollRef.current;
         }
 
         // Infinite loop handling for both manual and auto scroll
-        // With 3 sets, we keep the scroll position within the middle set range
+        // We keep the scroll position within the middle set range for seamless bidirectional scrolling
         if (scrollContainer.scrollLeft >= setWidth * 2) {
           scrollContainer.scrollLeft -= setWidth;
+          virtualScrollRef.current -= setWidth;
         } else if (scrollContainer.scrollLeft <= setWidth * 0.5) {
           scrollContainer.scrollLeft += setWidth;
+          virtualScrollRef.current += setWidth;
         }
       }
 
@@ -94,7 +99,9 @@ export default function Navbar() {
     // Set initial position to the start of the middle set
     const setInitialScroll = () => {
       if (scrollContainer.scrollWidth > 0) {
-        scrollContainer.scrollLeft = scrollContainer.scrollWidth / 3;
+        const initialPos = scrollContainer.scrollWidth / 3;
+        scrollContainer.scrollLeft = initialPos;
+        virtualScrollRef.current = initialPos;
       } else {
         setTimeout(setInitialScroll, 100);
       }

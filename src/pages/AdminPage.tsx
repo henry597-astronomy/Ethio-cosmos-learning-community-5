@@ -309,6 +309,12 @@ export default function AdminPage() {
   const [aboutLocal, setAboutLocal] = useState(aboutContent.aboutContent || DEFAULT_ABOUT);
   const [aboutModified, setAboutModified] = useState(false);
 
+  useEffect(() => {
+    if (aboutContent.aboutContent && !aboutModified) {
+      setAboutLocal(aboutContent.aboutContent);
+    }
+  }, [aboutContent.aboutContent]);
+
   // Local state for gallery images
   const [galleryImagesLocal, setGalleryImagesLocal] = useState(materialsGalleryImages.galleryImages);
   const [galleryImagesModified, setGalleryImagesModified] = useState(false);

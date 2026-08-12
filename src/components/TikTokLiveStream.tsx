@@ -4,6 +4,7 @@ import {
   useParticipants,
   useLocalParticipant,
   ParticipantTile,
+  RoomAudioRenderer,
   useTracks,
   useDataChannel,
 } from '@livekit/components-react';
@@ -457,8 +458,8 @@ export default function TikTokLiveStream({
 }: TikTokLiveStreamProps) {
   return (
     <LiveKitRoom
-      video={true}
-      audio={true}
+      video={isHost}
+      audio={isHost}
       connect={true}
       token={token}
       serverUrl={serverUrl}
@@ -468,6 +469,7 @@ export default function TikTokLiveStream({
       }}
       suppressHydrationWarning
     >
+      <RoomAudioRenderer />
       <StreamContent isHost={isHost} onClose={onClose} roomName={roomName} />
     </LiveKitRoom>
   );

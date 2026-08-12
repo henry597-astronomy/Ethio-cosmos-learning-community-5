@@ -20,7 +20,7 @@ const publicNavLinks = [
   { path: '/learning', label: 'Lesson' },
   { path: '/materials', label: 'Materials' },
   { path: '/chat', label: 'Channel' },
-  { path: '/tests', label: 'Tests' },
+  { path: '/tests', label: 'Quizzes' },
   { path: '/about', label: 'About' },
 ];
 
@@ -581,12 +581,12 @@ export default function Navbar() {
         <div className="flex items-center h-10">
           <div className="taskbar-marquee-container px-4">
             {[0, 1, 2].map((setIdx) => (
-              <div key={`nav-set-${setIdx}`} className="flex items-center gap-3 sm:gap-4 pr-3 sm:pr-4">
+              <div key={`nav-set-${setIdx}`} className="flex items-center gap-1.5 sm:gap-2 pr-1.5 sm:pr-2">
                 {allNavLinks.map((link, idx) => (
                   <Link
                     key={`nav-${setIdx}-${idx}`}
                     to={link.path}
-                    className={`relative px-4 py-1.5 text-xs sm:text-sm font-medium transition-all whitespace-nowrap rounded-full border ${
+                    className={`relative px-2.5 py-1 text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap rounded-full border ${
                       isActive(link.path)
                         ? 'text-white bg-orange-500/20 border-orange-500/50 font-bold shadow-[0_0_10px_rgba(249,115,22,0.2)]'
                         : 'text-gray-400 bg-white/5 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/20'

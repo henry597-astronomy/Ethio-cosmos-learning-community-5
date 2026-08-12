@@ -10,7 +10,7 @@ import {
 } from '@livekit/components-react';
 import { Participant, Track } from 'livekit-client';
 import '@livekit/components-styles';
-import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserMinus, Mic, MicOff, MonitorUp, MonitorOff, Send, MessageCircle } from 'lucide-react';
+import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserMinus, Mic, MicOff, MonitorUp, MonitorOff, Send, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface TikTokLiveStreamProps {
@@ -58,6 +58,7 @@ function StreamContent({
   const containerRef = useRef<HTMLDivElement>(null);
   const [connectionTimeout, setConnectionTimeout] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isCommunityGridExpanded, setIsCommunityGridExpanded] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -750,17 +751,32 @@ function StreamContent({
 
           <div className="shrink-0 border-t border-white/5 px-3 pt-1.5 pb-2">
             <div className="mb-1.5 flex items-center justify-between">
-              <h3 className="text-white font-bold text-xs uppercase tracking-wide">
-                Community ({communityMembers.length})
-              </h3>
-              <span className="text-[9px] text-white/35">8 per row · scroll</span>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-white font-bold text-xs uppercase tracking-wide">
+                  Community ({communityMembers.length})
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsCommunityGridExpanded(!isCommunityGridExpanded)}
+                  aria-label={isCommunityGridExpanded ? 'Collapse community grid' : 'Expand community grid'}
+                  title={isCommunityGridExpanded ? 'Collapse community grid' : 'Expand community grid'}
+                  className="p-1 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white"
+                >
+                  {isCommunityGridExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+              </div>
+              {isCommunityGridExpanded && (
+                <span className="text-[9px] text-white/35">8 per row · scroll</span>
+              )}
             </div>
             {communityMembers.length === 0 ? (
-              <div className="flex items-center justify-center py-3 text-center text-[10px] text-white/35">
-                Viewers will appear here
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isCommunityGridExpanded ? 'max-h-[100px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="flex items-center justify-center py-3 text-center text-[10px] text-white/35">
+                  Viewers will appear here
+                </div>
               </div>
             ) : (
-              <div className="grid max-h-[126px] grid-cols-8 gap-x-1 gap-y-2 overflow-y-auto pr-0.5">
+              <div className={`grid transition-all duration-300 ease-in-out ${isCommunityGridExpanded ? 'max-h-[126px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'} grid-cols-8 gap-x-1 gap-y-2 overflow-y-auto pr-0.5`}>
                 {communityMembers.map((participant) => {
                   const participantMuted = mutedCommunityIds.has(participant.identity) || isCommunityMuted;
                   return (

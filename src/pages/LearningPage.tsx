@@ -44,8 +44,8 @@ export default function LearningPage() {
 
   return (
     <div className="min-h-screen bg-[#050810]">
-      {/* Sticky search engine: it remains available while users browse the Learning page. */}
-      <div className="sticky top-16 z-40 border-b border-white/10 bg-[#050810]/95 px-2 py-2 backdrop-blur-md sm:px-4">
+      {/* Fixed search engine: it stays below the top task bar while users scroll. */}
+      <div className="fixed top-14 left-0 right-0 z-40 border-b border-white/10 bg-[#050810]/95 px-2 py-2 backdrop-blur-md sm:px-4">
         <div className="relative mx-auto max-w-3xl">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-400" />
           <input
@@ -136,6 +136,7 @@ export default function LearningPage() {
           )}
         </div>
       </div>
+      <div className="h-14" aria-hidden="true" />
 
       {/* Hero Section */}
       <section

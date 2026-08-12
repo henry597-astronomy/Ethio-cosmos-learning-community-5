@@ -46,7 +46,6 @@ export default function Navbar() {
   const animationRef = useRef<number | null>(null);
   const virtualScrollRef = useRef<number>(0);
   const scrollDirectionRef = useRef<'right' | 'left'>('right');
-  const isWaitingAtEdgeRef = useRef<boolean>(false);
 
   useEffect(() => {
     const scrollContainer = scrollRef.current;
@@ -55,7 +54,6 @@ export default function Navbar() {
     const handleInteraction = () => {
       lastInteractionRef.current = Date.now();
       virtualScrollRef.current = scrollContainer.scrollLeft;
-      isWaitingAtEdgeRef.current = false; // Reset waiting on interaction
     };
 
     scrollContainer.addEventListener('scroll', handleInteraction, { passive: true });
@@ -81,32 +79,23 @@ export default function Navbar() {
 
       if (setWidth > 0) {
         if (timeSinceLastInteraction > 4000) {
-          if (!isWaitingAtEdgeRef.current) {
-            // Ping-pong speed: traverse full set width in 8 seconds
-            const pixelsPerMs = setWidth / 8000;
-            
-            if (scrollDirectionRef.current === 'right') {
-              virtualScrollRef.current += pixelsPerMs * deltaTime;
-              if (virtualScrollRef.current >= maxAutoScroll) {
-                virtualScrollRef.current = maxAutoScroll;
-                scrollDirectionRef.current = 'left';
-                isWaitingAtEdgeRef.current = true;
-                lastInteractionRef.current = now; // Trigger 4s wait at end
-              }
-            } else {
-              virtualScrollRef.current -= pixelsPerMs * deltaTime;
-              if (virtualScrollRef.current <= minAutoScroll) {
-                virtualScrollRef.current = minAutoScroll;
-                scrollDirectionRef.current = 'right';
-                isWaitingAtEdgeRef.current = true;
-                lastInteractionRef.current = now; // Trigger 4s wait at start
-              }
+          // Continuous flow: traverse full set width in 8 seconds
+          const pixelsPerMs = setWidth / 8000;
+          
+          if (scrollDirectionRef.current === 'right') {
+            virtualScrollRef.current += pixelsPerMs * deltaTime;
+            if (virtualScrollRef.current >= maxAutoScroll) {
+              virtualScrollRef.current = maxAutoScroll;
+              scrollDirectionRef.current = 'left';
             }
-            scrollContainer.scrollLeft = virtualScrollRef.current;
           } else {
-            // 4 seconds have passed since we reached the edge (due to timeSinceLastInteraction > 4000)
-            isWaitingAtEdgeRef.current = false;
+            virtualScrollRef.current -= pixelsPerMs * deltaTime;
+            if (virtualScrollRef.current <= minAutoScroll) {
+              virtualScrollRef.current = minAutoScroll;
+              scrollDirectionRef.current = 'right';
+            }
           }
+          scrollContainer.scrollLeft = virtualScrollRef.current;
         }
 
         // Always handle infinite loop jumping for manual scrolling

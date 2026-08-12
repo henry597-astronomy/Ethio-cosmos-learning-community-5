@@ -116,6 +116,12 @@ export default function Navbar() {
 
   const avatarLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
 
+  const allNavLinks = [
+    ...publicNavLinks,
+    ...(user ? privateNavLinks : []),
+    ...(isAdmin ? [{ path: '/admin', label: isSuperAdmin ? 'Admin' : 'Lessons' }] : [])
+  ];
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex flex-col">
       {/* Top Main Navbar */}
@@ -491,44 +497,44 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Second Fixed Navbar (Below Top Navbar) */}
-      <div className="bg-slate-950/90 backdrop-blur-md border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center h-10">
-            <div className="flex items-center gap-4 sm:gap-8 overflow-x-auto no-scrollbar">
-              {publicNavLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                    isActive(link.path)
-                      ? 'text-orange-500'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {link.label}
-                  {isActive(link.path) && (
-                    <div className="absolute bottom-0 left-0 right-0 h-px bg-orange-500" />
-                  )}
-                </Link>
-              ))}
-              {user && privateNavLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                    isActive(link.path)
-                      ? 'text-orange-500'
-                      : 'text-gray-400 hover:text-white'
+      {/* Second Fixed Navbar (Below Top Navbar) - Infinite Circular Scrolling */}
+      <div className="bg-slate-950/90 backdrop-blur-md border-b border-white/5 taskbar-marquee-wrapper">
+        <div className="flex items-center h-10">
+          <div className="taskbar-marquee-container gap-8 sm:gap-12 px-4">
+            {/* First set of links */}
+            {allNavLinks.map((link, idx) => (
+              <Link
+                key={`nav-1-${idx}`}
+                to={link.path}
+                className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive(link.path)
+                    ? 'text-orange-500 font-bold'
+                    : 'text-gray-400 hover:text-white'
                 }`}
-                >
-                  {link.label}
-                  {isActive(link.path) && (
-                    <div className="absolute bottom-0 left-0 right-0 h-px bg-orange-500" />
-                  )}
-                </Link>
-              ))}
-            </div>
+              >
+                {link.label}
+                {isActive(link.path) && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
+                )}
+              </Link>
+            ))}
+            {/* Second set of links (duplicated for seamless loop) */}
+            {allNavLinks.map((link, idx) => (
+              <Link
+                key={`nav-2-${idx}`}
+                to={link.path}
+                className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive(link.path)
+                    ? 'text-orange-500 font-bold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {link.label}
+                {isActive(link.path) && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
+                )}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

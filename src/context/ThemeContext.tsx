@@ -37,39 +37,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // Continue rendering when storage is unavailable in private/offline contexts.
     }
     const root = document.documentElement;
-    root.classList.remove('gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 'gradient-emerald', 'gradient-rainbow', 'gradient-ocean', 'gradient-forest', 'gradient-fire', 'gradient-mystic', 'gradient-sakura', 'gradient-desert', 'gradient-arctic', 'gradient-twilight', 'gradient-rose-gold', 'gradient-celestial', 'dark');
-    if (theme === 'gradient-cosmos') {
-      root.classList.add('gradient-cosmos');
-    } else if (theme === 'gradient-aurora') {
-      root.classList.add('gradient-aurora');
-    } else if (theme === 'gradient-sunset') {
-      root.classList.add('gradient-sunset');
-    } else if (theme === 'gradient-emerald') {
-      root.classList.add('gradient-emerald');
-    } else if (theme === 'gradient-rainbow') {
-      root.classList.add('gradient-rainbow');
-    } else if (theme === 'gradient-ocean') {
-      root.classList.add('gradient-ocean');
-    } else if (theme === 'gradient-forest') {
-      root.classList.add('gradient-forest');
-    } else if (theme === 'gradient-fire') {
-      root.classList.add('gradient-fire');
-    } else if (theme === 'gradient-mystic') {
-      root.classList.add('gradient-mystic');
-    } else if (theme === 'gradient-sakura') {
-      root.classList.add('gradient-sakura');
-    } else if (theme === 'gradient-desert') {
-      root.classList.add('gradient-desert');
-    } else if (theme === 'gradient-arctic') {
-      root.classList.add('gradient-arctic');
-    } else if (theme === 'gradient-twilight') {
-      root.classList.add('gradient-twilight');
-    } else if (theme === 'gradient-rose-gold') {
-      root.classList.add('gradient-rose-gold');
-    } else if (theme === 'gradient-celestial') {
-      root.classList.add('gradient-celestial');
-    } else {
+    
+    // Remove all possible theme classes
+    const themeClasses = [
+      'dark', 'light-theme', 'gradient-cosmos', 'gradient-aurora', 'gradient-sunset', 
+      'gradient-emerald', 'gradient-rainbow', 'gradient-ocean', 'gradient-forest', 
+      'gradient-fire', 'gradient-mystic', 'gradient-sakura', 'gradient-desert', 
+      'gradient-arctic', 'gradient-twilight', 'gradient-rose-gold', 'gradient-celestial'
+    ];
+    root.classList.remove(...themeClasses);
+    
+    // Add the correct theme class
+    if (theme === 'light') {
+      root.classList.add('light-theme');
+    } else if (theme === 'dark') {
       root.classList.add('dark');
+    } else {
+      // For all gradient themes, the class name matches the theme ID
+      root.classList.add(theme);
     }
   }, [theme]);
 

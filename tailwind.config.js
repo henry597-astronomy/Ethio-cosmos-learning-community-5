@@ -112,5 +112,10 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    function({ addVariant }) {
+      addVariant('light-theme', '.light-theme &')
+    }
+  ],
 }

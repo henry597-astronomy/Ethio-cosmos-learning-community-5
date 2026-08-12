@@ -990,25 +990,21 @@ html {
   box-shadow: 0 0 30px rgba(255, 0, 128, 0.28);
 }
 
-/* Infinite Scrolling Marquee for Top Task Bar */
-@keyframes taskbar-marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
+/* Infinite Scrolling Task Bar */
 .taskbar-marquee-container {
   display: flex;
   width: max-content;
-  animation: taskbar-marquee 60s linear infinite;
 }
 
-.taskbar-marquee-container:hover {
-  animation-play-state: paused;
-}
-
-/* Ensure the taskbar wrapper hides overflow but allows the marquee to run */
 .taskbar-marquee-wrapper {
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
   position: relative;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE/Edge */
+}
+
+.taskbar-marquee-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }

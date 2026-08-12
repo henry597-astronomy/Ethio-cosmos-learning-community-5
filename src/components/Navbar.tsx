@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
@@ -39,6 +39,75 @@ export default function Navbar() {
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+
+  // Taskbar Scroll State
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastInteractionRef = useRef<number>(Date.now());
+  const animationRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const handleInteraction = () => {
+      lastInteractionRef.current = Date.now();
+    };
+
+    // Add listeners to detect user activity
+    scrollContainer.addEventListener('scroll', handleInteraction, { passive: true });
+    scrollContainer.addEventListener('touchstart', handleInteraction, { passive: true });
+    scrollContainer.addEventListener('mousedown', handleInteraction, { passive: true });
+
+    let lastTime = performance.now();
+
+    const animate = (time: number) => {
+      const deltaTime = time - lastTime;
+      lastTime = time;
+
+      const now = Date.now();
+      const timeSinceLastInteraction = now - lastInteractionRef.current;
+
+      const scrollWidth = scrollContainer.scrollWidth;
+      const halfWidth = scrollWidth / 2;
+
+      if (halfWidth > 0) {
+        if (timeSinceLastInteraction > 4000) {
+          // Calculate speed: one full cycle (halfWidth) in 60 seconds
+          const pixelsPerMs = halfWidth / 60000;
+          scrollContainer.scrollLeft += pixelsPerMs * deltaTime;
+        }
+
+        // Infinite loop handling for both manual and auto scroll
+        // We keep the scroll position within the duplicated range for seamless circularity
+        if (scrollContainer.scrollLeft >= halfWidth * 1.5) {
+          scrollContainer.scrollLeft -= halfWidth;
+        } else if (scrollContainer.scrollLeft <= halfWidth * 0.1) {
+          scrollContainer.scrollLeft += halfWidth;
+        }
+      }
+
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    // Set initial position to middle for better bidirectional scrolling
+    const setInitialScroll = () => {
+      if (scrollContainer.scrollWidth > 0) {
+        scrollContainer.scrollLeft = scrollContainer.scrollWidth / 2;
+      } else {
+        setTimeout(setInitialScroll, 100);
+      }
+    };
+    setInitialScroll();
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      scrollContainer.removeEventListener('scroll', handleInteraction);
+      scrollContainer.removeEventListener('touchstart', handleInteraction);
+      scrollContainer.removeEventListener('mousedown', handleInteraction);
+    };
+  }, []);
 
   // Offline and Prefetch State
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -498,7 +567,10 @@ export default function Navbar() {
       </div>
 
       {/* Second Fixed Navbar (Below Top Navbar) - Infinite Circular Scrolling */}
-      <div className="bg-slate-950/90 backdrop-blur-md border-b border-white/5 taskbar-marquee-wrapper">
+      <div 
+        ref={scrollRef}
+        className="bg-slate-950/90 backdrop-blur-md border-b border-white/5 taskbar-marquee-wrapper"
+      >
         <div className="flex items-center h-10">
           <div className="taskbar-marquee-container gap-8 sm:gap-12 px-4">
             {/* First set of links */}

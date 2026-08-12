@@ -45,6 +45,8 @@ export default function Navbar() {
   const lastInteractionRef = useRef<number>(Date.now());
   const animationRef = useRef<number | null>(null);
   const virtualScrollRef = useRef<number>(0);
+  const scrollDirectionRef = useRef<'right' | 'left'>('right');
+  const isWaitingRef = useRef<boolean>(false);
 
   useEffect(() => {
     const scrollContainer = scrollRef.current;
@@ -53,9 +55,9 @@ export default function Navbar() {
     const handleInteraction = () => {
       lastInteractionRef.current = Date.now();
       virtualScrollRef.current = scrollContainer.scrollLeft;
+      isWaitingRef.current = false; // Reset waiting on interaction
     };
 
-    // Add listeners to detect user activity
     scrollContainer.addEventListener('scroll', handleInteraction, { passive: true });
     scrollContainer.addEventListener('touchstart', handleInteraction, { passive: true });
     scrollContainer.addEventListener('mousedown', handleInteraction, { passive: true });
@@ -70,24 +72,38 @@ export default function Navbar() {
       const timeSinceLastInteraction = now - lastInteractionRef.current;
 
       const scrollWidth = scrollContainer.scrollWidth;
-      const setWidth = scrollWidth / 3;
+      const clientWidth = scrollContainer.clientWidth;
+      const maxScroll = scrollWidth - clientWidth;
 
-      if (setWidth > 0) {
+      if (maxScroll > 0) {
         if (timeSinceLastInteraction > 4000) {
-          // Calculate speed: one full cycle (setWidth) in 30 seconds
-          const pixelsPerMs = setWidth / 30000;
-          virtualScrollRef.current += pixelsPerMs * deltaTime;
-          scrollContainer.scrollLeft = virtualScrollRef.current;
-        }
-
-        // Infinite loop handling for both manual and auto scroll
-        // We keep the scroll position within the middle set range for seamless bidirectional scrolling
-        if (scrollContainer.scrollLeft >= setWidth * 2) {
-          scrollContainer.scrollLeft -= setWidth;
-          virtualScrollRef.current -= setWidth;
-        } else if (scrollContainer.scrollLeft <= setWidth * 0.5) {
-          scrollContainer.scrollLeft += setWidth;
-          virtualScrollRef.current += setWidth;
+          if (!isWaitingRef.current) {
+            // Ping-pong speed: traverse full width in 15 seconds
+            const pixelsPerMs = maxScroll / 15000;
+            
+            if (scrollDirectionRef.current === 'right') {
+              virtualScrollRef.current += pixelsPerMs * deltaTime;
+              if (virtualScrollRef.current >= maxScroll) {
+                virtualScrollRef.current = maxScroll;
+                scrollDirectionRef.current = 'left';
+                isWaitingRef.current = true;
+                lastInteractionRef.current = now; // Trigger 4s wait at end
+              }
+            } else {
+              virtualScrollRef.current -= pixelsPerMs * deltaTime;
+              if (virtualScrollRef.current <= 0) {
+                virtualScrollRef.current = 0;
+                scrollDirectionRef.current = 'right';
+                isWaitingRef.current = true;
+                lastInteractionRef.current = now; // Trigger 4s wait at start
+              }
+            }
+            scrollContainer.scrollLeft = virtualScrollRef.current;
+          } else {
+            // If we were waiting, and 4s have passed since the wait started
+            // (timeSinceLastInteraction > 4000 is already true here)
+            isWaitingRef.current = false;
+          }
         }
       }
 
@@ -96,12 +112,10 @@ export default function Navbar() {
 
     animationRef.current = requestAnimationFrame(animate);
 
-    // Set initial position to the start of the middle set
     const setInitialScroll = () => {
       if (scrollContainer.scrollWidth > 0) {
-        const initialPos = scrollContainer.scrollWidth / 3;
-        scrollContainer.scrollLeft = initialPos;
-        virtualScrollRef.current = initialPos;
+        scrollContainer.scrollLeft = 0;
+        virtualScrollRef.current = 0;
       } else {
         setTimeout(setInitialScroll, 100);
       }
@@ -573,32 +587,28 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Second Fixed Navbar (Below Top Navbar) - Infinite Circular Scrolling */}
+      {/* Second Fixed Navbar (Below Top Navbar) - Ping-Pong Scrolling */}
       <div 
         ref={scrollRef}
         className="bg-slate-950/90 backdrop-blur-md border-b border-white/5 taskbar-marquee-wrapper"
       >
         <div className="flex items-center h-10">
-          <div className="taskbar-marquee-container px-4">
-            {[0, 1, 2].map((setIdx) => (
-              <div key={`nav-set-${setIdx}`} className="flex items-center gap-8 sm:gap-12 pr-8 sm:pr-12">
-                {allNavLinks.map((link, idx) => (
-                  <Link
-                    key={`nav-${setIdx}-${idx}`}
-                    to={link.path}
-                    className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                      isActive(link.path)
-                        ? 'text-orange-500 font-bold'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    {link.label}
-                    {isActive(link.path) && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-                    )}
-                  </Link>
-                ))}
-              </div>
+          <div className="taskbar-marquee-container gap-8 sm:gap-12 px-4">
+            {allNavLinks.map((link, idx) => (
+              <Link
+                key={`nav-${idx}`}
+                to={link.path}
+                className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                  isActive(link.path)
+                    ? 'text-orange-500 font-bold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {link.label}
+                {isActive(link.path) && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
+                )}
+              </Link>
             ))}
           </div>
         </div>

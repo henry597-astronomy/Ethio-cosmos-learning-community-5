@@ -10,7 +10,7 @@ import {
 } from '@livekit/components-react';
 import { Participant, Track } from 'livekit-client';
 import '@livekit/components-styles';
-import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserMinus } from 'lucide-react';
+import { X, Loader, Volume2, VolumeX, Maximize2, Minimize2, UserMinus, Mic, MicOff, MonitorUp, MonitorOff } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface TikTokLiveStreamProps {
@@ -34,11 +34,14 @@ function StreamContent({
   hostUserId?: string;
 }) {
   const participants = useParticipants();
-  const { localParticipant } = useLocalParticipant();
+  const { localParticipant, isScreenShareEnabled } = useLocalParticipant();
   const [isMuted, setIsMuted] = useState(false);
   const [isAdminMuted, setIsAdminMuted] = useState(false);
   const [isSelfMuted, setIsSelfMuted] = useState(false);
   const [isCoHostMuted, setIsCoHostMuted] = useState(false);
+  const [isCommunityMuted, setIsCommunityMuted] = useState(false);
+  const [isCommunityMicAllowed] = useState(true);
+  const [mutedCommunityIds, setMutedCommunityIds] = useState<Set<string>>(new Set());
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [connectionTimeout, setConnectionTimeout] = useState(false);
@@ -50,6 +53,7 @@ function StreamContent({
   
   // Local state for co-host identity to ensure immediate UI feedback
   const [localCoHostId, setLocalCoHostId] = useState<string | null>(null);
+  const autoStageParticipantRef = useRef<string | null>(null);
 
   // Data channel for signaling
   const { send } = useDataChannel('co-host-signaling', (message) => {
@@ -63,6 +67,24 @@ function StreamContent({
         data.targetIdentity === localParticipant?.identity
       ) {
         setIsAdminMuted(Boolean(data.muted));
+      }
+      if (data.type === 'COMMUNITY_MUTE_ALL') {
+        setIsCommunityMuted(Boolean(data.muted));
+        const isStageParticipant = isHost || localCoHostId === localParticipant?.identity;
+        if (!isStageParticipant && data.senderIdentity !== localParticipant?.identity) {
+          setIsAdminMuted(Boolean(data.muted));
+        }
+      }
+      if (data.type === 'COMMUNITY_MUTE_ONE') {
+        setMutedCommunityIds((previous) => {
+          const next = new Set(previous);
+          if (data.muted) next.add(data.targetIdentity);
+          else next.delete(data.targetIdentity);
+          return next;
+        });
+        if (data.targetIdentity === localParticipant?.identity) {
+          setIsAdminMuted(Boolean(data.muted));
+        }
       }
     } catch (e) {
       console.error('Failed to parse signaling message', e);
@@ -149,6 +171,54 @@ function StreamContent({
   }, [hostParticipant]);
 
   const isMeCoHost = coHostParticipant?.identity === localParticipant?.identity;
+  const isModerator = isHost || isMeCoHost;
+  const echoSafeAudioOptions = useMemo(() => ({
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  }), []);
+  const isLocalMicMuted = isHost || isMeCoHost
+    ? isMuted || isAdminMuted
+    : isAdminMuted || isCommunityMuted || !isCommunityMicAllowed;
+
+  // A co-host is promoted to the stage as soon as the host assigns them. Camera and
+  // microphone can start automatically; screen sharing may show the browser's
+  // native permission dialog because browsers require user consent for capture.
+  useEffect(() => {
+    if (!localParticipant || isHost) return;
+
+    if (!isMeCoHost) {
+      if (autoStageParticipantRef.current === localParticipant.identity) {
+        void localParticipant.setScreenShareEnabled(false).catch(() => undefined);
+        void localParticipant.setCameraEnabled(false).catch(() => undefined);
+        void localParticipant.setMicrophoneEnabled(false).catch(() => undefined);
+        autoStageParticipantRef.current = null;
+      }
+      return;
+    }
+
+    if (autoStageParticipantRef.current === localParticipant.identity) return;
+    autoStageParticipantRef.current = localParticipant.identity;
+
+    const joinStage = async () => {
+      await localParticipant.setCameraEnabled(true);
+      await localParticipant.setMicrophoneEnabled(
+        !isAdminMuted && !isSelfMuted,
+        echoSafeAudioOptions,
+      );
+      try {
+        await localParticipant.setScreenShareEnabled(true, { audio: false });
+      } catch (error) {
+        // Screen capture requires a browser permission gesture. The co-host remains
+        // on stage with camera and microphone if the prompt is dismissed.
+        console.info('Screen sharing was not enabled:', error);
+      }
+    };
+
+    void joinStage().catch((error) => {
+      console.error('Unable to promote co-host to stage:', error);
+    });
+  }, [isHost, isMeCoHost, isAdminMuted, isSelfMuted, localParticipant, echoSafeAudioOptions]);
 
   useEffect(() => {
     if (!isMeCoHost) return;
@@ -236,23 +306,40 @@ function StreamContent({
     return track || null;
   }, [allCameraTracks, coHostParticipant]);
 
-  // Media Management (Optimized for instant viewing - disable viewer media immediately)
+  // Stage members publish camera and mic; community members publish a mic only
+  // after they explicitly enable it. Moderator mute commands always win locally.
   useEffect(() => {
     if (!localParticipant) return;
 
-    const isMeHost = isHost;
+    const forcedCommunityMute =
+      isAdminMuted ||
+      isCommunityMuted ||
+      mutedCommunityIds.has(localParticipant.identity);
 
-    // Only enable media if I am on stage
-    if (isMeHost || isMeCoHost) {
+    if (isHost || isMeCoHost) {
       localParticipant.setCameraEnabled(true).catch(console.error);
-      localParticipant.setMicrophoneEnabled(!isMuted).catch(console.error);
+      localParticipant.setMicrophoneEnabled(
+        !isMuted && !isAdminMuted,
+        echoSafeAudioOptions,
+      ).catch(console.error);
     } else {
-      // For viewers, disable camera/mic IMMEDIATELY to reduce connection overhead
-      // This allows faster initial connection without waiting for media negotiation
       localParticipant.setCameraEnabled(false).catch(console.error);
-      localParticipant.setMicrophoneEnabled(false).catch(console.error);
+      localParticipant.setMicrophoneEnabled(
+        isCommunityMicAllowed && !forcedCommunityMute,
+        echoSafeAudioOptions,
+      ).catch(console.error);
     }
-  }, [isHost, localParticipant, coHostParticipant, isMuted]);
+  }, [
+    isHost,
+    isMeCoHost,
+    localParticipant,
+    isMuted,
+    isAdminMuted,
+    isCommunityMuted,
+    isCommunityMicAllowed,
+    mutedCommunityIds,
+    echoSafeAudioOptions,
+  ]);
 
   // Community members
   const communityMembers = useMemo(() => {
@@ -266,6 +353,63 @@ function StreamContent({
   const handleSelfMuteToggle = () => {
     if (!isMeCoHost || isAdminMuted) return;
     setIsSelfMuted(previous => !previous);
+  };
+
+  const handleLocalMicToggle = () => {
+    if (isHost) {
+      setIsMuted(previous => !previous);
+      return;
+    }
+    if (isMeCoHost) {
+      handleSelfMuteToggle();
+      return;
+    }
+    // Community microphone access is controlled by the host/co-host. Members
+    // see their mic status but cannot override a moderator command themselves.
+    return;
+  };
+
+  const handleCommunityMuteAllToggle = async () => {
+    if (!isModerator) return;
+    const muted = !isCommunityMuted;
+    setIsCommunityMuted(muted);
+    const encoder = new TextEncoder();
+    await send(encoder.encode(JSON.stringify({
+      type: 'COMMUNITY_MUTE_ALL',
+      muted,
+      senderIdentity: localParticipant?.identity,
+    })), { reliable: true });
+  };
+
+  const handleCommunityMuteToggle = async (
+    event: React.MouseEvent<HTMLButtonElement>,
+    participant: Participant,
+  ) => {
+    event.stopPropagation();
+    if (!isModerator) return;
+    const muted = !mutedCommunityIds.has(participant.identity);
+    setMutedCommunityIds((previous) => {
+      const next = new Set(previous);
+      if (muted) next.add(participant.identity);
+      else next.delete(participant.identity);
+      return next;
+    });
+    const encoder = new TextEncoder();
+    await send(encoder.encode(JSON.stringify({
+      type: 'COMMUNITY_MUTE_ONE',
+      targetIdentity: participant.identity,
+      muted,
+      senderIdentity: localParticipant?.identity,
+    })), { reliable: true });
+  };
+
+  const handleScreenShareToggle = async () => {
+    if (!isModerator || !localParticipant) return;
+    try {
+      await localParticipant.setScreenShareEnabled(!isScreenShareEnabled, { audio: false });
+    } catch (error) {
+      console.error('Screen sharing error:', error);
+    }
   };
 
   const handleCoHostMuteToggle = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -345,16 +489,35 @@ function StreamContent({
         </div>
 
         <div className="flex items-center gap-2">
-          {(isHost || isMeCoHost) && (
+          <button
+            type="button"
+            onClick={handleLocalMicToggle}
+            aria-label={
+              isHost || isMeCoHost
+                ? (isLocalMicMuted ? 'Unmute microphone' : 'Mute microphone')
+                : 'Microphone controlled by moderator'
+            }
+            title={
+              isHost || isMeCoHost
+                ? (isLocalMicMuted ? 'Unmute microphone' : 'Mute microphone')
+                : 'Microphone controlled by moderator'
+            }
+            disabled={!isHost && !isMeCoHost}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLocalMicMuted
+              ? <MicOff size={20} className="text-red-400" />
+              : <Mic size={20} className="text-white" />}
+          </button>
+          {isModerator && (
             <button
               type="button"
-              onClick={isMeCoHost ? handleSelfMuteToggle : () => setIsMuted(!isMuted)}
-              aria-label={isAdminMuted ? 'Microphone muted by admin' : isMuted ? 'Unmute microphone' : 'Mute microphone'}
-              title={isAdminMuted ? 'Microphone muted by admin' : isMuted ? 'Unmute microphone' : 'Mute microphone'}
-              disabled={isMeCoHost && isAdminMuted}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleScreenShareToggle}
+              aria-label={isScreenShareEnabled ? 'Stop screen sharing' : 'Share screen'}
+              title={isScreenShareEnabled ? 'Stop screen sharing' : 'Share screen'}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
-              {isMuted ? <VolumeX size={20} className="text-red-400" /> : <Volume2 size={20} className="text-white" />}
+              {isScreenShareEnabled ? <MonitorOff size={20} className="text-orange-400" /> : <MonitorUp size={20} className="text-white" />}
             </button>
           )}
           <button onClick={handleFullscreen} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
@@ -474,11 +637,25 @@ function StreamContent({
                 <span className="text-blue-500 text-lg">👥</span>
                 Community ({communityMembers.length})
               </div>
-              {isHost && (
-                <span className="text-[10px] text-blue-400 font-medium lowercase">
-                  (Tap a profile to co-host)
-                </span>
-              )}
+              <div className="flex items-center gap-3">
+                {isModerator && (
+                  <button
+                    type="button"
+                    onClick={handleCommunityMuteAllToggle}
+                    aria-label={isCommunityMuted ? 'Unmute all community microphones' : 'Mute all community microphones'}
+                    title={isCommunityMuted ? 'Unmute all community microphones' : 'Mute all community microphones'}
+                    className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[10px] font-bold normal-case tracking-normal text-blue-200 hover:bg-white/10"
+                  >
+                    {isCommunityMuted ? <Mic size={13} /> : <MicOff size={13} />}
+                    {isCommunityMuted ? 'Unmute all' : 'Mute all'}
+                  </button>
+                )}
+                {isHost && (
+                  <span className="text-[10px] text-blue-400 font-medium lowercase">
+                    (Tap a profile to co-host)
+                  </span>
+                )}
+              </div>
             </h3>
 
             {communityMembers.length === 0 ? (
@@ -505,7 +682,31 @@ function StreamContent({
                         {getInitials(participant.name || 'User')}
                       </AvatarFallback>
                     </Avatar>
-                    <p className="text-white text-xs font-semibold text-center truncate w-full">{participant.name}</p>
+                    <div className="flex items-center gap-1 w-full min-w-0">
+                      <p className="text-white text-xs font-semibold text-center truncate flex-1">{participant.name}</p>
+                      {isModerator ? (
+                        <button
+                          type="button"
+                          onClick={(event) => handleCommunityMuteToggle(event, participant)}
+                          aria-label={mutedCommunityIds.has(participant.identity) || isCommunityMuted ? `Unmute ${participant.name}` : `Mute ${participant.name}`}
+                          title={mutedCommunityIds.has(participant.identity) || isCommunityMuted ? `Unmute ${participant.name}` : `Mute ${participant.name}`}
+                          className="shrink-0 rounded-full p-1 text-white/80 hover:bg-white/10"
+                        >
+                          {mutedCommunityIds.has(participant.identity) || isCommunityMuted
+                            ? <MicOff size={13} />
+                            : <Mic size={13} />}
+                        </button>
+                      ) : (
+                        <Mic
+                          size={13}
+                          aria-label="Community microphone status"
+                          className={mutedCommunityIds.has(participant.identity) || isCommunityMuted ? 'text-red-300' : 'text-emerald-300'}
+                        />
+                      )}
+                    </div>
+                    {(mutedCommunityIds.has(participant.identity) || isCommunityMuted) && (
+                      <span className="text-[10px] text-red-300 font-bold mt-1">MUTED</span>
+                    )}
                     {coHostParticipant?.identity === participant.identity && (
                       <span className="text-[10px] text-orange-400 font-bold mt-1">CO-HOST</span>
                     )}

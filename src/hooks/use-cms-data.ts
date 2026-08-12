@@ -10,7 +10,7 @@ import {
   getMaterialsPdfs, updateMaterialsPdfs,
   getMaterialsGroups, appendMaterialGroups, updateMaterialsGroupsFull, deleteMaterialGroup, renameMaterialGroup, moveMaterialGroup, assignItemsToGroup,
   getTopics, createTopic, updateTopic, deleteTopic,
-  getSubtopicsByTopicId, createSubtopic, updateSubtopic, deleteSubtopic,
+  getAllSubtopics, getSubtopicsByTopicId, createSubtopic, updateSubtopic, deleteSubtopic,
   getLessonBySubtopicId, createLesson, updateLesson,
   getQuizzes, createQuiz, updateQuiz, deleteQuiz,
   getQuizQuestionsByQuizId, createQuizQuestion, updateQuizQuestion, deleteQuizQuestion,
@@ -523,6 +523,48 @@ export function useTopics() {
 }
 
 // --- Subtopics Hooks ---
+export function useAllSubtopics() {
+  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchAllSubtopics = async () => {
+      try {
+        setLoading(true);
+        const data = await getAllSubtopics();
+        if (!cancelled) {
+          setSubtopics(data);
+          setError(null);
+        }
+        await cacheOfflineData('all_subtopics', data).catch(err => console.warn('Failed to cache all subtopics:', err));
+      } catch (err) {
+        if (!cancelled) setError('Failed to load lessons for search.');
+        console.error(err);
+        try {
+          const cachedData = await getOfflineData('all_subtopics');
+          if (!cancelled && cachedData) {
+            setSubtopics(cachedData);
+            setError(null);
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to load cached lessons:', cacheErr);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchAllSubtopics();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { subtopics, loading, error };
+}
+
 export function useSubtopics(topicId: string | null) {
   const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   const [loading, setLoading] = useState(false);

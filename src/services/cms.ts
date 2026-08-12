@@ -270,6 +270,19 @@ export const deleteTopic = async (id: string): Promise<void> => {
 };
 
 // --- Subtopics ---
+export const getAllSubtopics = async (): Promise<Subtopic[]> => {
+  const { data, error } = await supabase
+    .from("subtopics")
+    .select("*")
+    .order("topic_id")
+    .order("order_index");
+  if (error) {
+    console.error("Error fetching all subtopics:", error);
+    return [];
+  }
+  return data as Subtopic[];
+};
+
 export const getSubtopicsByTopicId = async (topicId: string): Promise<Subtopic[]> => {
   const { data, error } = await supabase
     .from("subtopics")

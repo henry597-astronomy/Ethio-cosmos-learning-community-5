@@ -103,11 +103,11 @@ export default function Navbar() {
           return scrollContainer.scrollLeft + (linkRect.left - containerRect.left);
         };
 
+        const posHome = getLinkPos(1, 'Home') || setWidth;
         const posAbout = getLinkPos(1, 'About') || (setWidth + setWidth * 0.6);
-        const posProgress = getLinkPos(0, 'Progress') || (setWidth - setWidth * 0.2);
 
-        // Auto-scroll range: from Progress (Set 0) to About (Set 1)
-        const minAutoScroll = posProgress;
+        // Auto-scroll range: from Home (Set 1) to About (Set 1)
+        const minAutoScroll = posHome;
         const maxAutoScroll = posAbout;
         const range = maxAutoScroll - minAutoScroll;
 
@@ -251,7 +251,7 @@ export default function Navbar() {
 
   const allNavLinks = [
     ...publicNavLinks,
-    ...(user ? privateNavLinks : []),
+    // Bookmarks and Progress removed from task bar as per user request
     ...(isAdmin ? [{ path: '/admin', label: isSuperAdmin ? 'Admin' : 'Lessons' }] : [])
   ];
 

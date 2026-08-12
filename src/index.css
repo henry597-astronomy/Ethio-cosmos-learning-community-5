@@ -489,18 +489,24 @@ html {
 .gradient-rainbow body,
 .gradient-rainbow #root {
   background: linear-gradient(135deg, 
-    #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff
+    #FF0000, /* Red */
+    #FF7F00, /* Orange */
+    #FFFF00, /* Yellow */
+    #00FF00, /* Green */
+    #0000FF, /* Blue */
+    #4B0082, /* Indigo */
+    #9400D3  /* Violet */
   ) !important;
   background-size: 400% 400% !important;
-  animation: trueRainbowAnimation 15s ease infinite !important;
+  animation: trueRainbowAnimation 20s linear infinite !important;
   background-attachment: fixed !important;
   color: #ffffff !important;
 }
 
 @keyframes trueRainbowAnimation {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
 }
 
 .gradient-rainbow .bg-\[\#0a0e1a\],

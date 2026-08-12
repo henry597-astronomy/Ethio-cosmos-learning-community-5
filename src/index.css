@@ -999,7 +999,7 @@ html {
 .taskbar-marquee-container {
   display: flex;
   width: max-content;
-  animation: taskbar-marquee 40s linear infinite;
+  animation: taskbar-marquee 60s linear infinite;
 }
 
 .taskbar-marquee-container:hover {

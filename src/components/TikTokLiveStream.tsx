@@ -36,6 +36,8 @@ function StreamContent({
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
   const [isMuted, setIsMuted] = useState(false);
+  const [isAdminMuted, setIsAdminMuted] = useState(false);
+  const [isSelfMuted, setIsSelfMuted] = useState(false);
   const [isCoHostMuted, setIsCoHostMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -60,9 +62,7 @@ function StreamContent({
         data.type === 'CO_HOST_AUDIO_MUTE' &&
         data.targetIdentity === localParticipant?.identity
       ) {
-        const muted = Boolean(data.muted);
-        setIsMuted(muted);
-        localParticipant?.setMicrophoneEnabled(!muted).catch(console.error);
+        setIsAdminMuted(Boolean(data.muted));
       }
     } catch (e) {
       console.error('Failed to parse signaling message', e);
@@ -147,6 +147,13 @@ function StreamContent({
       }
     }
   }, [hostParticipant]);
+
+  const isMeCoHost = coHostParticipant?.identity === localParticipant?.identity;
+
+  useEffect(() => {
+    if (!isMeCoHost) return;
+    setIsMuted(isAdminMuted || isSelfMuted);
+  }, [isAdminMuted, isSelfMuted, isMeCoHost]);
 
   useEffect(() => {
     setIsCoHostMuted(coHostParticipant ? !coHostParticipant.isMicrophoneEnabled : false);
@@ -234,7 +241,6 @@ function StreamContent({
     if (!localParticipant) return;
 
     const isMeHost = isHost;
-    const isMeCoHost = coHostParticipant?.identity === localParticipant.identity;
 
     // Only enable media if I am on stage
     if (isMeHost || isMeCoHost) {
@@ -256,6 +262,11 @@ function StreamContent({
       return !isHostMember && !isCoHostMember;
     });
   }, [participants, hostParticipant, coHostParticipant]);
+
+  const handleSelfMuteToggle = () => {
+    if (!isMeCoHost || isAdminMuted) return;
+    setIsSelfMuted(previous => !previous);
+  };
 
   const handleCoHostMuteToggle = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -334,8 +345,15 @@ function StreamContent({
         </div>
 
         <div className="flex items-center gap-2">
-          {isHost && (
-            <button onClick={() => setIsMuted(!isMuted)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+          {(isHost || isMeCoHost) && (
+            <button
+              type="button"
+              onClick={isMeCoHost ? handleSelfMuteToggle : () => setIsMuted(!isMuted)}
+              aria-label={isAdminMuted ? 'Microphone muted by admin' : isMuted ? 'Unmute microphone' : 'Mute microphone'}
+              title={isAdminMuted ? 'Microphone muted by admin' : isMuted ? 'Unmute microphone' : 'Mute microphone'}
+              disabled={isMeCoHost && isAdminMuted}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            >
               {isMuted ? <VolumeX size={20} className="text-red-400" /> : <Volume2 size={20} className="text-white" />}
             </button>
           )}

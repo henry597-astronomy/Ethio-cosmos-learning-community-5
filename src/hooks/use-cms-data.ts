@@ -8,7 +8,7 @@ import {
   getMaterialsGalleryImages, updateMaterialsGalleryImages,
   getMaterialsVideos, updateMaterialsVideos,
   getMaterialsPdfs, updateMaterialsPdfs,
-  getMaterialsGroups, appendMaterialGroups, updateMaterialsGroupsFull, deleteMaterialGroup, renameMaterialGroup, moveMaterialGroup, assignItemsToGroup,
+  getMaterialsGroups, appendMaterialGroups, updateMaterialsGroupsFull, deleteMaterialGroup, renameMaterialGroup, updateMaterialGroupFull, moveMaterialGroup, assignItemsToGroup,
   getTopics, createTopic, updateTopic, deleteTopic,
   getAllSubtopics, getSubtopicsByTopicId, createSubtopic, updateSubtopic, deleteSubtopic,
   getLessonBySubtopicId, createLesson, updateLesson,
@@ -416,6 +416,12 @@ export function useMaterialsGroups() {
     return next;
   }, []);
 
+  const updateGroupFull = useCallback(async (groupId: string, updates: Partial<MaterialGroup>) => {
+    const next = await updateMaterialGroupFull(groupId, updates);
+    setGrouped(next);
+    return next;
+  }, []);
+
   const removeGroup = useCallback(async (groupId: string) => {
     const next = await deleteMaterialGroup(groupId);
     setGrouped(next);
@@ -443,7 +449,7 @@ export function useMaterialsGroups() {
     setGrouped(data);
   }, []);
 
-  return { grouped, loading, error, fetchGroups, addGroups, renameGroup, removeGroup, reorderGroup, assignItems, saveFull };
+  return { grouped, loading, error, fetchGroups, addGroups, renameGroup, updateGroupFull, removeGroup, reorderGroup, assignItems, saveFull };
 }
 
 // --- Topics Hooks ---

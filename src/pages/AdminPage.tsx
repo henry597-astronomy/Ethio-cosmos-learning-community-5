@@ -337,6 +337,8 @@ export default function AdminPage() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editGroupName, setEditGroupName] = useState('');
   const [editGroupDesc, setEditGroupDesc] = useState('');
+  const [editGroupLink, setEditGroupLink] = useState('');
+  const [editGroupPreviewImage, setEditGroupPreviewImage] = useState('');
 
   // Parameterized hooks are called directly here (proper React hooks usage)
   // instead of through factory functions on the context.
@@ -838,11 +840,16 @@ export default function AdminPage() {
       return;
     }
     try {
-      await materialsGroups.renameGroup(groupId, name, editGroupName.trim() ? editGroupDesc.trim() || undefined : undefined);
+      await materialsGroups.updateGroupFull(groupId, {
+        name,
+        description: editGroupDesc.trim() || undefined,
+        link: editGroupLink.trim() || undefined,
+        preview_image: editGroupPreviewImage.trim() || undefined,
+      });
       setEditingGroupId(null);
       toast.success('Category updated.');
     } catch (err) {
-      console.error('Failed to rename group:', err);
+      console.error('Failed to update group:', err);
       toast.error('Failed to update category.');
     }
   };
@@ -1840,6 +1847,21 @@ export default function AdminPage() {
                                 placeholder="Description (optional)"
                                 className="bg-slate-700 border-white/20 text-white"
                               />
+                              {selectedGroupTab === 'video' && (
+                                <>
+                                  <Input
+                                    value={editGroupLink}
+                                    onChange={(e) => setEditGroupLink(e.target.value)}
+                                    placeholder="External Link (optional)"
+                                    className="bg-slate-700 border-white/20 text-white"
+                                  />
+                                  <ImageUpload 
+                                    currentImage={editGroupPreviewImage}
+                                    onImageUploaded={(url) => setEditGroupPreviewImage(url)}
+                                    label="Preview Image (optional)"
+                                  />
+                                </>
+                              )}
                               <div className="flex gap-2">
                                 <Button size="sm" onClick={() => handleRenameGroup(group.id)} className="bg-green-600 hover:bg-green-700 text-white">
                                   <Check size={14} className="mr-1" /> Save
@@ -1870,6 +1892,8 @@ export default function AdminPage() {
                                       onClick={() => {
                                         setEditGroupName(group.name);
                                         setEditGroupDesc(group.description || '');
+                                        setEditGroupLink(group.link || '');
+                                        setEditGroupPreviewImage(group.preview_image || '');
                                         setEditingGroupId(group.id);
                                       }}
                                     >

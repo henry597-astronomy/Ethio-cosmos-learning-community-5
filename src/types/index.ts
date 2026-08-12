@@ -244,6 +244,8 @@ export interface MaterialGroup {
   type: MaterialType;
   name: string;
   description?: string;
+  link?: string;
+  preview_image?: string;
   order_index: number;
   created_at?: string;
   updated_at?: string;

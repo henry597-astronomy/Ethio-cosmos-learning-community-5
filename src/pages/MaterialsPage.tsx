@@ -11,6 +11,8 @@ interface GroupedSection {
   id: string;
   name: string;
   description?: string;
+  link?: string;
+  preview_image?: string;
   type: MaterialType;
   galleryItems: { id: string; url: string; title: string }[];
   videos: { id: string; url: string; thumbnail: string; title: string }[];
@@ -44,6 +46,8 @@ export default function MaterialsPage() {
         id: g.id,
         name: g.name,
         description: g.description,
+        link: g.link,
+        preview_image: g.preview_image,
         type: g.type,
         galleryItems: [],
         videos: [],
@@ -185,7 +189,7 @@ export default function MaterialsPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {visibleSections.map((section) => {
                   const total = section.galleryItems.length + section.videos.length + section.pdfs.length;
-                  const preview = section.galleryItems[0]?.url || section.videos[0]?.thumbnail;
+                  const preview = section.preview_image || section.galleryItems[0]?.url || section.videos[0]?.thumbnail;
                   const typeLabel =
                     section.type === 'gallery' ? 'Photos' :
                     section.type === 'video' ? 'Videos' : 'Downloads';
@@ -234,10 +238,25 @@ export default function MaterialsPage() {
             </button>
             {visibleSections.map((section) => (
               <div key={section.id} className="mb-12">
-                <h2 className="text-3xl font-bold text-white mb-2">{section.name}</h2>
-                {section.description && (
-                  <p className="text-gray-400 mb-6">{section.description}</p>
-                )}
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-3xl font-bold text-white mb-2">{section.name}</h2>
+                    {section.description && (
+                      <p className="text-gray-400">{section.description}</p>
+                    )}
+                  </div>
+                  {section.link && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="border-orange-500/50 text-orange-500 hover:bg-orange-500 hover:text-white"
+                    >
+                      <a href={section.link} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-4 h-4 mr-2" /> Visit Source
+                      </a>
+                    </Button>
+                  )}
+                </div>
                 <GroupContent
                   section={section}
                   viewTab={viewTab}

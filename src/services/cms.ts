@@ -173,6 +173,21 @@ export const renameMaterialGroup = async (
   return next;
 };
 
+export const updateMaterialGroupFull = async (
+  groupId: string,
+  updates: Partial<MaterialGroup>
+): Promise<GroupedMaterials> => {
+  const current = await getMaterialsGroups();
+  const next = {
+    ...current,
+    groups: (current.groups ?? []).map((g) =>
+      g.id === groupId ? { ...g, ...updates } : g
+    ),
+  };
+  await updateMaterialsGroups(next);
+  return next;
+};
+
 export const moveMaterialGroup = async (
   groupId: string,
   direction: -1 | 1

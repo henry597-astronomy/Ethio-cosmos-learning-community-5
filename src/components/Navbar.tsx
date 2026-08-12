@@ -72,38 +72,49 @@ export default function Navbar() {
       const timeSinceLastInteraction = now - lastInteractionRef.current;
 
       const scrollWidth = scrollContainer.scrollWidth;
+      const setWidth = scrollWidth / 3;
       const clientWidth = scrollContainer.clientWidth;
-      const maxScroll = scrollWidth - clientWidth;
+      
+      // The auto-scroll range is within the middle set [setWidth, setWidth + (setWidth - clientWidth)]
+      const minAutoScroll = setWidth;
+      const maxAutoScroll = setWidth + Math.max(0, setWidth - clientWidth);
 
-      if (maxScroll > 0) {
+      if (setWidth > 0) {
         if (timeSinceLastInteraction > 4000) {
           if (!isWaitingRef.current) {
-            // Ping-pong speed: traverse full width in 15 seconds
-            const pixelsPerMs = maxScroll / 15000;
+            // Ping-pong speed: traverse full set width in 15 seconds
+            const pixelsPerMs = setWidth / 15000;
             
             if (scrollDirectionRef.current === 'right') {
               virtualScrollRef.current += pixelsPerMs * deltaTime;
-              if (virtualScrollRef.current >= maxScroll) {
-                virtualScrollRef.current = maxScroll;
+              if (virtualScrollRef.current >= maxAutoScroll) {
+                virtualScrollRef.current = maxAutoScroll;
                 scrollDirectionRef.current = 'left';
                 isWaitingRef.current = true;
-                lastInteractionRef.current = now; // Trigger 4s wait at end
+                lastInteractionRef.current = now;
               }
             } else {
               virtualScrollRef.current -= pixelsPerMs * deltaTime;
-              if (virtualScrollRef.current <= 0) {
-                virtualScrollRef.current = 0;
+              if (virtualScrollRef.current <= minAutoScroll) {
+                virtualScrollRef.current = minAutoScroll;
                 scrollDirectionRef.current = 'right';
                 isWaitingRef.current = true;
-                lastInteractionRef.current = now; // Trigger 4s wait at start
+                lastInteractionRef.current = now;
               }
             }
             scrollContainer.scrollLeft = virtualScrollRef.current;
           } else {
-            // If we were waiting, and 4s have passed since the wait started
-            // (timeSinceLastInteraction > 4000 is already true here)
             isWaitingRef.current = false;
           }
+        }
+
+        // Always handle infinite loop jumping for manual scrolling
+        if (scrollContainer.scrollLeft >= setWidth * 2) {
+          scrollContainer.scrollLeft -= setWidth;
+          virtualScrollRef.current -= setWidth;
+        } else if (scrollContainer.scrollLeft <= setWidth * 0.5) {
+          scrollContainer.scrollLeft += setWidth;
+          virtualScrollRef.current += setWidth;
         }
       }
 
@@ -114,8 +125,9 @@ export default function Navbar() {
 
     const setInitialScroll = () => {
       if (scrollContainer.scrollWidth > 0) {
-        scrollContainer.scrollLeft = 0;
-        virtualScrollRef.current = 0;
+        const initialPos = scrollContainer.scrollWidth / 3;
+        scrollContainer.scrollLeft = initialPos;
+        virtualScrollRef.current = initialPos;
       } else {
         setTimeout(setInitialScroll, 100);
       }
@@ -587,28 +599,32 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Second Fixed Navbar (Below Top Navbar) - Ping-Pong Scrolling */}
+      {/* Second Fixed Navbar (Below Top Navbar) - Infinite Ping-Pong Scrolling */}
       <div 
         ref={scrollRef}
         className="bg-slate-950/90 backdrop-blur-md border-b border-white/5 taskbar-marquee-wrapper"
       >
         <div className="flex items-center h-10">
-          <div className="taskbar-marquee-container gap-8 sm:gap-12 px-4">
-            {allNavLinks.map((link, idx) => (
-              <Link
-                key={`nav-${idx}`}
-                to={link.path}
-                className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                  isActive(link.path)
-                    ? 'text-orange-500 font-bold'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {link.label}
-                {isActive(link.path) && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-                )}
-              </Link>
+          <div className="taskbar-marquee-container px-4">
+            {[0, 1, 2].map((setIdx) => (
+              <div key={`nav-set-${setIdx}`} className="flex items-center gap-8 sm:gap-12 pr-8 sm:pr-12">
+                {allNavLinks.map((link, idx) => (
+                  <Link
+                    key={`nav-${setIdx}-${idx}`}
+                    to={link.path}
+                    className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                      isActive(link.path)
+                        ? 'text-orange-500 font-bold'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {link.label}
+                    {isActive(link.path) && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
+                    )}
+                  </Link>
+                ))}
+              </div>
             ))}
           </div>
         </div>

@@ -4,6 +4,7 @@ export interface Topic {
   title: string;
   description: string;
   image_url: string; // Changed from image to image_url
+  difficulty?: string; // 'beginner' | 'intermediate' | 'advanced'
   order_index: number;
   created_at?: string;
   updated_at?: string;

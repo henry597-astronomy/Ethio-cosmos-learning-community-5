@@ -183,13 +183,26 @@ export default function LearningPage() {
             </div>
           ) : (
             <div className="grid gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {topics.map((topic) => (
-                <Link
-                  key={topic.id}
-                  to={`/learning/${topic.id}`}
-                  className="group relative overflow-hidden rounded-lg border border-white/10 bg-slate-900 transition-all duration-300 hover:border-orange-500/50"
-                >
-                  <div className="h-40 overflow-hidden">
+              {topics.map((topic) => {
+                const diff = (topic.difficulty || 'beginner').toLowerCase();
+                const diffColor = diff === 'advanced'
+                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                  : diff === 'intermediate'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+
+                return (
+                  <Link
+                    key={topic.id}
+                    to={`/learning/${topic.id}`}
+                    className="group relative overflow-hidden rounded-lg border border-white/10 bg-slate-900 transition-all duration-300 hover:border-orange-500/50"
+                  >
+                    <div className="absolute top-3 left-3 z-10">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider border shadow-md ${diffColor}`}>
+                        {diff}
+                      </span>
+                    </div>
+                    <div className="h-40 overflow-hidden">
                     <FallbackImage
                       src={topic.image_url || '/images/topic-fundamentals.jpg'}
                       alt={topic.title}
@@ -211,7 +224,8 @@ export default function LearningPage() {
                     </div>
                   </div>
                 </Link>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

@@ -492,6 +492,7 @@ export default function AdminPage() {
         emoji: '🚀', 
         title: 'New Topic', 
         description: 'Description', 
+        difficulty: 'beginner',
         order_index: topics.length, 
         image_url: '/images/topic-fundamentals.jpg' 
       };
@@ -1411,6 +1412,16 @@ export default function AdminPage() {
                         onImageUploaded={(url) => handleUpdateTopic(topic.id, 'image_url', url)}
                         label="Image URL"
                       />
+                      <label className="block text-sm text-gray-400 mt-2">Difficulty Level</label>
+                      <select
+                        value={topic.difficulty || 'beginner'}
+                        onChange={(e) => handleUpdateTopic(topic.id, 'difficulty', e.target.value)}
+                        className="w-full p-2 rounded-lg bg-slate-700 border border-white/20 text-white text-sm"
+                      >
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                      </select>
                     </div>
                     <Button variant="destructive" size="icon" onClick={() => handleDeleteTopic(topic.id)}>
                       <Trash2 size={18} />

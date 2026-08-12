@@ -21,6 +21,7 @@ export default function AIChatBar() {
     offsetTop: window.visualViewport?.offsetTop ?? 0,
   });
   const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
+  const didDragRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,6 +60,7 @@ export default function AIChatBar() {
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     if (isOpen) return;
     setIsDragging(true);
+    didDragRef.current = false;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     dragRef.current = {
@@ -77,6 +79,17 @@ export default function AIChatBar() {
       
       const deltaX = clientX - dragRef.current.startX;
       const deltaY = clientY - dragRef.current.startY;
+
+      if (Math.hypot(deltaX, deltaY) > 6) {
+        didDragRef.current = true;
+      }
+
+      // A touch gesture that started on the bubble belongs to the bubble,
+      // not the document. This prevents the browser pull-to-refresh gesture
+      // while leaving nearby page pulls completely untouched.
+      if ('touches' in e) {
+        e.preventDefault();
+      }
       
       const newX = Math.min(Math.max(20, dragRef.current.initialX + deltaX), window.innerWidth - 68);
       const newY = Math.min(Math.max(20, dragRef.current.initialY + deltaY), window.innerHeight - 68);
@@ -91,7 +104,7 @@ export default function AIChatBar() {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove, { passive: true });
       window.addEventListener('mouseup', handleMouseUp, { passive: true });
-      window.addEventListener('touchmove', handleMouseMove, { passive: true });
+      window.addEventListener('touchmove', handleMouseMove, { passive: false });
       window.addEventListener('touchend', handleMouseUp, { passive: true });
     }
 
@@ -254,8 +267,16 @@ export default function AIChatBar() {
           className="relative w-14 h-14 cursor-grab active:cursor-grabbing"
           onMouseDown={handleMouseDown}
           onTouchStart={handleMouseDown}
-          onClick={() => !isDragging && setIsOpen(true)}
+          onClick={() => {
+            if (!didDragRef.current && !isDragging) {
+              setIsOpen(true);
+            }
+            didDragRef.current = false;
+          }}
           style={{
+            touchAction: 'none',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
             filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.7)) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5))'
           }}
         >

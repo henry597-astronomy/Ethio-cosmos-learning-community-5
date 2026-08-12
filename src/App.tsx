@@ -42,10 +42,10 @@ function AppRoutes() {
   return (
     <div className={`min-h-screen flex flex-col overflow-y-auto transition-colors duration-300 ${
       theme === 'light' ? 'bg-[#f1f5f9] text-[#0f172a]' : 'bg-[#0a0e1a] text-white'
-    }`} style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'none', background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
+    }`} style={{ WebkitOverflowScrolling: 'touch', background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
       <Navbar />
       <InstallPrompt />
-      <main className="flex-1 pt-24" style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'none', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))', background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
+      <main className="flex-1 pt-24" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))', background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
         <Routes>
           {/* Login is always accessible */}
           <Route path="/login" element={<LoginPage />} />

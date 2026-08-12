@@ -63,7 +63,7 @@ export default function AIChatBar() {
       positionRef.current = nearestCorner;
       setPosition(nearestCorner);
       snapTimeoutRef.current = null;
-    }, 5000);
+    }, 3000);
   };
 
   useEffect(() => () => clearSnapTimeout(), []);

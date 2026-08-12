@@ -76,7 +76,7 @@ function PostMedia({ text, imageUrl }: { text?: string | null; imageUrl?: string
   const videoId = youtubeUrl ? extractYouTubeVideoId(youtubeUrl) : null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {text && (
         <p className="text-sm sm:text-base text-gray-100 whitespace-pre-wrap break-words leading-relaxed">
           <LinkifiedText text={text} />
@@ -522,8 +522,8 @@ export default function ChatPage() {
         )}
 
         {/* Feed Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          <div className="max-w-3xl mx-auto space-y-6 pb-12">
+        <div className="flex-1 overflow-y-auto p-1.5 sm:p-2 space-y-2">
+          <div className="max-w-3xl mx-auto space-y-2 pb-6">
             {posts.some(post => post.pinned_at) && (
               <button
                 onClick={() => document.getElementById(`channel-post-${posts.find(post => post.pinned_at)?.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -563,10 +563,10 @@ export default function ChatPage() {
                   <div
                     id={`channel-post-${post.id}`}
                     key={post.id}
-                    className={`bg-slate-900/85 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden scroll-mt-4 ${post.pinned_at ? 'border border-blue-400/50 shadow-blue-950/40' : 'border border-white/10'}`}
+                    className={`bg-slate-900/85 backdrop-blur-md rounded-xl shadow-xl overflow-hidden scroll-mt-2 ${post.pinned_at ? 'border border-blue-400/50 shadow-blue-950/40' : 'border border-white/10'}`}
                   >
                     {/* Post Header */}
-                    <div className="px-5 py-4 flex items-center justify-between border-b border-white/5">
+                    <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
                       <div className="flex items-center gap-3">
                         {post.sender_avatar ? (
                           <img 
@@ -630,12 +630,12 @@ export default function ChatPage() {
                     </div>
 
                     {/* Post Content */}
-                    <div className="px-5 py-4">
+                    <div className="px-3 py-2">
                       <PostMedia text={post.message_text} imageUrl={post.image_url} />
                     </div>
 
                     {/* Reactions & Telegram Comment Button Footer */}
-                    <div className="px-5 py-3 bg-slate-950/40 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
+                    <div className="px-3 py-2 bg-slate-950/40 border-t border-white/5 flex flex-wrap items-center justify-between gap-2">
                       {/* Post Reactions */}
                       <div className="flex flex-wrap items-center gap-2">
                         {AVAILABLE_EMOJIS.map((emoji) => {

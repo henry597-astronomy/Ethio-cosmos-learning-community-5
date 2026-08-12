@@ -81,31 +81,23 @@ export default function Navbar() {
 
       if (setWidth > 0) {
         if (timeSinceLastInteraction > 4000) {
-          if (!isWaitingRef.current) {
-            // Ping-pong speed: traverse full set width in 15 seconds
-            const pixelsPerMs = setWidth / 15000;
-            
-            if (scrollDirectionRef.current === 'right') {
-              virtualScrollRef.current += pixelsPerMs * deltaTime;
-              if (virtualScrollRef.current >= maxAutoScroll) {
-                virtualScrollRef.current = maxAutoScroll;
-                scrollDirectionRef.current = 'left';
-                isWaitingRef.current = true;
-                lastInteractionRef.current = now;
-              }
-            } else {
-              virtualScrollRef.current -= pixelsPerMs * deltaTime;
-              if (virtualScrollRef.current <= minAutoScroll) {
-                virtualScrollRef.current = minAutoScroll;
-                scrollDirectionRef.current = 'right';
-                isWaitingRef.current = true;
-                lastInteractionRef.current = now;
-              }
+          // Continuous flow: traverse full set width in 15 seconds (30s for a full round trip)
+          const pixelsPerMs = setWidth / 15000;
+          
+          if (scrollDirectionRef.current === 'right') {
+            virtualScrollRef.current += pixelsPerMs * deltaTime;
+            if (virtualScrollRef.current >= maxAutoScroll) {
+              virtualScrollRef.current = maxAutoScroll;
+              scrollDirectionRef.current = 'left';
             }
-            scrollContainer.scrollLeft = virtualScrollRef.current;
           } else {
-            isWaitingRef.current = false;
+            virtualScrollRef.current -= pixelsPerMs * deltaTime;
+            if (virtualScrollRef.current <= minAutoScroll) {
+              virtualScrollRef.current = minAutoScroll;
+              scrollDirectionRef.current = 'right';
+            }
           }
+          scrollContainer.scrollLeft = virtualScrollRef.current;
         }
 
         // Always handle infinite loop jumping for manual scrolling

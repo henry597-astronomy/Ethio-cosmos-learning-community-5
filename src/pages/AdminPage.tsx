@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Check, X, ShieldCheck, ShieldOff, Ban, CircleCheck } from 'lucide-react';
+import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Check, X, Search, ShieldCheck, ShieldOff, Ban, CircleCheck } from 'lucide-react';
 import type {
   Topic,
   Subtopic,
@@ -137,6 +137,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<{ id: string; email: string; username: string; role: string; is_blocked?: boolean }[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState<string | null>(null);
+  const [userSearch, setUserSearch] = useState('');
   const [spaceNews, setSpaceNews] = useState<SpaceNews[]>([]);
   const [spaceNewsLoading, setSpaceNewsLoading] = useState(false);
   const [spaceNewsError, setSpaceNewsError] = useState<string | null>(null);
@@ -950,6 +951,12 @@ export default function AdminPage() {
       console.error('Failed to delete quiz question:', err);
     }
   };
+
+  const filteredUsers = users.filter((u) => {
+    const query = userSearch.trim().toLowerCase();
+    if (!query) return true;
+    return (u.username || '').toLowerCase().includes(query) || u.email.toLowerCase().includes(query);
+  });
 
   return (
     <div className="min-h-screen pt-20 bg-[#0a0e1a]" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
@@ -2025,15 +2032,36 @@ export default function AdminPage() {
           {/* ── USERS TAB ─────────────────────────────────────────────── */}
           <TabsContent value="users" className="space-y-4">
             <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <h2 className="text-xl font-bold text-white">Manage Users</h2>
                 <Button
                   onClick={fetchUsers}
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="h-8 border-white/20 px-3 text-xs text-white hover:bg-white/10"
                 >
                   Refresh
                 </Button>
+              </div>
+              <div className="relative mb-3">
+                <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" aria-hidden="true" />
+                <Input
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Search users by name or email..."
+                  aria-label="Search users by name or email"
+                  className="h-9 bg-slate-800 pl-8 pr-8 text-sm text-white placeholder:text-gray-500 border-white/10 focus:border-orange-500/60"
+                />
+                {userSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setUserSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-white"
+                    aria-label="Clear user search"
+                    title="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
               {usersLoading && (
                 <p className="text-gray-400">Loading users...</p>
@@ -2042,17 +2070,17 @@ export default function AdminPage() {
                 <p className="text-red-400">Error: {usersError}</p>
               )}
               {!usersLoading && !usersError && (
-                <div className="space-y-3">
-                  {users.map(u => (
+                <div className="space-y-2">
+                  {filteredUsers.map(u => (
                     <div
                       key={u.id}
-                      className="flex items-center justify-between gap-3 p-2.5 bg-slate-800 rounded-lg border border-white/10"
+                      className="flex items-center justify-between gap-2 p-2 bg-slate-800 rounded-lg border border-white/10"
                     >
-                      <div>
-                        <p className="text-white font-medium">{u.username || '(no username)'}</p>
-                        <p className="text-gray-400 text-sm">{u.email}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-white">{u.username || '(no username)'}</p>
+                        <p className="truncate text-xs text-gray-400">{u.email}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex shrink-0 items-center gap-1.5">
                         <span className={`text-sm font-semibold px-2 py-1 rounded ${u.role === 'admin' ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-700 text-gray-400'}`}>
                           {u.role}
                         </span>
@@ -2087,8 +2115,10 @@ export default function AdminPage() {
                       </div>
                     </div>
                   ))}
-                  {users.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">No users found.</p>
+                  {filteredUsers.length === 0 && (
+                    <p className="text-gray-500 text-center py-3 text-sm">
+                      {users.length === 0 ? 'No users found.' : 'No users match your search.'}
+                    </p>
                   )}
                 </div>
               )}

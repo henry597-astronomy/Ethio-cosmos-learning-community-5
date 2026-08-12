@@ -79,8 +79,8 @@ export default function Navbar() {
 
       if (setWidth > 0) {
         if (timeSinceLastInteraction > 4000) {
-          // Continuous flow: traverse full set width in 8 seconds
-          const pixelsPerMs = setWidth / 8000;
+          // Continuous flow: traverse full set width in 5 seconds
+          const pixelsPerMs = setWidth / 5000;
           
           if (scrollDirectionRef.current === 'right') {
             virtualScrollRef.current += pixelsPerMs * deltaTime;

@@ -880,3 +880,112 @@ html {
 .gradient-sakura .text-white, .gradient-sakura .text-gray-100, .gradient-sakura .text-gray-200, .gradient-desert .text-white, .gradient-desert .text-gray-100, .gradient-desert .text-gray-200, .gradient-arctic .text-white, .gradient-arctic .text-gray-100, .gradient-arctic .text-gray-200, .gradient-twilight .text-white, .gradient-twilight .text-gray-100, .gradient-twilight .text-gray-200, .gradient-rose-gold .text-white, .gradient-rose-gold .text-gray-100, .gradient-rose-gold .text-gray-200, .gradient-celestial .text-white, .gradient-celestial .text-gray-100, .gradient-celestial .text-gray-200 { color: var(--theme-text) !important; }
 .gradient-sakura .text-gray-300, .gradient-sakura .text-gray-400, .gradient-sakura .text-gray-500, .gradient-desert .text-gray-300, .gradient-desert .text-gray-400, .gradient-desert .text-gray-500, .gradient-arctic .text-gray-300, .gradient-arctic .text-gray-400, .gradient-arctic .text-gray-500, .gradient-twilight .text-gray-300, .gradient-twilight .text-gray-400, .gradient-twilight .text-gray-500, .gradient-rose-gold .text-gray-300, .gradient-rose-gold .text-gray-400, .gradient-rose-gold .text-gray-500, .gradient-celestial .text-gray-300, .gradient-celestial .text-gray-400, .gradient-celestial .text-gray-500 { color: var(--theme-muted) !important; }
 .gradient-sakura .border-white\/10, .gradient-sakura .border-white\/5, .gradient-desert .border-white\/10, .gradient-desert .border-white\/5, .gradient-arctic .border-white\/10, .gradient-arctic .border-white\/5, .gradient-twilight .border-white\/10, .gradient-twilight .border-white\/5, .gradient-rose-gold .border-white\/10, .gradient-rose-gold .border-white\/5, .gradient-celestial .border-white\/10, .gradient-celestial .border-white\/5 { border-color: var(--theme-accent) !important; }
+
+/* Meet the Team: glowing square loop carousel */
+.team-marquee {
+  --team-card-size: clamp(13rem, 28vw, 18rem);
+  --team-card-gap: 1rem;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  mask-image: linear-gradient(to right, transparent, black 4%, black 96%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 4%, black 96%, transparent);
+}
+
+.team-marquee::-webkit-scrollbar {
+  display: none;
+}
+
+.team-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: var(--team-card-gap);
+  padding: 0.5rem 0.25rem 1rem;
+  animation: team-loop-scroll 38s linear infinite;
+  will-change: transform;
+}
+
+.team-marquee:hover .team-marquee-track,
+.team-marquee:focus-within .team-marquee-track {
+  animation-play-state: paused;
+}
+
+.team-member-card {
+  position: relative;
+  flex: 0 0 var(--team-card-size);
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 1px solid rgba(251, 146, 60, 0.42);
+  border-radius: 1rem;
+  background: #0f172a;
+  box-shadow:
+    0 0 0 1px rgba(249, 115, 22, 0.08),
+    0 0 24px rgba(249, 115, 22, 0.2),
+    inset 0 0 22px rgba(249, 115, 22, 0.08);
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.team-member-card:hover {
+  border-color: rgba(251, 146, 60, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(249, 115, 22, 0.2),
+    0 0 36px rgba(249, 115, 22, 0.42),
+    inset 0 0 24px rgba(249, 115, 22, 0.12);
+  transform: translateY(-0.25rem);
+}
+
+@keyframes team-loop-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - (var(--team-card-gap) / 2)));
+  }
+}
+
+@media (max-width: 640px) {
+  .team-marquee {
+    --team-card-size: min(72vw, 16rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-marquee-track {
+    animation: none;
+  }
+}
+
+.light-theme .team-member-card {
+  background: #f8fafc;
+  border-color: rgba(234, 88, 12, 0.42);
+  box-shadow:
+    0 0 0 1px rgba(234, 88, 12, 0.08),
+    0 0 24px rgba(234, 88, 12, 0.18),
+    inset 0 0 22px rgba(234, 88, 12, 0.06);
+}
+
+.gradient-cosmos .team-member-card,
+.gradient-aurora .team-member-card,
+.gradient-sunset .team-member-card,
+.gradient-emerald .team-member-card,
+.gradient-rainbow .team-member-card {
+  backdrop-filter: blur(8px);
+}
+
+.gradient-aurora .team-member-card {
+  border-color: rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 28px rgba(52, 211, 153, 0.24);
+}
+
+.gradient-sunset .team-member-card,
+.gradient-emerald .team-member-card {
+  border-color: rgba(244, 114, 182, 0.5);
+  box-shadow: 0 0 28px rgba(244, 114, 182, 0.24);
+}
+
+.gradient-rainbow .team-member-card {
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 30px rgba(255, 0, 128, 0.28);
+}

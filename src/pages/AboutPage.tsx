@@ -117,9 +117,9 @@ export default function AboutPage() {
       </section>
 
       {/* Team Section */}
-      <section className="py-24 bg-slate-900/50">
+      <section className="py-20 bg-slate-900/50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
+          <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">Meet the Team</h2>
             <div className="w-24 h-1 bg-orange-500 mx-auto"></div>
           </div>
@@ -128,51 +128,80 @@ export default function AboutPage() {
             { id: 'platformCreators', title: 'Platform Creators', members: about.team?.platformCreators },
             { id: 'educationalAdvisors', title: 'Educational Advisors', members: about.team?.educationalAdvisors },
             { id: 'communityMembers', title: 'Community Members', members: about.team?.communityMembers }
-          ].map((section) => (
-            <div key={section.id} className="mb-20 last:mb-0">
-              <h3 className="text-2xl font-bold text-white mb-10 pl-4 border-l-4 border-orange-500">
-                {section.title}
-              </h3>
-              
-              <div className="grid grid-cols-4 gap-3">
-                {section.members && section.members.length > 0 ? (
-                  section.members.map((member: TeamMember) => (
-                    <div 
-                      key={member.id} 
-                      className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 hover:-translate-y-1"
-                    >
-                      <div className="aspect-square overflow-hidden relative">
-                        {member.image_url ? (
-                          <img 
-                            src={member.image_url} 
-                            alt={member.name} 
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                            <span className="text-4xl">👤</span>
+          ].map((section) => {
+            const members = section.members || [];
+            const hasMembers = members.length > 0;
+
+            return (
+              <div key={section.id} className="mb-16 last:mb-0">
+                <h3 className="text-2xl font-bold text-white mb-6 pl-4 border-l-4 border-orange-500">
+                  {section.title}
+                </h3>
+
+                {hasMembers ? (
+                  <div className="team-marquee" aria-label={`${section.title} carousel`}>
+                    <div className="team-marquee-track">
+                      {members.map((member: TeamMember) => (
+                        <article
+                          key={member.id}
+                          className="team-member-card group"
+                        >
+                          {member.image_url ? (
+                            <img
+                              src={member.image_url}
+                              alt={member.name}
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                              <span className="text-5xl" aria-hidden="true">👤</span>
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-transparent" />
+                          <div className="absolute inset-x-0 bottom-0 p-4 text-left">
+                            <h4 className="truncate text-base font-bold text-white group-hover:text-orange-300 transition-colors">
+                              {member.name}
+                            </h4>
+                            <p className="truncate text-sm font-medium text-orange-400">
+                              {member.work}
+                            </p>
                           </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      </div>
-                      <div className="p-2 text-center">
-                        <h4 className="text-xs font-bold text-white mb-0.5 group-hover:text-orange-500 transition-colors">
-                          {member.name}
-                        </h4>
-                        <p className="text-orange-500 text-xs font-medium">
-                          {member.work}
-                        </p>
-                      </div>
+                        </article>
+                      ))}
+                      {members.length > 0 && members.map((member: TeamMember) => (
+                        <article
+                          key={`${member.id}-loop`}
+                          className="team-member-card group"
+                          aria-hidden="true"
+                        >
+                          {member.image_url ? (
+                            <img
+                              src={member.image_url}
+                              alt=""
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                              <span className="text-5xl" aria-hidden="true">👤</span>
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-transparent" />
+                          <div className="absolute inset-x-0 bottom-0 p-4 text-left">
+                            <h4 className="truncate text-base font-bold text-white">{member.name}</h4>
+                            <p className="truncate text-sm font-medium text-orange-400">{member.work}</p>
+                          </div>
+                        </article>
+                      ))}
                     </div>
-                  ))
+                  </div>
                 ) : (
-                  <div className="col-span-full py-12 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+                  <div className="py-12 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
                     <p className="text-gray-500 italic">No members added to this section yet.</p>
                   </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </div>

@@ -59,6 +59,7 @@ function StreamContent({
   const [connectionTimeout, setConnectionTimeout] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isCommunityGridExpanded, setIsCommunityGridExpanded] = useState(true);
+  const [totalWordsUsed, setTotalWordsUsed] = useState(0);
 
   useEffect(() => {
     setIsClient(true);
@@ -484,9 +485,23 @@ function StreamContent({
 
   const handleSendComment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const text = commentDraft.trim().slice(0, 300);
-    if (!text || !localParticipant) return;
+    const rawText = commentDraft.trim();
+    if (!rawText || !localParticipant) return;
 
+    const words = rawText.split(/\s+/).filter(Boolean);
+    const wordCount = words.length;
+
+    if (wordCount > 40) {
+      alert('Maximum 40 words allowed per message.');
+      return;
+    }
+
+    if (totalWordsUsed + wordCount > 200) {
+      alert(`You have reached the 200-word limit for this live stream session. (Remaining: ${Math.max(0, 200 - totalWordsUsed)} words)`);
+      return;
+    }
+
+    const text = rawText.slice(0, 300);
     const metadata = getMetadata(localParticipant);
     const comment: LiveComment = {
       id: `${Date.now()}-${localParticipant.identity}`,
@@ -497,6 +512,7 @@ function StreamContent({
       createdAt: Date.now(),
     };
 
+    setTotalWordsUsed((prev) => prev + wordCount);
     setComments((previous) => [...previous, comment].slice(-100));
     setCommentDraft('');
     const encoder = new TextEncoder();

@@ -7,7 +7,7 @@
 // 4. Network-first for API calls with cache fallback
 // 5. Cache-first for static assets with network refresh
 
-const CACHE_VERSION = 'v15';
+const CACHE_VERSION = 'v16';
 const STATIC_CACHE = `ethio-cosmos-static-${CACHE_VERSION}`;
 const API_CACHE = `ethio-cosmos-api-${CACHE_VERSION}`;
 const IMAGE_CACHE = `ethio-cosmos-images-${CACHE_VERSION}`;
@@ -20,6 +20,7 @@ const STATIC_ASSETS = [
   './manifest.json',
   // All images
   './images/school-logo.jpg',
+  './images/school-logo.png',
   './images/chat-bg-new.jpg',
   './images/chat-bg.jpg',
   './images/hero-bg-new.jpg',
@@ -80,29 +81,114 @@ const BYPASS_ORIGINS = [
 ];
 
 // CMS API endpoints that should be cached
-const CMS_API_PATTERNS = [
+const PUBLIC_API_PATTERNS = [
   'site_content',
   'topics',
   'subtopics',
   'lessons',
   'quizzes',
   'quiz_questions',
+  'space_news',
+  'channel_posts',
+  'channel_reactions',
+  'channel_comments',
+  'comment_reactions',
+  'live_sessions',
+  'shorts',
+];
+
+// These reads are tied to the signed-in user. They are cached only under a
+// user-scoped cache key so one account can never receive another account's data.
+const PRIVATE_API_PATTERNS = [
+  'profiles',
+  'user_progress',
+  'bookmarks',
 ];
 
 function shouldBypass(url) {
   return BYPASS_ORIGINS.some(origin => url.includes(origin));
 }
 
-function isCmsApiCall(url) {
-  return CMS_API_PATTERNS.some(pattern => url.includes(pattern)) && url.includes('supabase');
+function matchesApiPattern(url, patterns) {
+  return url.includes('/rest/v1/') && url.includes('supabase') && patterns.some(pattern => url.includes(`/${pattern}`));
+}
+
+function isPublicApiCall(url) {
+  return matchesApiPattern(url, PUBLIC_API_PATTERNS);
+}
+
+function isPrivateApiCall(url) {
+  return matchesApiPattern(url, PRIVATE_API_PATTERNS);
+}
+
+function getAuthScope(request) {
+  const authorization = request.headers.get('authorization');
+  if (!authorization) return 'public';
+
+  const token = authorization.replace(/^Bearer\s+/i, '');
+  try {
+    const payloadPart = token.split('.')[1];
+    if (!payloadPart) return null;
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')));
+    if (payload.role === 'anon') return 'public';
+    return payload.sub ? `user-${payload.sub}` : null;
+  } catch {
+    return null;
+  }
+}
+
+function getApiCacheKey(request, requiresUserScope) {
+  const scope = getAuthScope(request);
+  if (requiresUserScope && (!scope || scope === 'public')) return null;
+
+  if (!scope || scope === 'public') return request;
+
+  const scopedUrl = new URL(request.url);
+  scopedUrl.searchParams.set('__offline_user', scope);
+  return new Request(scopedUrl.toString(), { method: 'GET' });
+}
+
+async function findCachedApiResponse(cacheKey) {
+  const cache = await caches.open(API_CACHE);
+  const exact = await cache.match(cacheKey);
+  if (exact) return exact;
+
+  const target = new URL(cacheKey.url);
+  const targetScope = target.searchParams.get('__offline_user');
+  const keys = await cache.keys();
+  for (const key of keys) {
+    const candidate = new URL(key.url);
+    if (
+      candidate.origin === target.origin &&
+      candidate.pathname === target.pathname &&
+      candidate.searchParams.get('__offline_user') === targetScope
+    ) {
+      const fallback = await cache.match(key);
+      if (fallback) return fallback;
+    }
+  }
+  return undefined;
+}
+
+function getUrlPath(url) {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url.split('?')[0];
+  }
+}
+
+function isStorageAssetUrl(url) {
+  return url.includes('/storage/v1/object/');
 }
 
 function isImageUrl(url) {
-  return /\.(jpg|jpeg|png|gif|svg|webp|ico)$/i.test(url);
+  return /\.(jpg|jpeg|png|gif|svg|webp|ico)$/i.test(getUrlPath(url));
 }
 
 function isMediaUrl(url) {
-  return /\.(mp4|webm|ogg|mp3|wav|pdf)$/i.test(url);
+  return /\.(mp4|webm|ogg|mp3|wav|pdf|m3u8)$/i.test(getUrlPath(url));
 }
 
 // ── Install: Cache all static assets ──────────────────────────────────────
@@ -172,36 +258,54 @@ self.addEventListener('fetch', (event) => {
   // 1. Never intercept non-GET requests
   if (request.method !== 'GET') return;
 
-  // 2. Never intercept auth/OAuth (but DO intercept CMS API calls)
-  if (shouldBypass(url) && !isCmsApiCall(url)) return;
+  // 2. Never intercept auth/OAuth or unrelated third-party requests.
+  // Supabase REST reads are allowed through the public/private cache paths below.
+  if (
+    shouldBypass(url) &&
+    !isPublicApiCall(url) &&
+    !isPrivateApiCall(url) &&
+    !isStorageAssetUrl(url)
+  ) return;
 
-  // 3. SPA navigation: serve index.html
+  // 3. SPA navigation: serve the app shell so every client-side route opens offline.
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Cache successful HTML responses
           if (response.ok && response.type === 'basic') {
             const clone = response.clone();
             caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
           }
           return response;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(async () => {
+          const shell = await caches.match(new URL('./index.html', self.location.origin).toString())
+            || await caches.match('./index.html');
+          return shell || new Response('Offline - app shell unavailable', { status: 503 });
+        })
     );
     return;
   }
 
-  // 4. CMS API calls: network-first with cache fallback
-  if (isCmsApiCall(url)) {
+  // 4. All read-only Supabase REST data: network-first with offline fallback.
+  // Public requests use a shared cache key; authenticated requests are scoped
+  // to the JWT subject to keep offline data isolated between accounts.
+  if (isPublicApiCall(url) || isPrivateApiCall(url)) {
+    const requiresUserScope = isPrivateApiCall(url);
+    const cacheKey = getApiCacheKey(request, requiresUserScope);
+
+    if (!cacheKey) {
+      // Never cache a private response when no signed-in user can be identified.
+      return;
+    }
+
     event.respondWith(
       fetch(request)
         .then((response) => {
           if (response.ok) {
             const clone = response.clone();
             caches.open(API_CACHE).then((cache) => {
-              cache.put(request, clone);
-              // Notify clients about cache update
+              cache.put(cacheKey, clone);
               self.clients.matchAll().then((clients) => {
                 clients.forEach((client) => {
                   client.postMessage({
@@ -215,18 +319,14 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => {
-          // Offline: return cached response
-          return caches.match(request).then((cached) => {
-            if (cached) {
-              console.log('[SW] Serving from cache (offline):', url);
-              return cached;
-            }
-            // No cache available
-            console.warn('[SW] No cache available for:', url);
-            return new Response('Offline - data not available', { status: 503 });
-          });
-        })
+        .catch(() => findCachedApiResponse(cacheKey).then((cached) => {
+          if (cached) {
+            console.log('[SW] Serving from cache (offline):', url);
+            return cached;
+          }
+          console.warn('[SW] No cache available for:', url);
+          return new Response('Offline - data not available', { status: 503 });
+        }))
     );
     return;
   }

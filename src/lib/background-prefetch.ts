@@ -269,6 +269,86 @@ async function prefetchMaterials(): Promise<string[]> {
 /**
  * Prefetch about page content (team images)
  */
+async function prefetchPublicCommunityContent(): Promise<{ imageUrls: string[]; mediaUrls: string[] }> {
+  updateProgress({ currentItem: 'Fetching community content...' });
+
+  const [postsResult, reactionsResult, commentsResult, commentReactionsResult, spaceNewsResult, liveSessionsResult, shortsResult] = await Promise.all([
+    supabase
+      .from('channel_posts')
+      .select('id, message_text, image_url, created_at, pinned_at, user_id, profiles ( username, bio, avatar_url, role )')
+      .order('created_at', { ascending: true }),
+    supabase.from('channel_reactions').select('*'),
+    supabase
+      .from('channel_comments')
+      .select('id, post_id, user_id, content, created_at, profiles ( username, bio, avatar_url, role )')
+      .order('created_at', { ascending: true }),
+    supabase.from('comment_reactions').select('*'),
+    supabase
+      .from('space_news')
+      .select('id, external_id, title, summary, full_explanation, fun_fact, image_url, source_name, source_url, category, published_date, ai_generated, status, created_at, updated_at')
+      .eq('status', 'published')
+      .order('published_date', { ascending: false })
+      .limit(12),
+    supabase.from('live_sessions').select('*').eq('is_active', true),
+    supabase.from('shorts').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+  ]);
+
+  const firstError = [
+    postsResult.error,
+    reactionsResult.error,
+    commentsResult.error,
+    commentReactionsResult.error,
+    spaceNewsResult.error,
+    liveSessionsResult.error,
+    shortsResult.error,
+  ].find(Boolean);
+
+  if (firstError) {
+    console.warn('[Prefetch] Some community data could not be cached:', firstError.message);
+  }
+
+  const imageUrls: string[] = [];
+  const mediaUrls: string[] = [];
+  const collect = (value: any) => {
+    if (!value || typeof value !== 'string' || !/^https?:\/\//i.test(value)) return;
+    if (/\.(jpg|jpeg|png|gif|svg|webp|ico)(\?|$)/i.test(value)) imageUrls.push(value);
+    else if (/\.(mp4|webm|ogg|mp3|wav|pdf|m3u8)(\?|$)/i.test(value)) mediaUrls.push(value);
+  };
+
+  (postsResult.data || []).forEach((post: any) => {
+    collect(post.image_url);
+    collect(post.profiles?.avatar_url);
+  });
+  (commentsResult.data || []).forEach((comment: any) => collect(comment.profiles?.avatar_url));
+  (spaceNewsResult.data || []).forEach((item: any) => collect(item.image_url));
+  (shortsResult.data || []).forEach((short: any) => {
+    collect(short.thumbnail_url || short.thumbnail);
+    collect(short.video_url || short.url);
+  });
+
+  updateProgress({ completed: prefetchProgress.completed + 1 });
+  return { imageUrls, mediaUrls };
+}
+
+async function prefetchUserContent(): Promise<void> {
+  updateProgress({ currentItem: 'Fetching signed-in data...' });
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+  if (userId) {
+    await Promise.all([
+      supabase.from('profiles').select('id, username, bio, email, avatar_url, role, created_at, updated_at, is_blocked').eq('id', userId).maybeSingle(),
+      supabase.from('user_progress').select('*').eq('user_id', userId),
+      supabase.from('bookmarks').select('*').eq('user_id', userId),
+    ]);
+  }
+
+  updateProgress({ completed: prefetchProgress.completed + 1 });
+}
+
+/**
+ * Prefetch about page content (team images)
+ */
 async function prefetchAboutContent(): Promise<string[]> {
   updateProgress({ currentItem: 'Fetching about content...' });
 
@@ -311,7 +391,7 @@ export async function prefetchAllContent(): Promise<void> {
   updateProgress({
     status: 'running',
     completed: 0,
-    total: 8, // Number of prefetch tasks
+    total: 10, // Number of prefetch tasks
     error: undefined,
   });
 
@@ -329,7 +409,9 @@ export async function prefetchAllContent(): Promise<void> {
       siteContentImages,
       galleryImages,
       materials,
-      aboutImages
+      aboutImages,
+      communityContent,
+      _userContent
     ] = await Promise.all([
       prefetchTopics(),
       prefetchSubtopics(),
@@ -338,7 +420,9 @@ export async function prefetchAllContent(): Promise<void> {
       prefetchSiteContent(),
       prefetchGalleryImages(),
       prefetchMaterials(),
-      prefetchAboutContent()
+      prefetchAboutContent(),
+      prefetchPublicCommunityContent(),
+      prefetchUserContent()
     ]);
 
     topicImages.forEach(url => allImageUrls.add(url));
@@ -347,6 +431,8 @@ export async function prefetchAllContent(): Promise<void> {
     galleryImages.forEach(url => allImageUrls.add(url));
     materials.forEach(url => allMediaUrls.add(url));
     aboutImages.forEach(url => allImageUrls.add(url));
+    communityContent.imageUrls.forEach(url => allImageUrls.add(url));
+    communityContent.mediaUrls.forEach(url => allMediaUrls.add(url));
 
     // Send all URLs to service worker for caching
     if (allImageUrls.size > 0) {

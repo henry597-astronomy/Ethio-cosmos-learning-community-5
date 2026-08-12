@@ -66,9 +66,6 @@ export default function Navbar() {
       const deltaTime = time - lastTime;
       lastTime = time;
 
-      const now = Date.now();
-      const timeSinceLastInteraction = now - lastInteractionRef.current;
-
       const scrollWidth = scrollContainer.scrollWidth;
       const setWidth = scrollWidth / 3;
       const clientWidth = scrollContainer.clientWidth;
@@ -78,25 +75,23 @@ export default function Navbar() {
       const maxAutoScroll = setWidth + Math.max(0, setWidth - clientWidth);
 
       if (setWidth > 0) {
-        if (timeSinceLastInteraction > 4000) {
-          // Continuous flow: traverse full set width in 5 seconds
-          const pixelsPerMs = setWidth / 5000;
-          
-          if (scrollDirectionRef.current === 'right') {
-            virtualScrollRef.current += pixelsPerMs * deltaTime;
-            if (virtualScrollRef.current >= maxAutoScroll) {
-              virtualScrollRef.current = maxAutoScroll;
-              scrollDirectionRef.current = 'left';
-            }
-          } else {
-            virtualScrollRef.current -= pixelsPerMs * deltaTime;
-            if (virtualScrollRef.current <= minAutoScroll) {
-              virtualScrollRef.current = minAutoScroll;
-              scrollDirectionRef.current = 'right';
-            }
+        // Continuous flow: traverse full set width in 5 seconds
+        const pixelsPerMs = setWidth / 5000;
+        
+        if (scrollDirectionRef.current === 'right') {
+          virtualScrollRef.current += pixelsPerMs * deltaTime;
+          if (virtualScrollRef.current >= maxAutoScroll) {
+            virtualScrollRef.current = maxAutoScroll;
+            scrollDirectionRef.current = 'left';
           }
-          scrollContainer.scrollLeft = virtualScrollRef.current;
+        } else {
+          virtualScrollRef.current -= pixelsPerMs * deltaTime;
+          if (virtualScrollRef.current <= minAutoScroll) {
+            virtualScrollRef.current = minAutoScroll;
+            scrollDirectionRef.current = 'right';
+          }
         }
+        scrollContainer.scrollLeft = virtualScrollRef.current;
 
         // Always handle infinite loop jumping for manual scrolling
         if (scrollContainer.scrollLeft >= setWidth * 2) {

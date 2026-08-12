@@ -205,7 +205,7 @@ self.addEventListener('install', (event) => {
       console.log('[SW] Caching static assets and current build bundles...');
       return getBuildAssets().then((buildAssets) => {
         const assetsToCache = [...new Set([...STATIC_ASSETS, ...buildAssets])];
-        return Promise.allSettled(assetsToCache.map((asset) => cache.add(asset))).then((results) => {
+        return cacheAssetsIfNeeded(cache, assetsToCache).then((results) => {
           const failed = results.filter((result) => result.status === 'rejected').length;
           if (failed > 0) {
             console.warn(`[SW] ${failed} optional assets were not cached during install`);
@@ -482,8 +482,12 @@ self.addEventListener('message', (event) => {
   if (type === 'CACHE_URLS') {
     const { urls } = payload;
     event.waitUntil(
-      cacheUrls(urls).then(() => {
-        event.ports[0].postMessage({ success: true, message: `Cached ${urls.length} URLs` });
+      cacheUrls(urls).then((result) => {
+        event.ports[0].postMessage({
+          success: true,
+          message: `Offline cache checked: ${result.downloaded} new, ${result.skipped} already available`,
+          ...result,
+        });
       }).catch((err) => {
         event.ports[0].postMessage({ success: false, error: err.message });
       })
@@ -509,19 +513,46 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// ── Helper: Cache multiple URLs ──────────────────────────────────────────
+// ── Helpers: Cache only content that is not already available ─────────────
+async function cacheAssetsIfNeeded(cache, assets) {
+  return Promise.allSettled(assets.map(async (asset) => {
+    // Hashed build files and uploaded content use a new URL when they change.
+    // Keeping an existing response prevents the same bytes being downloaded
+    // again during every Service Worker install.
+    const alreadyCached = await cache.match(asset);
+    if (alreadyCached && !asset.endsWith('/index.html') && !asset.endsWith('/manifest.json')) {
+      return { skipped: true, asset };
+    }
+
+    await cache.add(asset);
+    return { downloaded: true, asset };
+  }));
+}
+
 async function cacheUrls(urls) {
   const cache = await caches.open(MEDIA_CACHE);
-  const promises = urls.map((url) =>
-    fetch(url)
-      .then((response) => {
-        if (response.ok) {
-          return cache.put(url, response);
-        }
-      })
-      .catch((err) => console.warn(`[SW] Failed to cache ${url}:`, err))
-  );
-  return Promise.all(promises);
+  const uniqueUrls = [...new Set(urls)];
+  let downloaded = 0;
+  let skipped = 0;
+
+  await Promise.all(uniqueUrls.map(async (url) => {
+    const alreadyCached = await cache.match(url);
+    if (alreadyCached) {
+      skipped += 1;
+      return;
+    }
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return;
+      await cache.put(url, response.clone());
+      downloaded += 1;
+    } catch (err) {
+      console.warn(`[SW] Failed to cache ${url}:`, err);
+    }
+  }));
+
+  return { downloaded, skipped };
 }
 
 // ── Helper: Get total cache size ─────────────────────────────────────────

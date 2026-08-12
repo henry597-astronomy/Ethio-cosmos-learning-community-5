@@ -39,6 +39,7 @@ export default function AppUpdatePrompt() {
         await navigator.serviceWorker.ready.catch(() => undefined);
       }
       await prefetchAllContent();
+      localStorage.setItem('ethio-offline-cache-ready', '1');
     } catch (error) {
       setDownloadError(error instanceof Error ? error.message : 'Offline download failed.');
       setDownloadProgress((progress) => ({ ...progress, status: 'error' }));
@@ -69,7 +70,8 @@ export default function AppUpdatePrompt() {
     }
 
     const hasChosenMode = sessionStorage.getItem('ethio-usage-mode-chosen') === '1';
-    if (!hasChosenMode && navigator.onLine) {
+    const hasOfflineCache = localStorage.getItem('ethio-offline-cache-ready') === '1';
+    if (!hasChosenMode && !hasOfflineCache && navigator.onLine) {
       const timer = window.setTimeout(() => setModePromptVisible(true), 1400);
       return () => {
         window.clearTimeout(timer);

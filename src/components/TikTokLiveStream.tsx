@@ -36,6 +36,7 @@ function StreamContent({
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
   const [isMuted, setIsMuted] = useState(false);
+  const [isCoHostMuted, setIsCoHostMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [connectionTimeout, setConnectionTimeout] = useState(false);
@@ -54,6 +55,14 @@ function StreamContent({
       const data = JSON.parse(new TextDecoder().decode(message.payload));
       if (data.type === 'CO_HOST_UPDATE') {
         setLocalCoHostId(data.coHostIdentity);
+      }
+      if (
+        data.type === 'CO_HOST_AUDIO_MUTE' &&
+        data.targetIdentity === localParticipant?.identity
+      ) {
+        const muted = Boolean(data.muted);
+        setIsMuted(muted);
+        localParticipant?.setMicrophoneEnabled(!muted).catch(console.error);
       }
     } catch (e) {
       console.error('Failed to parse signaling message', e);
@@ -138,6 +147,10 @@ function StreamContent({
       }
     }
   }, [hostParticipant]);
+
+  useEffect(() => {
+    setIsCoHostMuted(coHostParticipant ? !coHostParticipant.isMicrophoneEnabled : false);
+  }, [coHostParticipant?.identity, coHostParticipant?.isMicrophoneEnabled]);
 
   // 3. Track Discovery (Optimized for immediate viewer access)
   const allCameraTracks = useTracks(
@@ -243,6 +256,22 @@ function StreamContent({
       return !isHostMember && !isCoHostMember;
     });
   }, [participants, hostParticipant, coHostParticipant]);
+
+  const handleCoHostMuteToggle = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!isHost || !coHostParticipant) return;
+
+    const muted = !isCoHostMuted;
+    setIsCoHostMuted(muted);
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(JSON.stringify({
+      type: 'CO_HOST_AUDIO_MUTE',
+      targetIdentity: coHostParticipant.identity,
+      muted,
+    }));
+    await send(data, { reliable: true });
+  };
 
   const handleFullscreen = async () => {
     if (!containerRef.current) return;
@@ -371,15 +400,28 @@ function StreamContent({
                     <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                     CO-HOST
                     {isHost && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleProfileClick(coHostParticipant);
-                        }}
-                        className="ml-2 p-1 hover:bg-white/20 rounded-full transition-colors"
-                      >
-                        <UserMinus size={12} />
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleCoHostMuteToggle}
+                          aria-label={isCoHostMuted ? 'Unmute co-host' : 'Mute co-host'}
+                          title={isCoHostMuted ? 'Unmute co-host' : 'Mute co-host'}
+                          className="ml-2 p-1 hover:bg-white/20 rounded-full transition-colors"
+                        >
+                          {isCoHostMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProfileClick(coHostParticipant);
+                          }}
+                          aria-label="Remove co-host"
+                          title="Remove co-host"
+                          className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                        >
+                          <UserMinus size={12} />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

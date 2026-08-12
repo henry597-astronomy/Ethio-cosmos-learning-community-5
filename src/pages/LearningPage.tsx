@@ -54,8 +54,8 @@ export default function LearningPage() {
       </section>
 
       {/* Topics Grid */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-8">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
           {error ? (
             <div className="text-center py-16 bg-red-500/10 border border-red-500/20 rounded-xl">
               <p className="text-red-400 font-semibold mb-2">Could not load topics</p>
@@ -67,12 +67,12 @@ export default function LearningPage() {
               <p className="text-gray-400">No topics available yet. Check back soon!</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               {topics.map((topic) => (
                 <Link
                   key={topic.id}
                   to={`/learning/${topic.id}`}
-                  className="group relative overflow-hidden rounded-xl bg-slate-900 border border-white/10 hover:border-orange-500/50 transition-all duration-300"
+                  className="group relative overflow-hidden rounded-lg bg-slate-900 border border-white/10 hover:border-orange-500/50 transition-all duration-300"
                 >
                   <div className="h-40 overflow-hidden">
                     <FallbackImage
@@ -81,14 +81,14 @@ export default function LearningPage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
-                  <div className="p-6">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div className="p-3">
+                    <div className="flex items-center gap-2 mb-2">
                       <span className="text-2xl">{topic.emoji}</span>
                       <h3 className="text-xl font-bold text-white group-hover:text-orange-500 transition-colors">
                         {topic.title}
                       </h3>
                     </div>
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                    <p className="text-gray-400 text-sm mb-2 line-clamp-2">
                       {topic.description || `Learn about ${topic.title.toLowerCase()} and explore the wonders of the cosmos.`}
                     </p>
                     <div className="flex items-center justify-end">

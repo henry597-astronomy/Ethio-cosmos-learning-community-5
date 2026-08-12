@@ -150,10 +150,10 @@ export default function ProgressPage() {
 
   return (
     <div className="min-h-screen pt-24 bg-[#0a0e1a]" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Your Progress</h1>
-          <p className="text-gray-400">Track your journey through the cosmos</p>
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Your Progress</h1>
+          <p className="text-gray-400 text-sm">Track your journey through the cosmos</p>
         </div>
 
         {error && (
@@ -163,38 +163,38 @@ export default function ProgressPage() {
         )}
 
         {/* Overall Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-slate-900/50 border-white/10">
-            <CardContent className="p-6 text-center">
-              <BookOpen className="text-orange-500 mx-auto mb-2" size={32} />
-              <div className="text-3xl font-bold text-white">{totalCompleted}</div>
-              <div className="text-gray-400">Lessons Completed</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-6">
+          <Card className="bg-slate-900/50 border-white/10 rounded-lg">
+            <CardContent className="p-4 text-center">
+              <BookOpen className="text-orange-500 mx-auto mb-1" size={24} />
+              <div className="text-2xl font-bold text-white">{totalCompleted}</div>
+              <div className="text-gray-400 text-xs">Lessons Completed</div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/50 border-white/10">
-            <CardContent className="p-6 text-center">
-              <Target className="text-blue-500 mx-auto mb-2" size={32} />
-              <div className="text-3xl font-bold text-white">{Math.round(overallProgress)}%</div>
-              <div className="text-gray-400">Overall Progress</div>
+          <Card className="bg-slate-900/50 border-white/10 rounded-lg">
+            <CardContent className="p-4 text-center">
+              <Target className="text-blue-500 mx-auto mb-1" size={24} />
+              <div className="text-2xl font-bold text-white">{Math.round(overallProgress)}%</div>
+              <div className="text-gray-400 text-xs">Overall Progress</div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/50 border-white/10">
-            <CardContent className="p-6 text-center">
-              <Trophy className="text-yellow-500 mx-auto mb-2" size={32} />
-              <div className="text-3xl font-bold text-white">
+          <Card className="bg-slate-900/50 border-white/10 rounded-lg">
+            <CardContent className="p-4 text-center">
+              <Trophy className="text-yellow-500 mx-auto mb-1" size={24} />
+              <div className="text-2xl font-bold text-white">
                 {unlockedCount}/{achievements.length}
               </div>
-              <div className="text-gray-400">Achievements</div>
+              <div className="text-gray-400 text-xs">Achievements</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Per-topic progress */}
-        <Card className="bg-slate-900/50 border-white/10 mb-8">
-          <CardHeader>
-            <CardTitle className="text-white">Progress by Topic</CardTitle>
+        <Card className="bg-slate-900/50 border-white/10 mb-6 rounded-lg">
+          <CardHeader className="py-4">
+            <CardTitle className="text-lg text-white">Progress by Topic</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 pb-6">
             {topicProgress.length === 0 ? (
               <p className="text-gray-400 text-sm">No topics yet.</p>
             ) : (
@@ -218,13 +218,13 @@ export default function ProgressPage() {
         </Card>
 
         {/* Achievements */}
-        <Card className="bg-slate-900/50 border-white/10">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+        <Card className="bg-slate-900/50 border-white/10 rounded-lg">
+          <CardHeader className="py-4">
+            <CardTitle className="text-lg text-white flex items-center gap-2">
               <Star size={18} className="text-yellow-400" /> Achievements
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid sm:grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pb-6">
             {achievements.map((a) => (
               <div
                 key={a.id}

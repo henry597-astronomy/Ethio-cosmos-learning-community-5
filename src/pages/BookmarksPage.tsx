@@ -63,11 +63,11 @@ export default function BookmarksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050810] py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Bookmark className="w-8 h-8 text-orange-500" />
-          <h1 className="text-3xl font-bold text-white">Your Bookmarks</h1>
+    <div className="min-h-screen bg-[#050810] pt-24 pb-8">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="flex items-center gap-3 mb-6 px-2">
+          <Bookmark className="w-6 h-6 text-orange-500" />
+          <h1 className="text-2xl font-bold text-white">Your Bookmarks</h1>
         </div>
 
         {error && (
@@ -77,12 +77,12 @@ export default function BookmarksPage() {
         )}
 
         {bookmarks.length === 0 ? (
-          <div className="text-center py-16 bg-slate-900/50 rounded-xl border border-white/10">
-            <Bookmark className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">
+          <div className="text-center py-12 bg-slate-900/50 rounded-lg border border-white/10 mx-2">
+            <Bookmark className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+            <h2 className="text-lg font-semibold text-white mb-1">
               No bookmarks yet
             </h2>
-            <p className="text-gray-400 mb-6">
+            <p className="text-gray-400 text-sm mb-6">
               Start reading lessons and bookmark your favorites!
             </p>
             <Button
@@ -94,20 +94,20 @@ export default function BookmarksPage() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2 sm:space-y-3 px-2">
             {bookmarks.map((bookmark) => (
               <Card
                 key={bookmark.id}
-                className="bg-slate-900 border-white/10 hover:border-orange-500/30 transition-all"
+                className="bg-slate-900 border-white/10 hover:border-orange-500/30 transition-all rounded-lg"
               >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between gap-4">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-white mb-1">
+                      <h3 className="text-base font-semibold text-white mb-0.5 truncate">
                         {bookmark.title}
                       </h3>
                       {bookmark.type && (
-                        <p className="text-gray-500 text-xs uppercase tracking-wide mb-3">
+                        <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-2">
                           {bookmark.type}
                         </p>
                       )}
@@ -118,19 +118,19 @@ export default function BookmarksPage() {
                             navigate(bookmark.url);
                           }
                         }}
-                        className="inline-flex items-center text-sm text-orange-500 hover:text-orange-400"
+                        className="inline-flex items-center text-xs text-orange-500 hover:text-orange-400"
                       >
                         Go to Lesson
-                        <ArrowRight className="w-4 h-4 ml-1" />
+                        <ArrowRight className="w-3.5 h-3.5 ml-1" />
                       </button>
                     </div>
 
                     <button
                       onClick={() => handleRemoveBookmark(bookmark.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all shrink-0"
                       aria-label="Remove bookmark"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </CardContent>

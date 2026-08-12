@@ -100,18 +100,18 @@ export default function TestsPage() {
 
   return (
     <div className="min-h-screen pt-24 bg-[#0a0e1a]" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Astronomy Tests</h1>
-          <p className="text-gray-400">Test your knowledge of the cosmos</p>
+      <div className="max-w-3xl mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Astronomy Tests</h1>
+          <p className="text-gray-400 text-sm">Test your knowledge of the cosmos</p>
         </div>
 
         {!selectedQuizId ? (
-          <Card className="bg-slate-900/50 border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white text-center">Select a Quiz</CardTitle>
+          <Card className="bg-slate-900/50 border-white/10 rounded-lg">
+            <CardHeader className="py-4">
+              <CardTitle className="text-lg text-white text-center">Select a Quiz</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-2 pb-6">
               {quizzes.length === 0 ? (
                 <p className="text-gray-400 text-center">No quizzes available yet. Check back soon!</p>
               ) : (
@@ -129,28 +129,31 @@ export default function TestsPage() {
           </Card>
         ) : (
           !showResult ? (
-            <Card className="bg-slate-900/50 border-white/10">
-              <CardHeader>
+            <Card className="bg-slate-900/50 border-white/10 rounded-lg">
+              <CardHeader className="py-4">
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-white">
-                    {currentQuiz?.title} - Question {currentQuestionIndex + 1} of {quizQuestions.length}
+                  <CardTitle className="text-lg text-white">
+                    {currentQuiz?.title}
                   </CardTitle>
                   <span className="text-orange-500 font-medium">
                     Score: {score}
                   </span>
                 </div>
-                <div className="w-full bg-slate-700 h-2 rounded-full mt-4">
+                <div className="w-full bg-slate-700 h-1.5 rounded-full mt-3">
                   <div 
-                    className="bg-orange-500 h-2 rounded-full transition-all"
+                    className="bg-orange-500 h-1.5 rounded-full transition-all"
                     style={{ width: `${((currentQuestionIndex + 1) / quizQuestions.length) * 100}%` }}
                   />
                 </div>
+                <div className="mt-2 text-xs text-gray-500 text-center">
+                  Question {currentQuestionIndex + 1} of {quizQuestions.length}
+                </div>
               </CardHeader>
-              <CardContent>
-                <h3 className="text-xl text-white mb-6">
+              <CardContent className="pb-6">
+                <h3 className="text-lg text-white mb-4">
                   {currentQuestion?.question_text}
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {currentQuestion?.options.map((option, index) => (
                     <button
                       key={index}
@@ -175,12 +178,12 @@ export default function TestsPage() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="bg-slate-900/50 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white text-center">Test Complete!</CardTitle>
+            <Card className="bg-slate-900/50 border-white/10 rounded-lg">
+              <CardHeader className="py-4">
+                <CardTitle className="text-lg text-white text-center">Test Complete!</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-center mb-8">
+              <CardContent className="pb-6">
+                <div className="text-center mb-6">
                   <div className="text-6xl font-bold text-orange-500 mb-2">
                     {score} / {quizQuestions.length}
                   </div>
@@ -193,9 +196,9 @@ export default function TestsPage() {
                   </p>
                 </div>
 
-                <div className="space-y-4 mb-8">
+                <div className="space-y-2 mb-6">
                   {quizQuestions.map((q, index) => (
-                    <div key={q.id} className="p-4 bg-slate-800 rounded-lg">
+                    <div key={q.id} className="p-3 bg-slate-800/50 rounded-lg border border-white/5">
                       <div className="flex items-start gap-3">
                         {userAnswers[index] === q.correct_answer ? (
                           <CheckCircle className="text-green-500 mt-1" size={20} />

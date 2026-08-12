@@ -207,9 +207,9 @@ export default function MaterialsPage() {
 
       {/* Category collection view (shown when no category is selected) */}
       {!activeGroup && (
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-white mb-8">
+        <section className="py-8">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+            <h2 className="text-xl font-bold text-white mb-6">
               {viewTab === 'all' ? 'Browse by Category' : `Categories (${viewTab === 'gallery' ? 'Photos' : viewTab === 'video' ? 'Videos' : 'Downloads'})`}
             </h2>
             {visibleSections.length === 0 ? (
@@ -217,7 +217,7 @@ export default function MaterialsPage() {
                 No categories or materials found for this filter.
               </p>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                 {visibleSections.map((section) => {
                   const total = section.galleryItems.length + section.videos.length + section.pdfs.length;
                   const preview = section.preview_image || section.galleryItems[0]?.url || section.videos[0]?.thumbnail;
@@ -259,16 +259,16 @@ export default function MaterialsPage() {
 
       {/* Group detail view (shown when a category is selected) */}
       {activeGroup && (
-        <section className="py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-6">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
             <button
               onClick={() => setActiveGroup(null)}
-              className="text-orange-500 hover:text-orange-400 text-sm mb-6 inline-flex items-center"
+              className="text-orange-500 hover:text-orange-400 text-sm mb-4 inline-flex items-center"
             >
               ← Back to categories
             </button>
             {visibleSections.map((section) => (
-              <div key={section.id} className="mb-12">
+              <div key={section.id} className="mb-8">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                   <div>
                     <h2 className="text-3xl font-bold text-white mb-2">{section.name}</h2>
@@ -335,12 +335,12 @@ function GroupContent({
   onOpenImage: (url: string) => void;
 }) {
   return (
-    <div className="space-y-12">
+    <div className="space-y-8">
       {/* Photo Gallery */}
       {(viewTab === 'all' || viewTab === 'gallery') && section.galleryItems.length > 0 && (
-        <section className="py-4">
-          <h3 className="text-2xl font-bold text-white mb-6">Photo Gallery</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <section className="py-2">
+          <h3 className="text-xl font-bold text-white mb-4">Photo Gallery</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {section.galleryItems.map((image) => (
               <button
                 key={image.id}
@@ -363,9 +363,9 @@ function GroupContent({
 
       {/* Videos Section */}
       {(viewTab === 'all' || viewTab === 'video') && section.videos.length > 0 && (
-        <section className="py-4 bg-slate-900/50 rounded-2xl p-6">
-          <h3 className="text-2xl font-bold text-white mb-6">Videos</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <section className="py-4 bg-slate-900/50 rounded-xl p-4 sm:p-6">
+          <h3 className="text-xl font-bold text-white mb-4">Videos</h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {section.videos.map((video) => (
               <a
                 key={video.id}
@@ -399,9 +399,9 @@ function GroupContent({
 
       {/* PDF Downloads */}
       {(viewTab === 'all' || viewTab === 'pdf') && section.pdfs.length > 0 && (
-        <section className="py-4">
-          <h3 className="text-2xl font-bold text-white mb-6">Downloads</h3>
-          <div className="space-y-4">
+        <section className="py-2">
+          <h3 className="text-xl font-bold text-white mb-4">Downloads</h3>
+          <div className="space-y-2 sm:space-y-3">
             {section.pdfs.map((pdf) => (
               <div
                 key={pdf.id}

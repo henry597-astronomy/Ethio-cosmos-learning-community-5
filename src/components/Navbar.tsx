@@ -68,21 +68,21 @@ export default function Navbar() {
       const timeSinceLastInteraction = now - lastInteractionRef.current;
 
       const scrollWidth = scrollContainer.scrollWidth;
-      const halfWidth = scrollWidth / 2;
+      const setWidth = scrollWidth / 3;
 
-      if (halfWidth > 0) {
+      if (setWidth > 0) {
         if (timeSinceLastInteraction > 4000) {
-          // Calculate speed: one full cycle (halfWidth) in 40 seconds
-          const pixelsPerMs = halfWidth / 40000;
+          // Calculate speed: one full cycle (setWidth) in 40 seconds
+          const pixelsPerMs = setWidth / 40000;
           scrollContainer.scrollLeft += pixelsPerMs * deltaTime;
         }
 
         // Infinite loop handling for both manual and auto scroll
-        // We keep the scroll position within the duplicated range for seamless circularity
-        if (scrollContainer.scrollLeft >= halfWidth * 1.5) {
-          scrollContainer.scrollLeft -= halfWidth;
-        } else if (scrollContainer.scrollLeft <= halfWidth * 0.1) {
-          scrollContainer.scrollLeft += halfWidth;
+        // With 3 sets, we keep the scroll position within the middle set range
+        if (scrollContainer.scrollLeft >= setWidth * 2) {
+          scrollContainer.scrollLeft -= setWidth;
+        } else if (scrollContainer.scrollLeft <= setWidth * 0.5) {
+          scrollContainer.scrollLeft += setWidth;
         }
       }
 
@@ -91,10 +91,10 @@ export default function Navbar() {
 
     animationRef.current = requestAnimationFrame(animate);
 
-    // Set initial position to middle for better bidirectional scrolling
+    // Set initial position to the start of the middle set
     const setInitialScroll = () => {
       if (scrollContainer.scrollWidth > 0) {
-        scrollContainer.scrollLeft = scrollContainer.scrollWidth / 2;
+        scrollContainer.scrollLeft = scrollContainer.scrollWidth / 3;
       } else {
         setTimeout(setInitialScroll, 100);
       }
@@ -572,40 +572,26 @@ export default function Navbar() {
         className="bg-slate-950/90 backdrop-blur-md border-b border-white/5 taskbar-marquee-wrapper"
       >
         <div className="flex items-center h-10">
-          <div className="taskbar-marquee-container gap-8 sm:gap-12 px-4">
-            {/* First set of links */}
-            {allNavLinks.map((link, idx) => (
-              <Link
-                key={`nav-1-${idx}`}
-                to={link.path}
-                className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                  isActive(link.path)
-                    ? 'text-orange-500 font-bold'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {link.label}
-                {isActive(link.path) && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-                )}
-              </Link>
-            ))}
-            {/* Second set of links (duplicated for seamless loop) */}
-            {allNavLinks.map((link, idx) => (
-              <Link
-                key={`nav-2-${idx}`}
-                to={link.path}
-                className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                  isActive(link.path)
-                    ? 'text-orange-500 font-bold'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {link.label}
-                {isActive(link.path) && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-                )}
-              </Link>
+          <div className="taskbar-marquee-container px-4">
+            {[0, 1, 2].map((setIdx) => (
+              <div key={`nav-set-${setIdx}`} className="flex items-center gap-8 sm:gap-12 pr-8 sm:pr-12">
+                {allNavLinks.map((link, idx) => (
+                  <Link
+                    key={`nav-${setIdx}-${idx}`}
+                    to={link.path}
+                    className={`relative px-1 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                      isActive(link.path)
+                        ? 'text-orange-500 font-bold'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {link.label}
+                    {isActive(link.path) && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
+                    )}
+                  </Link>
+                ))}
+              </div>
             ))}
           </div>
         </div>

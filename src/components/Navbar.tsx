@@ -75,8 +75,8 @@ export default function Navbar() {
       const maxAutoScroll = setWidth + Math.max(0, setWidth - clientWidth);
 
       if (setWidth > 0) {
-        // Continuous flow: traverse full set width in 4 seconds (8 seconds per lap)
-        const pixelsPerMs = setWidth / 4000;
+        // Continuous flow: traverse full set width in 16 seconds (32 seconds per lap)
+        const pixelsPerMs = setWidth / 16000;
         
         if (scrollDirectionRef.current === 'right') {
           virtualScrollRef.current += pixelsPerMs * deltaTime;

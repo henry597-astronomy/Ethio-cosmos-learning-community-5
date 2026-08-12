@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Download, ExternalLink, Play, X, FolderOpen } from 'lucide-react';
+import { Download, ExternalLink, Play, X, FolderOpen, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useMaterialsGroups } from '@/hooks/use-cms-data';
 import { FallbackImage } from '@/components/MediaFallback';
 import type { MaterialType } from '@/types';
@@ -24,6 +25,7 @@ export default function MaterialsPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Build group sections. Items without a group fall into "Uncategorized",
   // preserving everything the admin previously uploaded as a flat list.
@@ -93,7 +95,7 @@ export default function MaterialsPage() {
     return ordered;
   }, [grouped]);
 
-  // Which sections to render based on the active category and optional group.
+  // Which sections to render based on the active category, optional group, and search query.
   const visibleSections = useMemo(() => {
     let result = sections;
     if (activeGroup) {
@@ -106,8 +108,16 @@ export default function MaterialsPage() {
     } else if (viewTab === 'pdf') {
       result = result.filter((s) => s.pdfs.length > 0);
     }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          (s.description && s.description.toLowerCase().includes(q))
+      );
+    }
     return result;
-  }, [sections, viewTab, activeGroup]);
+  }, [sections, viewTab, activeGroup, searchQuery]);
 
   if (loading) {
     return (
@@ -136,41 +146,62 @@ export default function MaterialsPage() {
             Explore our collection of photos, videos, and downloadable resources
           </p>
 
-          {/* Category filter tabs */}
-          <div className="flex flex-wrap justify-center gap-2 mt-8">
-            <Button
-              variant={viewTab === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => { setViewTab('all'); setActiveGroup(null); }}
-              className={viewTab === 'all' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
-            >
-              <FolderOpen className="w-4 h-4 mr-2" /> All
-            </Button>
-            <Button
-              variant={viewTab === 'gallery' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => { setViewTab('gallery'); setActiveGroup(null); }}
-              className={viewTab === 'gallery' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
-            >
-              Photo Gallery
-            </Button>
-            <Button
-              variant={viewTab === 'video' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => { setViewTab('video'); setActiveGroup(null); }}
-              className={viewTab === 'video' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
-            >
-              Videos
-            </Button>
-            <Button
-              variant={viewTab === 'pdf' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => { setViewTab('pdf'); setActiveGroup(null); }}
-              className={viewTab === 'pdf' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
-            >
-              Downloads
-            </Button>
-          </div>
+            {/* Category filter tabs & Search */}
+            <div className="flex flex-col items-center gap-4 mt-8">
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button
+                  variant={viewTab === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => { setViewTab('all'); setActiveGroup(null); }}
+                  className={viewTab === 'all' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
+                >
+                  <FolderOpen className="w-4 h-4 mr-2" /> All
+                </Button>
+                <Button
+                  variant={viewTab === 'gallery' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => { setViewTab('gallery'); setActiveGroup(null); }}
+                  className={viewTab === 'gallery' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
+                >
+                  Photo Gallery
+                </Button>
+                <Button
+                  variant={viewTab === 'video' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => { setViewTab('video'); setActiveGroup(null); }}
+                  className={viewTab === 'video' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
+                >
+                  Videos
+                </Button>
+                <Button
+                  variant={viewTab === 'pdf' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => { setViewTab('pdf'); setActiveGroup(null); }}
+                  className={viewTab === 'pdf' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
+                >
+                  Downloads
+                </Button>
+              </div>
+
+              <div className="relative w-full max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search video groups or material categories..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 bg-slate-900/80 border-white/20 text-white placeholder:text-gray-400 rounded-full"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
         </div>
       </section>
 

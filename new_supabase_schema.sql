@@ -96,6 +96,7 @@ CREATE TABLE public.topics (
     title TEXT NOT NULL,
     description TEXT,
     image_url TEXT,
+    difficulty TEXT DEFAULT 'beginner',
     order_index INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -107,6 +108,7 @@ CREATE TABLE public.subtopics (
     emoji TEXT,
     title TEXT NOT NULL,
     description TEXT,
+    difficulty TEXT DEFAULT 'beginner',
     order_index INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

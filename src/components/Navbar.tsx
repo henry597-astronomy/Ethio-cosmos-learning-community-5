@@ -74,8 +74,8 @@ export default function Navbar() {
 
       if (setWidth > 0) {
         if (timeSinceLastInteraction > 4000) {
-          // Calculate speed: one full cycle (setWidth) in 40 seconds
-          const pixelsPerMs = setWidth / 40000;
+          // Calculate speed: one full cycle (setWidth) in 30 seconds
+          const pixelsPerMs = setWidth / 30000;
           virtualScrollRef.current += pixelsPerMs * deltaTime;
           scrollContainer.scrollLeft = virtualScrollRef.current;
         }

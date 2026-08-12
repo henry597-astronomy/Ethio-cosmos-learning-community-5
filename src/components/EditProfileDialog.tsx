@@ -58,7 +58,7 @@ export default function EditProfileDialog({ open, onOpenChange }: EditProfileDia
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-md">
+      <DialogContent className="bg-slate-900 border-white/10 text-white w-[85vw] max-w-[85vw]">
         <DialogHeader>
           <DialogTitle className="text-white">Edit Profile</DialogTitle>
           <DialogDescription className="text-gray-400">

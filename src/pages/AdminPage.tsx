@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Check, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Check, X, ShieldCheck, ShieldOff, Ban, CircleCheck } from 'lucide-react';
 import type {
   Topic,
   Subtopic,
@@ -952,13 +952,13 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 bg-[#0a0e1a]" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-        <p className="text-gray-400 mb-8">Signed in as {user.email}</p>
+    <div className="min-h-screen pt-20 bg-[#0a0e1a]" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6">
+        <h1 className="text-3xl font-bold text-white mb-1">Admin Dashboard</h1>
+        <p className="text-gray-400 mb-4">Signed in as {user.email}</p>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-slate-900 border border-white/10 mb-8 flex flex-wrap gap-1 h-auto p-1">
+          <TabsList className="bg-slate-900 border border-white/10 mb-4 flex flex-wrap gap-1 h-auto p-1">
             {availableTabs.map(tab => (
               <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-orange-500 data-[state=active]:text-white capitalize">
                 {tab}
@@ -966,7 +966,7 @@ export default function AdminPage() {
             ))}
           </TabsList>
 
-          <TabsContent value="space-news" className="space-y-6">
+          <TabsContent value="space-news" className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-white">Daily Space News</h2>
@@ -978,7 +978,7 @@ export default function AdminPage() {
             </div>
             {spaceNewsError && <p className="rounded-lg border border-red-500/30 bg-red-950/30 p-4 text-sm text-red-300">{spaceNewsError}</p>}
             {!spaceNewsLoading && !spaceNewsError && spaceNews.length === 0 && (
-              <div className="rounded-xl border border-white/10 bg-slate-900/60 p-8 text-center text-gray-400">
+              <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4 text-center text-gray-400">
                 No items yet. Run the server-side NASA fetch endpoint after the database migration is applied.
               </div>
             )}
@@ -1007,8 +1007,8 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ── HOME TAB (User View) ────────────────────────────────────────────── */}
-          <TabsContent value="home" className="space-y-8">
-            <div className="text-center text-gray-400 mb-8">
+          <TabsContent value="home" className="space-y-4">
+            <div className="text-center text-gray-400 mb-4">
               <p className="text-sm">This is how the homepage appears to all users</p>
             </div>
             
@@ -1026,13 +1026,13 @@ export default function AdminPage() {
               {/* Dark overlay for text readability */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
               
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10 w-full">
-                <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-20 relative z-10 w-full">
+                <div className="grid md:grid-cols-2 gap-4 items-center">
                   <div className="max-w-2xl">
                     <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
                       {homepageHero.hero?.heroTitle || 'Explore the Cosmos with Ethiopia'}
                     </h1>
-                    <p className="text-xl text-gray-300 mb-8">
+                    <p className="text-xl text-gray-300 mb-4">
                       {homepageHero.hero?.heroSubtitle || 'Join the EthioCosmos Learning Community'}
                     </p>
                   </div>
@@ -1085,21 +1085,21 @@ export default function AdminPage() {
             </section>
 
             {/* Feature Cards Section */}
-            <section className="py-16 bg-slate-900/30 rounded-xl border border-white/10">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid md:grid-cols-3 gap-6">
+            <section className="py-8 bg-slate-900/30 rounded-xl border border-white/10">
+              <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+                <div className="grid md:grid-cols-3 gap-4">
                   {homepageFeatureCards.loading ? (
                     [0, 1, 2].map((i) => (
                       <div
                         key={i}
-                        className="bg-white/10 rounded-xl p-8 shadow-xl animate-pulse h-48"
+                        className="bg-white/10 rounded-xl p-4 shadow-xl animate-pulse h-48"
                       />
                     ))
                   ) : (
                     homepageFeatureCards.featureCards.map((card, i) => (
                       <div 
                         key={i}
-                        className="bg-[#151c2c] rounded-xl p-8 shadow-xl border border-white/5 hover:border-orange-500/30 transition-all duration-300 group"
+                        className="bg-[#151c2c] rounded-xl p-4 shadow-xl border border-white/5 hover:border-orange-500/30 transition-all duration-300 group"
                       >
                         <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
                           {card.icon}
@@ -1116,14 +1116,14 @@ export default function AdminPage() {
             </section>
 
             {/* Featured Topics Section */}
-            <section className="py-24 bg-slate-900/30 rounded-xl border border-white/10 px-8">
+            <section className="py-12 bg-slate-900/30 rounded-xl border border-white/10 px-4">
               <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-16">
+                <div className="text-center mb-8">
                   <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Featured Topics</h2>
                   <div className="w-24 h-1 bg-orange-500 mx-auto rounded-full" />
                 </div>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {homepageFeaturedTopics.loading ? (
                     [0, 1, 2, 3].map((i) => (
                       <div key={i} className="rounded-xl overflow-hidden bg-white/5 animate-pulse h-64" />
@@ -1140,7 +1140,7 @@ export default function AdminPage() {
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
                           <h3 className="text-xl font-bold text-white mb-2">{topic.title}</h3>
                           <p className="text-sm text-gray-300 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             {topic.description}
@@ -1155,9 +1155,9 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ── HOMEPAGE TAB (Edit Mode) ────────────────────────────────────────────── */}
-          <TabsContent value="homepage" className="space-y-8">
+          <TabsContent value="homepage" className="space-y-4">
             {/* Hero Section */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Hero Section</h2>
                 {heroModified && (
@@ -1188,7 +1188,7 @@ export default function AdminPage() {
                       <Input value={heroLocal?.videoUrl || ''} onChange={(e) => updateHeroLocal('videoUrl', e.target.value)} placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..." className="bg-slate-800 border-white/20 text-white" />
                       <p className="text-xs text-gray-500 mt-1">Supports: Direct video files (MP4, WebM), YouTube links, or Google Drive videos</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <input 
                         type="checkbox" 
                         id="videoVisible" 
@@ -1303,7 +1303,7 @@ export default function AdminPage() {
             </div>
 
             {/* Feature Cards */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Feature Cards</h2>
                 {featureCardsModified && (
@@ -1340,7 +1340,7 @@ export default function AdminPage() {
             </div>
 
             {/* Featured Topics */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Featured Topics</h2>
                 {featuredTopicsModified && (
@@ -1381,8 +1381,8 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ── TOPICS TAB ──────────────────────────────────────────────── */}
-          <TabsContent value="topics" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+          <TabsContent value="topics" className="space-y-4">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <h2 className="text-xl font-bold text-white mb-4">Manage Topics</h2>
               <div className="space-y-4">
                 {topics.map((topic, i) => (
@@ -1417,8 +1417,8 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ── SUBTOPICS TAB ───────────────────────────────────────────── */}
-          <TabsContent value="subtopics" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+          <TabsContent value="subtopics" className="space-y-4">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <h2 className="text-xl font-bold text-white mb-4">Manage Subtopics</h2>
               <div className="mb-4">
                 <label className="block text-sm text-gray-400 mb-1">Select Topic</label>
@@ -1464,8 +1464,8 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ── LESSONS TAB ─────────────────────────────────────────────── */}
-          <TabsContent value="lessons" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+          <TabsContent value="lessons" className="space-y-4">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <h2 className="text-xl font-bold text-white mb-4">Manage Lessons</h2>
               <div className="mb-4 flex gap-4">
                 <div className="flex-1">
@@ -1541,8 +1541,8 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ── ABOUT TAB ───────────────────────────────────────────────── */}
-          <TabsContent value="about" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+          <TabsContent value="about" className="space-y-4">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">About Page Content</h2>
                 {aboutModified && (
@@ -1587,9 +1587,9 @@ export default function AdminPage() {
               </div>
 
               {/* Team Sections */}
-              <div className="mt-12 space-y-12">
+              <div className="mt-6 space-y-6">
                 {(['platformCreators', 'educationalAdvisors', 'communityMembers'] as const).map((category) => (
-                  <div key={category} className="bg-slate-800/50 rounded-xl p-6 border border-white/10">
+                  <div key={category} className="bg-slate-800/50 rounded-xl p-4 border border-white/10">
                     <div className="flex justify-between items-center mb-6">
                       <h3 className="text-lg font-bold text-white capitalize">
                         {category.replace(/([A-Z])/g, ' $1').trim()}
@@ -1603,7 +1603,7 @@ export default function AdminPage() {
                       </Button>
                     </div>
                     
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {(aboutLocal.team?.[category] || []).map((member) => (
                         <div key={member.id} className="flex items-start gap-4 p-4 bg-slate-900/50 rounded-lg border border-white/5">
                           <div className="flex-1 space-y-4">
@@ -1652,9 +1652,9 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ── MATERIALS TAB ───────────────────────────────────────────── */}
-          <TabsContent value="materials" className="space-y-8">
+          <TabsContent value="materials" className="space-y-4">
             {/* Gallery Images */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Gallery Images</h2>
                 {galleryImagesModified && (
@@ -1692,7 +1692,7 @@ export default function AdminPage() {
             </div>
 
             {/* Videos */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Videos</h2>
                 {videosModified && (
@@ -1732,7 +1732,7 @@ export default function AdminPage() {
             </div>
 
             {/* PDFs */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">PDFs</h2>
                 {pdfsModified && (
@@ -1769,7 +1769,7 @@ export default function AdminPage() {
             </div>
 
             {/* ── MATERIAL CATEGORIES (admin-created groups) ─────────── */}
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-orange-500/30">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-orange-500/30">
               <h2 className="text-xl font-bold text-white mb-2">Material Categories</h2>
               <p className="text-gray-400 text-sm mb-4">
                 Create named categories so users can browse downloads, galleries
@@ -1967,8 +1967,8 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ── QUIZZES TAB ─────────────────────────────────────────────── */}
-          <TabsContent value="quizzes" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+          <TabsContent value="quizzes" className="space-y-4">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <h2 className="text-xl font-bold text-white mb-4">Manage Quizzes</h2>
               <div className="space-y-4">
                 {quizzes.map((quiz) => (
@@ -2023,8 +2023,8 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ── USERS TAB ─────────────────────────────────────────────── */}
-          <TabsContent value="users" className="space-y-8">
-            <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+          <TabsContent value="users" className="space-y-4">
+            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Manage Users</h2>
                 <Button
@@ -2046,38 +2046,43 @@ export default function AdminPage() {
                   {users.map(u => (
                     <div
                       key={u.id}
-                      className="flex items-center justify-between p-3 bg-slate-800 rounded-lg border border-white/10"
+                      className="flex items-center justify-between gap-3 p-2.5 bg-slate-800 rounded-lg border border-white/10"
                     >
                       <div>
                         <p className="text-white font-medium">{u.username || '(no username)'}</p>
                         <p className="text-gray-400 text-sm">{u.email}</p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <span className={`text-sm font-semibold px-2 py-1 rounded ${u.role === 'admin' ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-700 text-gray-400'}`}>
                           {u.role}
                         </span>
                         <Button
                           size="sm"
                           onClick={() => handleToggleRole(u.id, u.role)}
-                          className={u.role === 'admin' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}
+                          className={`h-8 w-8 p-0 inline-flex items-center justify-center ${u.role === 'admin' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                          title={u.role === 'admin' ? 'Remove admin role' : 'Make admin'}
+                          aria-label={u.role === 'admin' ? `Remove admin role from ${u.username || u.email}` : `Make ${u.username || u.email} an admin`}
                         >
-                          {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                          {u.role === 'admin' ? <ShieldOff size={15} /> : <ShieldCheck size={15} />}
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleToggleBlock(u.id, u.is_blocked ?? false)}
-                          className={u.is_blocked ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-gray-600 hover:bg-gray-700 text-white'}
+                          className={`h-8 w-8 p-0 inline-flex items-center justify-center ${u.is_blocked ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-gray-600 hover:bg-gray-700 text-white'}`}
+                          title={u.is_blocked ? 'Unblock user' : 'Block user'}
+                          aria-label={u.is_blocked ? `Unblock ${u.username || u.email}` : `Block ${u.username || u.email}`}
                         >
-                          {u.is_blocked ? 'Unblock' : 'Block'}
+                          {u.is_blocked ? <CircleCheck size={15} /> : <Ban size={15} />}
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => handleDeleteUser(u.id, u.email)}
-                          className="bg-red-700 hover:bg-red-800 text-white"
+                          className="h-8 w-8 p-0 inline-flex items-center justify-center bg-red-700 hover:bg-red-800 text-white"
                           title="Permanently delete this user account"
+                          aria-label={`Delete ${u.username || u.email}`}
                         >
-                          <Trash2 size={16} className="mr-1" /> Delete
+                          <Trash2 size={15} />
                         </Button>
                       </div>
                     </div>

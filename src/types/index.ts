@@ -15,6 +15,7 @@ export interface Subtopic {
   emoji: string;
   title: string;
   description: string;
+  difficulty?: string; // 'beginner' | 'intermediate' | 'advanced'
   order_index: number;
   created_at?: string;
   updated_at?: string;

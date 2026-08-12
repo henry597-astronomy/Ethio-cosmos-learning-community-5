@@ -543,6 +543,7 @@ export default function AdminPage() {
         emoji: '📚', 
         title: 'New Lesson', 
         description: 'Lesson description', 
+        difficulty: 'beginner',
         order_index: subtopics.length 
       };
       await addSubtopic(newSubtopic);
@@ -1456,6 +1457,16 @@ export default function AdminPage() {
                         <Input value={subtopic.title} onChange={(e) => handleUpdateSubtopic(subtopic.id, 'title', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
                         <label className="block text-sm text-gray-400">Description</label>
                         <Textarea value={subtopic.description || ''} onChange={(e) => handleUpdateSubtopic(subtopic.id, 'description', e.target.value)} className="bg-slate-700 border-white/20 text-white" />
+                        <label className="block text-sm text-gray-400">Difficulty Level</label>
+                        <select
+                          value={subtopic.difficulty || 'beginner'}
+                          onChange={(e) => handleUpdateSubtopic(subtopic.id, 'difficulty', e.target.value)}
+                          className="w-full p-2 rounded-lg bg-slate-700 border border-white/20 text-white text-sm"
+                        >
+                          <option value="beginner">Beginner</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
                       </div>
                       <Button variant="destructive" size="icon" onClick={() => handleDeleteSubtopic(subtopic.id)}>
                         <Trash2 size={18} />

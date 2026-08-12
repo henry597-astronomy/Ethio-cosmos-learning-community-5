@@ -88,12 +88,23 @@ export default function TopicDetailPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {subtopics.map((subtopic, index) => (
-                <Link
-                  key={subtopic.id}
-                  to={`/learning/${topic.id}/${subtopic.id}`}
-                  className="flex items-center gap-4 p-4 bg-slate-900/50 border border-white/10 rounded-lg hover:border-orange-500/50 hover:bg-slate-800/50 transition-all group"
-                >
+              {subtopics.map((subtopic, index) => {
+                  const diff = (subtopic.difficulty || 'beginner').toLowerCase();
+                  const diffColor = diff === 'advanced'
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                    : diff === 'intermediate'
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+                  
+                  return (
+                    <Link
+                      key={subtopic.id}
+                      to={`/learning/${topic.id}/${subtopic.id}`}
+                      className="relative flex items-center gap-4 p-4 pt-6 bg-slate-900/50 border border-white/10 rounded-lg hover:border-orange-500/50 hover:bg-slate-800/50 transition-all group"
+                    >
+                      <span className={`absolute -top-2.5 left-4 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider border ${diffColor}`}>
+                        {diff}
+                      </span>
                   <span className="text-lg font-mono text-orange-500 w-12">
                     {String(index + 1).padStart(2, '0')}
                   </span>
@@ -105,8 +116,9 @@ export default function TopicDetailPage() {
                     <p className="text-sm text-gray-400">{subtopic.description}</p>
                   </div>
                   <ArrowRight size={18} className="text-gray-500 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
-                </Link>
-              ))}
+                    </Link>
+                  );
+                })}
             </div>
           )}
         </div>

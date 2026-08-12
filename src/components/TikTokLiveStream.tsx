@@ -583,8 +583,8 @@ function StreamContent({
       {/* Main Layout */}
       <div className="flex-1 flex flex-col overflow-hidden">
         
-        {/* TOP: Stream Area - Immediately visible even while host loads */}
-        <div className="h-1/2 bg-black relative flex border-b border-white/10">
+        {/* TOP: Stream Area - Responsive height for mobile/tablet/desktop */}
+        <div className="h-[45%] sm:h-1/2 md:h-[55%] bg-black relative flex border-b border-white/10 shrink-0">
           {hostParticipant ? (
             <div className="flex w-full h-full" suppressHydrationWarning>
               {/* Host Section */}
@@ -680,8 +680,8 @@ function StreamContent({
           )}
         </div>
 
-        {/* BOTTOM: Community */}
-        <div className="h-[54%] min-h-0 bg-slate-950 flex flex-col overflow-hidden">
+        {/* BOTTOM: Community & Chat */}
+        <div className="flex-1 min-h-0 bg-slate-950 flex flex-col overflow-hidden">
           <div className="px-3 pt-2 pb-1 border-b border-white/5 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-1.5 min-w-0">
               <MessageCircle size={15} className="text-yellow-300 shrink-0" />
@@ -776,7 +776,7 @@ function StreamContent({
                 </div>
               </div>
             ) : (
-              <div className={`grid transition-all duration-300 ease-in-out ${isCommunityGridExpanded ? 'max-h-[126px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'} grid-cols-8 gap-x-1 gap-y-2 overflow-y-auto pr-0.5`}>
+              <div className={`grid transition-all duration-300 ease-in-out ${isCommunityGridExpanded ? 'max-h-[110px] sm:max-h-[140px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'} grid-cols-6 sm:grid-cols-8 gap-x-1.5 gap-y-2 overflow-y-auto pr-0.5`}>
                 {communityMembers.map((participant) => {
                   const participantMuted = mutedCommunityIds.has(participant.identity) || isCommunityMuted;
                   return (

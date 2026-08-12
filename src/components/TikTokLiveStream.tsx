@@ -19,16 +19,19 @@ interface TikTokLiveStreamProps {
   onClose: () => void;
   isHost?: boolean;
   roomName?: string;
+  hostUserId?: string;
 }
 
 function StreamContent({
   isHost,
   onClose,
   roomName,
+  hostUserId,
 }: {
   isHost: boolean;
   onClose: () => void;
   roomName?: string;
+  hostUserId?: string;
 }) {
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
@@ -70,8 +73,16 @@ function StreamContent({
     // If I'm the host, return me immediately
     if (isHost && localParticipant) return localParticipant;
 
-    // For viewers: Prioritize immediate display over metadata accuracy
-    // Priority 1: Check metadata role (most reliable but may be delayed)
+    // For viewers, use the session's stable admin user ID first so a co-host
+    // can never replace the admin as the primary stage participant.
+    if (hostUserId) {
+      const stableHost = participants.find(
+        p => getMetadata(p).participant_id === hostUserId
+      );
+      if (stableHost) return stableHost;
+    }
+
+    // Fallback for sessions created before stable participant IDs were added.
     const metaHost = participants.find(p => getMetadata(p).role === 'host');
     if (metaHost) return metaHost;
     
@@ -87,7 +98,7 @@ function StreamContent({
     if (firstRemote) return firstRemote;
     
     return null;
-  }, [participants, isHost, localParticipant]);
+  }, [participants, isHost, localParticipant, hostUserId]);
 
   // Track if we have EVER seen a host during this session
   const [hasSeenHost, setHasSeenHost] = useState(false);
@@ -455,6 +466,7 @@ export default function TikTokLiveStream({
   onClose,
   isHost = false,
   roomName,
+  hostUserId,
 }: TikTokLiveStreamProps) {
   return (
     <LiveKitRoom
@@ -470,7 +482,12 @@ export default function TikTokLiveStream({
       suppressHydrationWarning
     >
       <RoomAudioRenderer />
-      <StreamContent isHost={isHost} onClose={onClose} roomName={roomName} />
+      <StreamContent
+        isHost={isHost}
+        onClose={onClose}
+        roomName={roomName}
+        hostUserId={hostUserId}
+      />
     </LiveKitRoom>
   );
 }

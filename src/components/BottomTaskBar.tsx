@@ -17,6 +17,7 @@ export default function BottomTaskBar() {
     activeSessions,
     liveToken,
     liveRoomName,
+    liveHostUserId,
     streamError,
     openLiveModal,
     closeLiveModal,
@@ -140,6 +141,7 @@ export default function BottomTaskBar() {
           }}
           isHost={isHosting}
           roomName={liveRoomName || undefined}
+          hostUserId={liveHostUserId || undefined}
         />
       )}
 

@@ -23,6 +23,7 @@ interface LiveKitContextType {
   isHosting: boolean;
   activeSessions: LiveSession[];
   liveRoomName: string | null;
+  liveHostUserId: string | null;
   liveToken: string | null;
   streamError: string | null;
   openLiveModal: () => void;
@@ -42,6 +43,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
   const [isHosting, setIsHosting] = useState(false);
   const [activeSessions, setActiveSessions] = useState<LiveSession[]>([]);
   const [liveRoomName, setLiveRoomName] = useState<string | null>(null);
+  const [liveHostUserId, setLiveHostUserId] = useState<string | null>(null);
   const [liveToken, setLiveToken] = useState<string | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
 
@@ -177,6 +179,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
 
       // Only set state if registration succeeded
       setLiveRoomName(slugifiedRoomName);
+      setLiveHostUserId(user.id);
       setLiveToken(token);
       setIsHosting(true);
       setIsLiveModalOpen(false);
@@ -205,6 +208,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     }
 
     setLiveRoomName(null);
+    setLiveHostUserId(null);
     setLiveToken(null);
     setIsHosting(false);
     setStreamError(null);
@@ -232,6 +236,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
 
   const clearSession = useCallback(() => {
     setLiveRoomName(null);
+    setLiveHostUserId(null);
     setLiveToken(null);
     setIsHosting(false);
     setStreamError(null);
@@ -291,6 +296,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
           roomName: slugifiedRoomName,
           isHost: false,
           avatarUrl: user?.user_metadata?.avatar_url || null,
+          userId: user?.id || null,
         }),
       });
 
@@ -301,6 +307,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       
       const { token, identity, metadata } = await response.json();
       setLiveRoomName(slugifiedRoomName);
+      setLiveHostUserId(sessionData[0]?.host_id || null);
       setLiveToken(token);
       setIsHosting(false); // We are viewing, not hosting
       console.log('Joined stream with identity:', identity, 'metadata:', metadata);
@@ -321,6 +328,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         isHosting,
         activeSessions,
         liveRoomName,
+        liveHostUserId,
         liveToken,
         streamError,
         openLiveModal,

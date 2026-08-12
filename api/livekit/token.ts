@@ -11,7 +11,7 @@ export default async function handler(
   }
 
   try {
-    const { userName, roomName, isHost, avatarUrl } = req.body;
+    const { userName, roomName, isHost, avatarUrl, userId } = req.body;
 
     // Validate inputs
     if (!userName || !roomName) {
@@ -49,6 +49,7 @@ export default async function handler(
     const metadata = {
       avatar_url: avatarUrl || null,
       username: userName,
+      participant_id: userId || null,
       role: isHost ? 'host' : 'viewer'
     };
     at.metadata = JSON.stringify(metadata);

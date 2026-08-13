@@ -145,48 +145,7 @@ export default function BottomTaskBar() {
         />
       )}
 
-      {/* Immediate Joining Overlay - Shows before token is ready */}
-      {isJoining && !liveToken && (
-        <div className="fixed inset-0 bg-black/90 z-[60] flex flex-col items-center justify-center backdrop-blur-sm">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Radio size={30} className="text-orange-500 animate-pulse" />
-            </div>
-          </div>
-          <h2 className="text-white font-black text-2xl mt-6 tracking-tighter uppercase italic">
-            EthioCosmos <span className="text-orange-500">Live</span>
-          </h2>
-          <div className="flex flex-col items-center mt-2">
-            <p className="text-gray-400 text-sm font-medium animate-pulse">
-              {!streamError ? 'Preparing your connection...' : 'Connection stalled...'}
-            </p>
-            {!streamError && (
-              <p className="text-gray-500 text-[10px] uppercase tracking-widest mt-1 opacity-60">
-                Fetching secure token
-              </p>
-            )}
-          </div>
-          
-          {streamError && (
-            <div className="mt-6 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <p className="text-red-400 text-xs font-bold uppercase tracking-widest mb-4 max-w-[80%] text-center">
-                {streamError}
-              </p>
-              <Button 
-                onClick={() => {
-                  setIsJoining(false);
-                  clearStreamError();
-                }}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 text-xs uppercase font-bold tracking-tighter"
-              >
-                Cancel & Close
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+
 
       {/* Shorts Feed */}
       {isShortsOpen && (

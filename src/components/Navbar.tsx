@@ -135,7 +135,7 @@ export default function Navbar() {
                   )}
                 </button>
 
-                <SheetContent side="right" className="w-full sm:max-w-md p-0 bg-slate-950 border-l border-white/10">
+                <SheetContent side="right" className="w-[85%] sm:max-w-md p-0 bg-slate-950 border-l border-white/10">
                   <SheetHeader className="p-8 bg-slate-900/60 border-b border-white/10">
                     <div className="flex flex-col items-center text-center gap-3">
                       <div className="relative group">

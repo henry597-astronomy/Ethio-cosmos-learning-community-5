@@ -32,7 +32,7 @@ const privateNavLinks = [
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, isAdmin, isSuperAdmin, isBlocked, avatarUrl, displayName, totalUsersCount } = useAuth();
+  const { user, profile, logout, isAdmin, isSuperAdmin, isBlocked, avatarUrl, displayName, totalUsersCount } = useAuth();
 
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
@@ -136,30 +136,33 @@ export default function Navbar() {
                 </button>
 
                 <SheetContent side="right" className="w-full sm:max-w-md p-0 bg-slate-950 border-l border-white/10">
-                  <SheetHeader className="p-6 bg-slate-900/50 border-b border-white/5">
-                    <div className="flex items-center gap-4">
+                  <SheetHeader className="p-8 bg-slate-900/60 border-b border-white/10">
+                    <div className="flex flex-col items-center text-center gap-3">
                       <div className="relative group">
-                        <div className="w-16 h-16 rounded-2xl border-2 border-orange-500/30 overflow-hidden">
+                        <div className="w-24 h-24 rounded-3xl border-2 border-orange-500/40 overflow-hidden shadow-xl">
                           {avatarUrl ? (
                             <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full bg-slate-800 flex items-center justify-center text-2xl text-white font-bold">
+                            <div className="w-full h-full bg-slate-800 flex items-center justify-center text-3xl text-white font-bold">
                               {displayName.charAt(0)}
                             </div>
                           )}
                         </div>
                         <button 
                           onClick={() => setEditProfileOpen(true)}
-                          className="absolute -bottom-1 -right-1 w-6 h-6 bg-orange-500 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-orange-600 transition-colors"
+                          className="absolute -bottom-1 -right-1 w-7 h-7 bg-orange-500 text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-orange-600 transition-colors"
                         >
-                          <Pencil size={12} />
+                          <Pencil size={14} />
                         </button>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <SheetTitle className="text-xl font-bold text-white truncate">{displayName}</SheetTitle>
-                        <p className="text-sm text-gray-400 truncate">{user.email}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${
+                      <div className="w-full min-w-0">
+                        <SheetTitle className="text-2xl font-bold text-white truncate">{displayName}</SheetTitle>
+                        <p className="text-sm text-gray-400 truncate mt-0.5">{user.email}</p>
+                        {profile?.bio && (
+                          <p className="text-xs text-gray-300 mt-2 px-4 italic line-clamp-2">"{profile.bio}"</p>
+                        )}
+                        <div className="flex items-center justify-center gap-2 mt-3">
+                          <span className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase border ${
                             isAdmin ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                           }`}>
                             {isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'Member'}
@@ -170,45 +173,6 @@ export default function Navbar() {
                   </SheetHeader>
 
                   <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
-                    {/* Progress Section */}
-                    <div className="px-6 py-4 border-b border-white/5">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Offline Storage</h3>
-                        <span className="text-[10px] text-gray-400 bg-white/5 px-2 py-0.5 rounded">{(cacheSize / (1024 * 1024)).toFixed(1)} MB used</span>
-                      </div>
-                      
-                      {prefetchProgress.status === 'running' ? (
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-[10px]">
-                            <span className="text-orange-400 animate-pulse truncate max-w-[150px]">
-                              {prefetchProgress.currentItem || 'Downloading...'}
-                            </span>
-                            <span className="text-gray-400">{progressPercent}%</span>
-                          </div>
-                          <div className="w-full bg-slate-800 rounded-full h-2">
-                            <div
-                              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${progressPercent}%` }}
-                            />
-                          </div>
-                        </div>
-                      ) : prefetchProgress.status === 'completed' ? (
-                        <div className="flex items-center gap-2 text-xs text-green-400">
-                          <CheckCircle size={14} />
-                          <span>All content ready for offline use</span>
-                        </div>
-                      ) : prefetchProgress.status === 'error' ? (
-                        <div className="flex items-center gap-2 text-xs text-red-400">
-                          <AlertCircle size={14} />
-                          <span>Download failed</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <Download size={14} />
-                          <span>Auto-downloading in background</span>
-                        </div>
-                      )}
-                    </div>
 
                     {/* Navigation Section */}
                     <div className="py-2">
@@ -366,10 +330,50 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  {/* Footer - Stats & Logout Button */}
-                  <SheetFooter className="border-t border-white/5 bg-slate-950">
-                    <div className="w-full space-y-1">
-                      <div className="flex items-center gap-2 px-6 pb-2">
+                  {/* Footer - Offline Storage, Stats & Logout Button */}
+                  <SheetFooter className="border-t border-white/5 bg-slate-950 flex-col p-0">
+                    {/* Offline Storage Section */}
+                    <div className="w-full px-6 py-3 border-b border-white/5 bg-slate-900/40">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Offline Storage</h3>
+                        <span className="text-[10px] text-gray-400 bg-white/5 px-2 py-0.5 rounded">{(cacheSize / (1024 * 1024)).toFixed(1)} MB used</span>
+                      </div>
+                      
+                      {prefetchProgress.status === 'running' ? (
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-orange-400 animate-pulse truncate max-w-[150px]">
+                              {prefetchProgress.currentItem || 'Downloading...'}
+                            </span>
+                            <span className="text-gray-400">{progressPercent}%</span>
+                          </div>
+                          <div className="w-full bg-slate-800 rounded-full h-1.5">
+                            <div
+                              className="bg-orange-500 h-1.5 rounded-full transition-all duration-300"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : prefetchProgress.status === 'completed' ? (
+                        <div className="flex items-center gap-2 text-xs text-green-400">
+                          <CheckCircle size={14} />
+                          <span>All content ready for offline use</span>
+                        </div>
+                      ) : prefetchProgress.status === 'error' ? (
+                        <div className="flex items-center gap-2 text-xs text-red-400">
+                          <AlertCircle size={14} />
+                          <span>Download failed</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Download size={14} />
+                          <span>Auto-downloading in background</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="w-full space-y-1 p-4">
+                      <div className="flex items-center gap-2 px-2 pb-2">
                         <div className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit bg-blue-500/20 text-blue-400">
                           <Users size={12} />
                           <span>{totalUsersCount} Registered {totalUsersCount === 1 ? 'Member' : 'Members'}</span>
@@ -378,7 +382,7 @@ export default function Navbar() {
                       {!isBlocked && (
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-3 px-6 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors rounded-md"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors rounded-md"
                         >
                           <LogOut size={18} />
                           <span>Sign Out</span>

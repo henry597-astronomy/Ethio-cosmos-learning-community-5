@@ -5,7 +5,7 @@ import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } f
 import { Button } from '@/components/ui/button';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
 import { AlertCircle, ExternalLink } from 'lucide-react';
-import { getPublishedSpaceNews, getTwoHourSlotIndex } from '@/services/space-news';
+import { getPublishedSpaceNews } from '@/services/space-news';
 import type { SpaceNews } from '@/types';
 
 declare global {
@@ -21,36 +21,24 @@ export default function HomePage() {
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
   const navigate = useNavigate();
-  const [dailyNewsItems, setDailyNewsItems] = useState<SpaceNews[]>([]);
   const [dailyNews, setDailyNews] = useState<SpaceNews | null>(null);
 
   useEffect(() => {
     let active = true;
     const loadNews = async () => {
-      const items = await getPublishedSpaceNews(12);
+      const items = await getPublishedSpaceNews(1);
       if (active) {
-        setDailyNewsItems(items);
-        setDailyNews(items[getTwoHourSlotIndex(items.length)] ?? null);
+        setDailyNews(items[0] ?? null);
       }
     };
 
     loadNews();
-    const refreshTimer = window.setInterval(loadNews, 2 * 60 * 60 * 1000);
+    const refreshTimer = window.setInterval(loadNews, 15 * 60 * 1000);
     return () => {
       active = false;
       window.clearInterval(refreshTimer);
     };
   }, []);
-
-  useEffect(() => {
-    if (dailyNewsItems.length === 0) return;
-    const updateDisplayedNews = () => {
-      setDailyNews(dailyNewsItems[getTwoHourSlotIndex(dailyNewsItems.length)] ?? null);
-    };
-    updateDisplayedNews();
-    const slotTimer = window.setInterval(updateDisplayedNews, 60 * 1000);
-    return () => window.clearInterval(slotTimer);
-  }, [dailyNewsItems]);
 
   // Video sequencing state
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');

@@ -12,7 +12,7 @@ create table if not exists public.space_news (
   category text not null default 'Astronomy',
   published_date timestamptz not null,
   ai_generated boolean not null default false,
-  status text not null default 'draft' check (status in ('draft', 'published', 'archived')),
+  status text not null default 'published' check (status in ('draft', 'published', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

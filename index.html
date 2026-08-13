@@ -10,7 +10,8 @@
     <meta name="theme-color" content="#000000" />
     <script>
       // Enhanced Service Worker Registration with Update Handling
-      if ('serviceWorker' in navigator) {
+      // Disable Service Worker in Capacitor to avoid conflicts with local asset loading
+      if ('serviceWorker' in navigator && !window.Capacitor) {
         window.addEventListener('load', () => {
           sessionStorage.removeItem('sw-reloaded');
           navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((registration) => {
@@ -101,8 +102,13 @@
       document.addEventListener('touchmove', function () {}, { passive: true });
     </script>
   </head>
-  <body>
+  <body style="background-color: #0a0e1a;">
     <div id="root"></div>
+    <script>
+      // Diagnostic: If JS starts, change background slightly
+      console.log('[App] Initializing JS...');
+      document.body.style.backgroundColor = '#1a1a2e';
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

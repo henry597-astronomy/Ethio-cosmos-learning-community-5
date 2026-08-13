@@ -18,18 +18,26 @@ if (!isSupabaseConfigured && import.meta.env.DEV) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce',
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
+// Guard initialization to prevent crash if URL is missing (common in CI builds)
+const dummyUrl = 'https://placeholder-project.supabase.co';
+const dummyKey = 'placeholder-key';
+
+export const supabase = createClient(
+  isSupabaseConfigured ? supabaseUrl : dummyUrl,
+  isSupabaseConfigured ? supabaseAnonKey : dummyKey,
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
     },
-  },
-});
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  }
+);
 
 export type SupabaseClient = typeof supabase;

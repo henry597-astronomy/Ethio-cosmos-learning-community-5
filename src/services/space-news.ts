@@ -12,16 +12,26 @@ export async function getPublishedSpaceNews(limit = 12, utcDate?: string): Promi
   if (utcDate) {
     const start = `${utcDate}T00:00:00.000Z`;
     const end = `${utcDate}T23:59:59.999Z`;
-    query = query.gte('published_date', start).lte('published_date', end);
+    const { data: dateFiltered, error: dateError } = await query
+      .gte('published_date', start)
+      .lte('published_date', end)
+      .order('published_date', { ascending: false })
+      .limit(limit);
+
+    if (!dateError && dateFiltered && dateFiltered.length > 0) {
+      return dateFiltered as SpaceNews[];
+    }
   }
 
-  const { data, error } = await query
+  // Fallback: if no news specifically for today is published yet, return the latest available published item
+  const { data, error } = await supabase
+    .from('space_news')
+    .select(SPACE_NEWS_FIELDS)
+    .eq('status', 'published')
     .order('published_date', { ascending: false })
     .limit(limit);
 
   if (error) {
-    // The table may not exist until the migration is applied; the Home page
-    // should keep its existing hero instead of failing in that case.
     console.warn('[space-news] Could not load published items:', error.message);
     return [];
   }

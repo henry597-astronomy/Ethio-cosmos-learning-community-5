@@ -158,6 +158,24 @@ export default function BottomTaskBar() {
             EthioCosmos <span className="text-orange-500">Live</span>
           </h2>
           <p className="text-gray-400 text-sm mt-2 font-medium animate-pulse">Preparing your connection...</p>
+          
+          {streamError && (
+            <div className="mt-6 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <p className="text-red-400 text-xs font-bold uppercase tracking-widest mb-4 max-w-[80%] text-center">
+                {streamError}
+              </p>
+              <Button 
+                onClick={() => {
+                  setIsJoining(false);
+                  clearStreamError();
+                }}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10 text-xs uppercase font-bold tracking-tighter"
+              >
+                Cancel & Close
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

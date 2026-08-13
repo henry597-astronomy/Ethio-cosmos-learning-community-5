@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   LiveKitRoom,
   useParticipants,
@@ -874,9 +874,18 @@ export default function TikTokLiveStream({
       connect={true}
       token={token}
       serverUrl={serverUrl}
+      options={{
+        publishDefaults: {
+          simulcast: true,
+          stopMicTrackOnMute: true,
+        },
+        adaptiveStream: true,
+        dynacast: true,
+      }}
       onDisconnected={onClose}
       onError={(err) => {
         console.error('LiveKit Room Error:', err);
+        onClose();
       }}
       suppressHydrationWarning
     >

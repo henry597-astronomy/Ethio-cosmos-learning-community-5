@@ -69,8 +69,8 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         const prevSession = prev[index];
         return !prevSession || 
                prevSession.id !== session.id || 
-               prevSession.is_active !== session.is_active ||
-               prevSession.host_id !== session.host_id;
+               prevSession.host_id !== session.host_id ||
+               prevSession.room_name !== session.room_name;
       });
       
       return hasChanges ? newData : prev;

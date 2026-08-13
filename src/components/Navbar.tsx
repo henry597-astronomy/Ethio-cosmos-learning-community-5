@@ -97,13 +97,17 @@ export default function Navbar() {
       {/* Top Navbar */}
       <div className="bg-slate-950/95 backdrop-blur-md border-b border-white/10 h-16 flex items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-4">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.3)] group-hover:scale-105 transition-transform">
-              <span className="text-white text-2xl font-bold">E</span>
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-orange-500 shadow-lg shadow-orange-500/30 flex items-center justify-center bg-slate-900 group-hover:scale-105 transition-transform">
+              <img src="/images/school-logo.jpg" alt="EthioCosmos Logo" className="w-full h-full object-cover" />
             </div>
-            <div className="block">
-              <h1 className="text-base sm:text-xl font-bold text-white tracking-tight">EthioCosmos</h1>
-              <p className="text-[9px] sm:text-[10px] text-orange-500 font-medium uppercase tracking-widest">Community</p>
+            <div className="flex flex-col">
+              <span className="font-bold text-white text-xs sm:text-sm tracking-tight whitespace-nowrap">
+                Ethio-cosmos-learning-community
+              </span>
+              <span className="text-[9px] text-orange-400 font-medium uppercase tracking-wider">
+                Community
+              </span>
             </div>
           </Link>
         </div>

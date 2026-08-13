@@ -361,19 +361,35 @@ function StreamContent({
       isCommunityMuted ||
       mutedCommunityIds.has(localParticipant.identity);
 
-    if (isHost || isMeCoHost) {
-      localParticipant.setCameraEnabled(true).catch(console.error);
-      localParticipant.setMicrophoneEnabled(
-        !isMuted && !isAdminMuted,
-        echoSafeAudioOptions,
-      ).catch(console.error);
-    } else {
-      localParticipant.setCameraEnabled(false).catch(console.error);
-      // Viewers do not auto-publish mic unless explicitly unmuted/allowed by admin
-      if (isCommunityMicAllowed && !forcedCommunityMute && !isAdminMuted && localParticipant.isMicrophoneEnabled) {
-        localParticipant.setMicrophoneEnabled(true, echoSafeAudioOptions).catch(() => undefined);
+    const updateMedia = async () => {
+      try {
+        if (isHost || isMeCoHost) {
+          // Only call if state actually needs to change to avoid redundant signaling
+          if (!localParticipant.isCameraEnabled) {
+            await localParticipant.setCameraEnabled(true);
+          }
+          
+          const targetMicState = !isMuted && !isAdminMuted;
+          if (localParticipant.isMicrophoneEnabled !== targetMicState) {
+            await localParticipant.setMicrophoneEnabled(targetMicState, echoSafeAudioOptions);
+          }
+        } else {
+          if (localParticipant.isCameraEnabled) {
+            await localParticipant.setCameraEnabled(false);
+          }
+          
+          // Viewers: Ensure mic is off unless allowed
+          const shouldBeEnabled = isCommunityMicAllowed && !forcedCommunityMute && !isAdminMuted;
+          if (localParticipant.isMicrophoneEnabled && !shouldBeEnabled) {
+            await localParticipant.setMicrophoneEnabled(false);
+          }
+        }
+      } catch (err) {
+        console.error('Media update error:', err);
       }
-    }
+    };
+
+    void updateMedia();
   }, [
     isHost,
     isMeCoHost,
@@ -498,7 +514,9 @@ function StreamContent({
   };
 
   useEffect(() => {
-    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Using 'auto' behavior for scrolling to new comments is significantly faster 
+    // and prevents UI stuttering on mobile devices when many messages arrive.
+    commentsEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
   }, [comments]);
 
   const handleSendComment = async (event: React.FormEvent<HTMLFormElement>) => {

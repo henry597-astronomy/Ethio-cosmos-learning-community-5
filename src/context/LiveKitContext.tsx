@@ -58,7 +58,23 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       console.error('Error fetching live sessions:', error);
       return;
     }
-    setActiveSessions(data || []);
+    
+    // Optimization: Only update state if the session list has actually changed
+    // to avoid triggering unnecessary re-renders across the entire app.
+    const newData = data || [];
+    setActiveSessions(prev => {
+      if (prev.length !== newData.length) return newData;
+      
+      const hasChanges = newData.some((session, index) => {
+        const prevSession = prev[index];
+        return !prevSession || 
+               prevSession.id !== session.id || 
+               prevSession.is_active !== session.is_active ||
+               prevSession.host_id !== session.host_id;
+      });
+      
+      return hasChanges ? newData : prev;
+    });
   }, []);
 
   // Clean up stale sessions (heartbeat older than 90 seconds or created older than 30 minutes)

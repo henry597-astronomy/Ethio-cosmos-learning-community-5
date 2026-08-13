@@ -588,7 +588,11 @@ function StreamContent({
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             {isHost ? 'Live Stream' : 'Watching Live'}
           </h2>
-          {roomName && <p className="text-xs text-gray-400 mt-1">{roomName}</p>}
+          {roomName && (
+            <p className="text-xs text-gray-400 mt-0.5 font-medium tracking-tight">
+              {roomName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

@@ -173,10 +173,12 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     try {
       setStreamError(null);
       
-      // Register session in Supabase
-      const slugifiedRoomName = slugify(roomName);
+      // Register session in Supabase with both friendly name and slug
+      const friendlyName = roomName.trim();
+      const slugifiedRoomName = slugify(friendlyName);
       const { error } = await supabase.from('live_sessions').insert({
         room_name: slugifiedRoomName,
+        friendly_name: friendlyName,
         host_id: user.id,
         host_name: displayName || 'Anonymous',
         is_active: true,

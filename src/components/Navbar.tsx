@@ -101,9 +101,9 @@ export default function Navbar() {
             <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(249,115,22,0.3)] group-hover:scale-105 transition-transform">
               <span className="text-white text-2xl font-bold">E</span>
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-white tracking-tight">EthioCosmos</h1>
-              <p className="text-[10px] text-orange-500 font-medium uppercase tracking-widest">Community</p>
+            <div className="block">
+              <h1 className="text-base sm:text-xl font-bold text-white tracking-tight">EthioCosmos</h1>
+              <p className="text-[9px] sm:text-[10px] text-orange-500 font-medium uppercase tracking-widest">Community</p>
             </div>
           </Link>
         </div>

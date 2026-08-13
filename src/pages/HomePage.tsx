@@ -187,7 +187,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex flex-col justify-center p-3 sm:p-4">
                   <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-300">
-                    <span>Daily Space News</span>
+                    <span>{new Date(dailyNews.published_date).toISOString().slice(0, 10) === getUtcDateKey() ? 'Today\'s Space News' : 'Latest Space News'}</span>
                     <span className="text-white/40">•</span>
                     <span>{dailyNews.category}</span>
                   </div>
@@ -204,8 +204,10 @@ export default function HomePage() {
                     </Button>
                     <span className="text-sm text-gray-400 flex items-center gap-2">
                       {dailyNews.source_name} · {new Date(dailyNews.published_date).toLocaleDateString(undefined, { timeZone: 'UTC' })}
-                      {new Date(dailyNews.published_date).toISOString().slice(0, 10) === getUtcDateKey() && (
+                      {new Date(dailyNews.published_date).toISOString().slice(0, 10) === getUtcDateKey() ? (
                         <span className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">Today</span>
+                      ) : (
+                        <span className="bg-white/10 text-gray-300 border border-white/10 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">Latest available</span>
                       )}
                     </span>
                   </div>

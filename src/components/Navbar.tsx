@@ -99,7 +99,7 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-orange-500 shadow-lg shadow-orange-500/30 flex items-center justify-center bg-slate-900 group-hover:scale-105 transition-transform">
-              <img src="/images/school-logo.jpg" alt="EthioCosmos Logo" className="w-full h-full object-cover" />
+              <img src="/images/hero-bg-new.png" alt="EthioCosmos Logo" className="w-full h-full object-cover scale-110" />
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-white text-xs sm:text-sm tracking-tight whitespace-nowrap">

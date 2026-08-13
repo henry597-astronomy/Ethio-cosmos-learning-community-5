@@ -234,17 +234,18 @@ function StreamContent({
     autoStageParticipantRef.current = localParticipant.identity;
 
     const joinStage = async () => {
-      await localParticipant.setCameraEnabled(true);
-      await localParticipant.setMicrophoneEnabled(
-        !isAdminMuted && !isSelfMuted,
-        echoSafeAudioOptions,
-      );
       try {
-        await localParticipant.setScreenShareEnabled(true, { audio: false });
+        await localParticipant.setCameraEnabled(true);
       } catch (error) {
-        // Screen capture requires a browser permission gesture. The co-host remains
-        // on stage with camera and microphone if the prompt is dismissed.
-        console.info('Screen sharing was not enabled:', error);
+        console.warn('Co-host camera enable failed:', error);
+      }
+      try {
+        await localParticipant.setMicrophoneEnabled(
+          !isAdminMuted && !isSelfMuted,
+          echoSafeAudioOptions,
+        );
+      } catch (error) {
+        console.warn('Co-host microphone enable failed:', error);
       }
     };
 
@@ -357,10 +358,10 @@ function StreamContent({
       ).catch(console.error);
     } else {
       localParticipant.setCameraEnabled(false).catch(console.error);
-      localParticipant.setMicrophoneEnabled(
-        isCommunityMicAllowed && !forcedCommunityMute,
-        echoSafeAudioOptions,
-      ).catch(console.error);
+      // Viewers do not auto-publish mic unless explicitly unmuted/allowed by admin
+      if (isCommunityMicAllowed && !forcedCommunityMute && !isAdminMuted && localParticipant.isMicrophoneEnabled) {
+        localParticipant.setMicrophoneEnabled(true, echoSafeAudioOptions).catch(() => undefined);
+      }
     }
   }, [
     isHost,
@@ -645,9 +646,15 @@ function StreamContent({
                   {coHostTrack ? (
                     <ParticipantTile trackRef={coHostTrack} className="w-full h-full" suppressHydrationWarning />
                   ) : coHostParticipant ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
-                      <Loader className="w-6 h-6 text-white/20 animate-spin mb-2" />
-                      <p className="text-gray-500 text-[10px] uppercase tracking-tighter">Enabling Co-Host Camera...</p>
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
+                      <Avatar className="w-16 h-16 sm:w-20 sm:h-20 mb-3 border-2 border-orange-500/30">
+                        <AvatarImage src={getParticipantAvatar(coHostParticipant)} alt="Co-Host" />
+                        <AvatarFallback className="bg-orange-600 text-white text-xl font-bold">
+                          {getInitials(coHostParticipant.name || 'Co-Host')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <Loader className="w-5 h-5 text-orange-500/60 animate-spin mb-2" />
+                      <p className="text-gray-400 text-[10px] uppercase tracking-tighter font-semibold">Enabling Co-Host Camera...</p>
                     </div>
                   ) : null}
                   <div className="absolute top-4 left-4 bg-orange-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[10px] font-black tracking-tighter flex items-center gap-1.5">

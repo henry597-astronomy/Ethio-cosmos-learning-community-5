@@ -257,35 +257,30 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       setStreamError(null);
       const slugifiedRoomName = slugify(roomName);
       
-      // First, verify the session is still active in the database
-      // We try both slugified and original room name to be extremely resilient
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('live_sessions')
-        .select('*')
-        .or(`room_name.eq.${slugifiedRoomName},room_name.eq.${roomName}`)
-        .eq('is_active', true);
+      // OPTIMIZATION: Check if we already have this session in our local activeSessions list
+      // This saves a Supabase round-trip when joining from the UI list
+      let session = activeSessions.find(s => s.room_name === slugifiedRoomName || s.room_name === roomName);
+      
+      if (!session) {
+        // Only if not found locally, check Supabase
+        const { data: sessionData, error: sessionError } = await supabase
+          .from('live_sessions')
+          .select('*')
+          .or(`room_name.eq.${slugifiedRoomName},room_name.eq.${roomName}`)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-      if (sessionError) {
-        const errorMsg = `Error fetching session: ${sessionError.message}`;
-        console.error(errorMsg);
-        setStreamError(errorMsg);
-        clearSession();
-        throw new Error(errorMsg);
+        if (sessionError || !sessionData || sessionData.length === 0) {
+          const errorMsg = sessionError ? `Error fetching session: ${sessionError.message}` : 'The stream is no longer active.';
+          setStreamError(errorMsg);
+          clearSession();
+          throw new Error(errorMsg);
+        }
+        session = sessionData[0];
       }
 
-      if (!sessionData || sessionData.length === 0) {
-        const errorMsg = 'The stream is no longer active. Please refresh.';
-        console.error(errorMsg);
-        setStreamError(errorMsg);
-        clearSession();
-        throw new Error(errorMsg);
-      }
-
-      // If multiple sessions exist for same room, sort to find the most recent
-      sessionData.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-
+      // Start fetching token immediately
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: {
@@ -307,7 +302,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       
       const { token, identity, metadata } = await response.json();
       setLiveRoomName(slugifiedRoomName);
-      setLiveHostUserId(sessionData[0]?.host_id || null);
+      setLiveHostUserId(session?.host_id || null);
       setLiveToken(token);
       setIsHosting(false); // We are viewing, not hosting
       console.log('Joined stream with identity:', identity, 'metadata:', metadata);

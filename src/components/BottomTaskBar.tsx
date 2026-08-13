@@ -145,6 +145,22 @@ export default function BottomTaskBar() {
         />
       )}
 
+      {/* Immediate Joining Overlay - Shows before token is ready */}
+      {isJoining && !liveToken && (
+        <div className="fixed inset-0 bg-black/90 z-[60] flex flex-col items-center justify-center backdrop-blur-sm">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Radio size={30} className="text-orange-500 animate-pulse" />
+            </div>
+          </div>
+          <h2 className="text-white font-black text-2xl mt-6 tracking-tighter uppercase italic">
+            EthioCosmos <span className="text-orange-500">Live</span>
+          </h2>
+          <p className="text-gray-400 text-sm mt-2 font-medium animate-pulse">Preparing your connection...</p>
+        </div>
+      )}
+
       {/* Shorts Feed */}
       {isShortsOpen && (
         <ShortsFeed onClose={() => setIsShortsOpen(false)} />

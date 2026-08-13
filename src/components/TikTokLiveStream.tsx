@@ -157,9 +157,12 @@ function StreamContent({
     );
     if (publishedParticipant) return publishedParticipant;
 
-    // Priority 3: Fallback to ANY remote participant to show content immediately
-    const firstRemote = participants.find(p => p.identity !== localParticipant?.identity);
-    if (firstRemote) return firstRemote;
+    // Priority 3: If there's only one remote participant, they are likely the host
+    const remoteParticipants = participants.filter(p => p.identity !== localParticipant?.identity);
+    if (remoteParticipants.length === 1) return remoteParticipants[0];
+
+    // Priority 4: Fallback to ANY remote participant
+    if (remoteParticipants.length > 0) return remoteParticipants[0];
     
     return null;
   }, [participants, isHost, localParticipant, hostUserId]);
@@ -281,12 +284,12 @@ function StreamContent({
       return;
     }
 
-    // Increased timeout to 45 seconds to account for slow mobile connections and LiveKit room initialization
+    // Reduced timeout to 20 seconds for faster failure feedback, as 45s feels like "stuck"
     const timer = setTimeout(() => {
       if (!hostParticipant && !hasSeenHost) {
         setConnectionTimeout(true);
       }
-    }, 45000);
+    }, 20000);
 
     return () => clearTimeout(timer);
   }, [isHost, hostParticipant, hasSeenHost]);
@@ -702,9 +705,15 @@ function StreamContent({
               </div>
             </div>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
-              <Loader className="w-10 h-10 text-orange-500 animate-spin mb-4" />
-              <p className="text-gray-400 font-medium uppercase tracking-widest text-xs">Connecting to Host...</p>
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
+              <div className="relative">
+                <Loader className="w-12 h-12 text-orange-500 animate-spin mb-4" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
+                </div>
+              </div>
+              <p className="text-white font-bold uppercase tracking-widest text-xs animate-pulse">Establishing Connection...</p>
+              <p className="text-gray-500 text-[10px] mt-2 uppercase tracking-tighter">Joining the live room</p>
             </div>
           )}
         </div>

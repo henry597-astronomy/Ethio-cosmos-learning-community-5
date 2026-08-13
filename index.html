@@ -102,13 +102,32 @@
       document.addEventListener('touchmove', function () {}, { passive: true });
     </script>
   </head>
-  <body style="background-color: #0a0e1a;">
-    <div id="root"></div>
+  <body style="background-color: #0a0e1a; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif;">
+    <div id="root" style="width: 100%; height: 100%;">
+      <div id="loading-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+        <h2 style="margin-bottom: 10px;">EthioCosmos</h2>
+        <p>Loading community assets...</p>
+      </div>
+    </div>
     <script>
-      // Diagnostic: If JS starts, change background slightly
+      // Diagnostic: Global error handler to catch startup crashes
+      window.onerror = function(msg, url, line, col, error) {
+        var body = document.body;
+        var errDiv = document.createElement('div');
+        errDiv.style.position = 'fixed';
+        errDiv.style.top = '0';
+        errDiv.style.left = '0';
+        errDiv.style.width = '100%';
+        errDiv.style.background = 'red';
+        errDiv.style.color = 'white';
+        errDiv.style.padding = '20px';
+        errDiv.style.zIndex = '9999';
+        errDiv.innerHTML = '<strong>Startup Error:</strong><br>' + msg + '<br>at ' + url + ':' + line;
+        body.appendChild(errDiv);
+        return false;
+      };
       console.log('[App] Initializing JS...');
-      document.body.style.backgroundColor = '#1a1a2e';
     </script>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

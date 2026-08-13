@@ -6,9 +6,9 @@ const config: CapacitorConfig = {
   webDir: 'dist'
 };
 
+// Simplified for maximum compatibility
 config.server = {
-  androidScheme: 'https',
-  hostname: 'localhost'
+  androidScheme: 'http'
 };
 
 export default config;

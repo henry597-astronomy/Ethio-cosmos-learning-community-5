@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon, Menu, Pencil } from 'lucide-react';
+import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, Users, Sun, Moon, Menu, Pencil } from 'lucide-react';
 import EditProfileDialog from '@/components/EditProfileDialog';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import {
@@ -334,61 +334,40 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  {/* Footer - Offline Storage, Stats & Logout Button */}
+                  {/* Footer - Shrunken Offline Storage & Bottom Actions */}
                   <SheetFooter className="border-t border-white/5 bg-slate-950 flex-col p-0">
-                    {/* Offline Storage Section */}
-                    <div className="w-full px-6 py-3 border-b border-white/5 bg-slate-900/40">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Offline Storage</h3>
-                        <span className="text-[10px] text-gray-400 bg-white/5 px-2 py-0.5 rounded">{(cacheSize / (1024 * 1024)).toFixed(1)} MB used</span>
+                    {/* Compact Offline Storage Row */}
+                    <div className="w-full px-4 py-2.5 border-b border-white/5 bg-slate-900/40 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Download size={14} className="text-orange-400 shrink-0" />
+                        <span className="text-xs font-semibold text-gray-300">Offline Storage</span>
+                        <span className="text-[10px] text-gray-400 bg-white/5 px-1.5 py-0.5 rounded">{(cacheSize / (1024 * 1024)).toFixed(1)} MB</span>
                       </div>
-                      
-                      {prefetchProgress.status === 'running' ? (
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[10px]">
-                            <span className="text-orange-400 animate-pulse truncate max-w-[150px]">
-                              {prefetchProgress.currentItem || 'Downloading...'}
-                            </span>
-                            <span className="text-gray-400">{progressPercent}%</span>
-                          </div>
-                          <div className="w-full bg-slate-800 rounded-full h-1.5">
-                            <div
-                              className="bg-orange-500 h-1.5 rounded-full transition-all duration-300"
-                              style={{ width: `${progressPercent}%` }}
-                            />
-                          </div>
-                        </div>
-                      ) : prefetchProgress.status === 'completed' ? (
-                        <div className="flex items-center gap-2 text-xs text-green-400">
-                          <CheckCircle size={14} />
-                          <span>All content ready for offline use</span>
-                        </div>
-                      ) : prefetchProgress.status === 'error' ? (
-                        <div className="flex items-center gap-2 text-xs text-red-400">
-                          <AlertCircle size={14} />
-                          <span>Download failed</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <Download size={14} />
-                          <span>Auto-downloading in background</span>
-                        </div>
-                      )}
+                      <div className="text-[10px]">
+                        {prefetchProgress.status === 'running' ? (
+                          <span className="text-orange-400 animate-pulse font-medium">{progressPercent}%</span>
+                        ) : prefetchProgress.status === 'completed' ? (
+                          <span className="text-green-400 font-medium flex items-center gap-1"><CheckCircle size={12} /> Ready</span>
+                        ) : prefetchProgress.status === 'error' ? (
+                          <span className="text-red-400 font-medium">Error</span>
+                        ) : (
+                          <span className="text-gray-400">Active</span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="w-full space-y-1 p-4">
-                      <div className="flex items-center gap-2 px-2 pb-2">
-                        <div className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase w-fit bg-blue-500/20 text-blue-400">
-                          <Users size={12} />
-                          <span>{totalUsersCount} Registered {totalUsersCount === 1 ? 'Member' : 'Members'}</span>
-                        </div>
+                    {/* Bottom Row: Registered Members & Sign Out */}
+                    <div className="w-full flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                        <Users size={12} />
+                        <span>{totalUsersCount} {totalUsersCount === 1 ? 'Member' : 'Members'}</span>
                       </div>
                       {!isBlocked && (
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors rounded-md"
+                          className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors rounded-md font-medium"
                         >
-                          <LogOut size={18} />
+                          <LogOut size={15} />
                           <span>Sign Out</span>
                         </button>
                       )}

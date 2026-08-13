@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useNotifications } from '@/context/NotificationContext';
+
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, AlertCircle, Users, Sun, Moon, Menu, Pencil } from 'lucide-react';
@@ -33,7 +33,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAdmin, isSuperAdmin, isBlocked, avatarUrl, displayName, totalUsersCount } = useAuth();
-  const { unreadCount } = useNotifications();
+
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
@@ -121,20 +121,6 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative text-gray-400 hover:text-white hover:bg-white/5"
-                onClick={() => navigate('/chat')}
-              >
-                <Menu size={20} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-slate-950">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Button>
-
               <Sheet open={profilePanelOpen} onOpenChange={setProfilePanelOpen}>
                 <button
                   onClick={() => setProfilePanelOpen(true)}

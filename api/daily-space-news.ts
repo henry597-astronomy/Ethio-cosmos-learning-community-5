@@ -116,31 +116,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-    let selected: NasaApod | null = null;
-    let externalId = '';
-
-    // Search recent official NASA APOD entries until we find an unseen image.
-    // This lets the two-hour schedule backfill a verified pool without duplicates.
-    for (let daysAgo = 0; daysAgo < 14; daysAgo += 1) {
-      const apod = await fetchApod(dateDaysAgo(daysAgo), nasaKey);
-      if (!apod?.date) continue;
-      const candidateId = `nasa-apod-${apod.date}`;
-      const { data: existing, error: existingError } = await supabase
-        .from('space_news')
-        .select('id')
-        .eq('external_id', candidateId)
-        .limit(1)
-        .maybeSingle();
-      if (existingError) throw existingError;
-      if (!existing) {
-        selected = apod;
-        externalId = candidateId;
-        break;
-      }
+    // Only publish the APOD for the current UTC calendar date. Never use
+    // yesterday's item as today's content when the current APOD is delayed.
+    const currentDate = dateDaysAgo(0);
+    const selected = await fetchApod(currentDate, nasaKey);
+    if (!selected?.date) {
+      return res.status(200).json({ ok: true, skipped: true, reason: 'current_nasa_item_not_available', date: currentDate });
     }
 
-    if (!selected || !externalId) {
-      return res.status(200).json({ ok: true, skipped: true, reason: 'no_new_verified_nasa_item' });
+    const externalId = `nasa-apod-${selected.date}`;
+    const { data: existing, error: existingError } = await supabase
+      .from('space_news')
+      .select('id, status')
+      .eq('external_id', externalId)
+      .limit(1)
+      .maybeSingle();
+    if (existingError) throw existingError;
+    if (existing) {
+      return res.status(200).json({ ok: true, skipped: true, reason: 'current_item_already_exists', date: currentDate, status: existing.status });
     }
 
     const { draft, aiGenerated } = await createStudentDraft(selected);
@@ -157,7 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         source_name: 'NASA APOD',
         source_url: `https://apod.nasa.gov/apod/ap${sourceDate.replaceAll('-', '').slice(2)}.html`,
         category: 'Astronomy',
-        published_date: new Date().toISOString(),
+        published_date: new Date(`${sourceDate}T00:00:00Z`).toISOString(),
         ai_generated: aiGenerated,
         status: 'published',
       })

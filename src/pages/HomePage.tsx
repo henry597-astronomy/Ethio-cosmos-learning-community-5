@@ -8,6 +8,8 @@ import { AlertCircle, ExternalLink } from 'lucide-react';
 import { getPublishedSpaceNews } from '@/services/space-news';
 import type { SpaceNews } from '@/types';
 
+const getUtcDateKey = () => new Date().toISOString().slice(0, 10);
+
 declare global {
   interface Window {
     YT: any;
@@ -26,7 +28,7 @@ export default function HomePage() {
   useEffect(() => {
     let active = true;
     const loadNews = async () => {
-      const items = await getPublishedSpaceNews(1);
+      const items = await getPublishedSpaceNews(1, getUtcDateKey());
       if (active) {
         setDailyNews(items[0] ?? null);
       }
@@ -200,8 +202,11 @@ export default function HomePage() {
                         Read more <ExternalLink className="ml-2 h-4 w-4" />
                       </a>
                     </Button>
-                    <span className="text-sm text-gray-400">
-                      {dailyNews.source_name} · {new Date(dailyNews.published_date).toLocaleDateString()}
+                    <span className="text-sm text-gray-400 flex items-center gap-2">
+                      {dailyNews.source_name} · {new Date(dailyNews.published_date).toLocaleDateString(undefined, { timeZone: 'UTC' })}
+                      {new Date(dailyNews.published_date).toISOString().slice(0, 10) === getUtcDateKey() && (
+                        <span className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">Today</span>
+                      )}
                     </span>
                   </div>
                 </div>

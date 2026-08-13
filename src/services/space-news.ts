@@ -3,11 +3,19 @@ import type { SpaceNews } from '@/types';
 
 const SPACE_NEWS_FIELDS = 'id, external_id, title, summary, full_explanation, fun_fact, image_url, source_name, source_url, category, published_date, ai_generated, status, created_at, updated_at';
 
-export async function getPublishedSpaceNews(limit = 12): Promise<SpaceNews[]> {
-  const { data, error } = await supabase
+export async function getPublishedSpaceNews(limit = 12, utcDate?: string): Promise<SpaceNews[]> {
+  let query = supabase
     .from('space_news')
     .select(SPACE_NEWS_FIELDS)
-    .eq('status', 'published')
+    .eq('status', 'published');
+
+  if (utcDate) {
+    const start = `${utcDate}T00:00:00.000Z`;
+    const end = `${utcDate}T23:59:59.999Z`;
+    query = query.gte('published_date', start).lte('published_date', end);
+  }
+
+  const { data, error } = await query
     .order('published_date', { ascending: false })
     .limit(limit);
 

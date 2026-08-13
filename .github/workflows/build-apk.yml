@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npm run build
       - uses: actions/setup-java@v4
         with:
@@ -20,7 +20,9 @@ jobs:
           java-version: '17'
       - name: Build APK
         working-directory: ./android
-        run: ./gradlew assembleDebug
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug

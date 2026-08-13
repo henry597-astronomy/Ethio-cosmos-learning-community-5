@@ -42,78 +42,9 @@ export default function Navbar() {
 
   // Taskbar Scroll State
   const scrollRef = useRef<HTMLDivElement>(null);
-  const lastInteractionRef = useRef<number>(Date.now());
-  const animationRef = useRef<number | null>(null);
-  const virtualScrollRef = useRef<number>(0);
-  const isInteractingRef = useRef<boolean>(false);
 
   useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
-
-    const handleInteractionStart = () => {
-      isInteractingRef.current = true;
-      lastInteractionRef.current = Date.now();
-      virtualScrollRef.current = scrollContainer.scrollLeft;
-    };
-
-    const handleInteractionEnd = () => {
-      isInteractingRef.current = false;
-      lastInteractionRef.current = Date.now();
-      virtualScrollRef.current = scrollContainer.scrollLeft;
-    };
-
-    const handleScroll = () => {
-      if (isInteractingRef.current) {
-        lastInteractionRef.current = Date.now();
-        virtualScrollRef.current = scrollContainer.scrollLeft;
-      }
-    };
-
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-    scrollContainer.addEventListener('touchstart', handleInteractionStart, { passive: true });
-    scrollContainer.addEventListener('mousedown', handleInteractionStart, { passive: true });
-    window.addEventListener('touchend', handleInteractionEnd);
-    window.addEventListener('mouseup', handleInteractionEnd);
-
-    const animate = () => {
-      const scrollWidth = scrollContainer.scrollWidth;
-      const setWidth = scrollWidth / 3;
-      if (setWidth > 0) {
-        // Always handle infinite loop jumping for manual scrolling
-        if (scrollContainer.scrollLeft >= setWidth * 2) {
-          scrollContainer.scrollLeft -= setWidth;
-          virtualScrollRef.current -= setWidth;
-        } else if (scrollContainer.scrollLeft <= setWidth * 0.5) {
-          scrollContainer.scrollLeft += setWidth;
-          virtualScrollRef.current += setWidth;
-        }
-      }
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    const setInitialScroll = () => {
-      if (scrollContainer.scrollWidth > 0) {
-        const initialPos = scrollContainer.scrollWidth / 3;
-        scrollContainer.scrollLeft = initialPos;
-        virtualScrollRef.current = initialPos;
-      } else {
-        setTimeout(setInitialScroll, 100);
-      }
-    };
-    setInitialScroll();
-
-    return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      scrollContainer.removeEventListener('scroll', handleScroll);
-      scrollContainer.removeEventListener('touchstart', handleInteractionStart);
-      scrollContainer.removeEventListener('mousedown', handleInteractionStart);
-      window.removeEventListener('touchend', handleInteractionEnd);
-      window.removeEventListener('mouseup', handleInteractionEnd);
-    };
+    // Static taskbar - no animation needed
   }, []);
 
   // Offline and Prefetch State
@@ -573,29 +504,25 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Second Fixed Navbar (Below Top Navbar) - Infinite Ping-Pong Scrolling */}
+      {/* Second Fixed Navbar (Below Top Navbar) - Compact Static Navigation */}
       <div 
         ref={scrollRef}
-        className="bg-slate-950/90 backdrop-blur-md border-b border-white/5 taskbar-marquee-wrapper"
+        className="bg-slate-950/90 backdrop-blur-md border-b border-white/5 overflow-x-auto scrollbar-hide"
       >
-        <div className="flex items-center h-10">
-          <div className="taskbar-marquee-container px-4">
-            {[0, 1, 2].map((setIdx) => (
-              <div key={`nav-set-${setIdx}`} className="flex items-center gap-1.5 sm:gap-2 pr-1.5 sm:pr-2">
-                {allNavLinks.map((link, idx) => (
-                  <Link
-                    key={`nav-${setIdx}-${idx}`}
-                    to={link.path}
-                    className={`relative px-2.5 py-1 text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap rounded-full border ${
-                      isActive(link.path)
-                        ? 'text-white bg-orange-500/20 border-orange-500/50 font-bold shadow-[0_0_10px_rgba(249,115,22,0.2)]'
-                        : 'text-gray-400 bg-white/5 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/20'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
+        <div className="max-w-7xl mx-auto px-4 flex items-center h-10 justify-center">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {allNavLinks.map((link, idx) => (
+              <Link
+                key={`nav-${idx}`}
+                to={link.path}
+                className={`relative px-2.5 py-1 text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap rounded-full border ${
+                  isActive(link.path)
+                    ? 'text-white bg-orange-500/20 border-orange-500/50 font-bold shadow-[0_0_10px_rgba(249,115,22,0.2)]'
+                    : 'text-gray-400 bg-white/5 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/20'
+                }`}
+              >
+                {link.label}
+              </Link>
             ))}
           </div>
         </div>

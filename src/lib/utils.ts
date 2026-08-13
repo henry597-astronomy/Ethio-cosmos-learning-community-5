@@ -6,10 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function slugify(str: string): string {
+  if (!str) return "";
   return str
+    .toString()
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[^\w\s-]/g, "") // Remove all non-word chars except space and hyphen
+    .replace(/[\s_-]+/g, "-") // Replace spaces and underscores with a single hyphen
+    .replace(/^-+|-+$/g, ""); // Remove leading and trailing hyphens
 }

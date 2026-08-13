@@ -157,7 +157,16 @@ export default function BottomTaskBar() {
           <h2 className="text-white font-black text-2xl mt-6 tracking-tighter uppercase italic">
             EthioCosmos <span className="text-orange-500">Live</span>
           </h2>
-          <p className="text-gray-400 text-sm mt-2 font-medium animate-pulse">Preparing your connection...</p>
+          <div className="flex flex-col items-center mt-2">
+            <p className="text-gray-400 text-sm font-medium animate-pulse">
+              {!streamError ? 'Preparing your connection...' : 'Connection stalled...'}
+            </p>
+            {!streamError && (
+              <p className="text-gray-500 text-[10px] uppercase tracking-widest mt-1 opacity-60">
+                Fetching secure token
+              </p>
+            )}
+          </div>
           
           {streamError && (
             <div className="mt-6 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">

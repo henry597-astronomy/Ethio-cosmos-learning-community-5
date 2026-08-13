@@ -157,11 +157,18 @@ function StreamContent({
     );
     if (publishedParticipant) return publishedParticipant;
 
-    // Priority 3: If there's only one remote participant, they are likely the host
+    // Priority 3: Check for anyone who is NOT a viewer (based on metadata)
+    const possibleHost = participants.find(p => {
+      const role = getMetadata(p).role;
+      return role === 'host' || role === 'admin';
+    });
+    if (possibleHost) return possibleHost;
+
+    // Priority 4: If there's only one remote participant, they are likely the host
     const remoteParticipants = participants.filter(p => p.identity !== localParticipant?.identity);
     if (remoteParticipants.length === 1) return remoteParticipants[0];
 
-    // Priority 4: Fallback to ANY remote participant
+    // Priority 5: Fallback to ANY remote participant
     if (remoteParticipants.length > 0) return remoteParticipants[0];
     
     return null;
@@ -284,12 +291,13 @@ function StreamContent({
       return;
     }
 
-    // Reduced timeout to 20 seconds for faster failure feedback, as 45s feels like "stuck"
+    // Re-balanced timeout to 30 seconds to allow for mobile network delays,
+    // but the UI now shows more granular progress to prevent "stuck" feeling.
     const timer = setTimeout(() => {
       if (!hostParticipant && !hasSeenHost) {
         setConnectionTimeout(true);
       }
-    }, 20000);
+    }, 30000);
 
     return () => clearTimeout(timer);
   }, [isHost, hostParticipant, hasSeenHost]);
@@ -712,8 +720,14 @@ function StreamContent({
                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
                 </div>
               </div>
-              <p className="text-white font-bold uppercase tracking-widest text-xs animate-pulse">Establishing Connection...</p>
-              <p className="text-gray-500 text-[10px] mt-2 uppercase tracking-tighter">Joining the live room</p>
+              <p className="text-white font-bold uppercase tracking-widest text-xs animate-pulse">
+                {participants.length > 0 ? 'Locating Host...' : 'Connecting to Room...'}
+              </p>
+              <p className="text-gray-500 text-[10px] mt-2 uppercase tracking-tighter">
+                {participants.length > 0 
+                  ? `Connected! Found ${participants.length} participants` 
+                  : 'Establishing secure link...'}
+              </p>
             </div>
           )}
         </div>

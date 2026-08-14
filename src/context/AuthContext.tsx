@@ -146,6 +146,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         applySession(session);
+        // Force home redirect on mobile after successful login
+        const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+        if (event === 'SIGNED_IN' && isMobile) {
+          setTimeout(() => {
+            window.location.hash = '/';
+          }, 500);
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
@@ -171,30 +178,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Handle deep links for mobile OAuth
     const handleDeepLink = async (data: any) => {
+      const urlString = data.url;
+      if (!urlString) return;
+
       try {
-        const url = new URL(data.url);
-        
         // Close native browser if open
         await Browser.close();
 
+        // Manual robust parsing for deep link tokens
         let access_token = null;
         let refresh_token = null;
 
-        // 1. Check hash (Supabase default)
-        if (url.hash) {
-          const hashParams = new URLSearchParams(url.hash.substring(1));
-          access_token = hashParams.get('access_token');
-          refresh_token = hashParams.get('refresh_token');
-        }
-
-        // 2. Check query params
-        if (!access_token) {
-          access_token = url.searchParams.get('access_token');
-          refresh_token = url.searchParams.get('refresh_token');
+        // Try parsing tokens from hash or query
+        const parts = urlString.split(/[#?]/);
+        if (parts.length > 1) {
+          const params = new URLSearchParams(parts[1]);
+          access_token = params.get('access_token');
+          refresh_token = params.get('refresh_token');
         }
 
         if (access_token && refresh_token) {
-          console.log('Deep link: setting session with tokens');
           const { data: sessionData, error } = await supabase.auth.setSession({
             access_token,
             refresh_token,
@@ -202,19 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (!error && sessionData.session) {
             applySession(sessionData.session);
-            // Force redirect to home
-            setTimeout(() => {
-              window.location.hash = '/';
-              // Fallback for non-hash routers
-              if (window.location.pathname !== '/') {
-                window.location.href = '/#/';
-              }
-            }, 100);
-          } else if (error) {
-            console.error('Deep link session error:', error.message);
           }
-        } else {
-          console.warn('Deep link: missing tokens in URL', data.url);
         }
       } catch (err) {
         console.error('Deep link error:', err);

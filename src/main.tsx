@@ -1,6 +1,5 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { App as CapApp } from '@capacitor/app';
 import './index.css'
 import { disableLongPressContextMenu } from '@/lib/disable-long-press';
 

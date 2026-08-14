@@ -194,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (access_token && refresh_token) {
+          console.log('Deep link: setting session with tokens');
           const { data: sessionData, error } = await supabase.auth.setSession({
             access_token,
             refresh_token,
@@ -202,8 +203,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!error && sessionData.session) {
             applySession(sessionData.session);
             // Force redirect to home
-            window.location.hash = '/';
+            setTimeout(() => {
+              window.location.hash = '/';
+              // Fallback for non-hash routers
+              if (window.location.pathname !== '/') {
+                window.location.href = '/#/';
+              }
+            }, 100);
+          } else if (error) {
+            console.error('Deep link session error:', error.message);
           }
+        } else {
+          console.warn('Deep link: missing tokens in URL', data.url);
         }
       } catch (err) {
         console.error('Deep link error:', err);
@@ -229,13 +240,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { 
+      options: ({ 
         redirectTo,
         skipBrowserRedirect: isMobile,
         // Implicit flow is more reliable for mobile deep-linking as it doesn't
         // rely on shared localStorage for the PKCE verifier.
         flowType: isMobile ? 'implicit' : 'pkce',
-      },
+      } as any),
     });
     
     if (error) throw error;

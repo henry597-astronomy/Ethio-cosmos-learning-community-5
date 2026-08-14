@@ -38,7 +38,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const showNotification = useCallback((senderName: string, messageText: string | null) => {
     // 1. Browser Notification
-    if (Notification.permission === 'granted' && document.visibilityState !== 'visible') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.visibilityState !== 'visible') {
       new Notification(`New announcement from ${senderName}`, {
         body: messageText || 'New channel broadcast',
         icon: '/images/icon-192.png',
@@ -85,7 +85,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!user) return;
 
     // Request notification permission
-    if (Notification.permission === 'default') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission();
     }
 

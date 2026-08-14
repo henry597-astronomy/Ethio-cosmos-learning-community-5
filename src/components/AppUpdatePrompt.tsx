@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, Download, RefreshCw, Wifi, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 import {
   getPrefetchProgress,
   prefetchAllContent,
@@ -20,10 +21,13 @@ const INITIAL_PROGRESS: PrefetchProgress = {
 };
 
 export default function AppUpdatePrompt() {
+  const { user } = useAuth();
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [modePromptVisible, setModePromptVisible] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<PrefetchProgress>(INITIAL_PROGRESS);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  if (!user) return null;
 
   const beginOfflineDownload = useCallback(async () => {
     setModePromptVisible(true);
@@ -69,16 +73,8 @@ export default function AppUpdatePrompt() {
       };
     }
 
-    const hasChosenMode = sessionStorage.getItem('ethio-usage-mode-chosen') === '1';
-    const hasOfflineCache = localStorage.getItem('ethio-offline-cache-ready') === '1';
-    if (!hasChosenMode && !hasOfflineCache && navigator.onLine) {
-      const timer = window.setTimeout(() => setModePromptVisible(true), 1400);
-      return () => {
-        window.clearTimeout(timer);
-        window.removeEventListener('ethio:sw-update', handleServiceWorkerUpdate);
-        setPrefetchProgressCallback(() => undefined);
-      };
-    }
+    // Only show prompt if there is a new update/change detected by service worker
+    // (Removed initial first-load prompt so it only comes when there are new changes)
 
     return () => {
       window.removeEventListener('ethio:sw-update', handleServiceWorkerUpdate);

@@ -43,13 +43,13 @@ function AppRoutes() {
   const gradientBackground = GRADIENT_THEME_BACKGROUNDS[theme];
 
   return (
-    <div className={`min-h-screen flex flex-col overflow-y-auto transition-colors duration-300 ${
+    <div className={`h-screen w-full flex flex-col overflow-hidden transition-colors duration-300 ${
       theme === 'light' ? 'bg-[#f1f5f9] text-[#0f172a]' : 'bg-[#0a0e1a] text-white'
-    }`} style={{ WebkitOverflowScrolling: 'touch', background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
+    }`} style={{ background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
       <Navbar />
       <InstallPrompt />
       <AppUpdatePrompt />
-      <main className="flex-1 pt-24" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))', background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
+      <main className="flex-1 overflow-y-auto pt-24" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
         <Suspense fallback={
           <div className="flex items-center justify-center min-h-[50vh]">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>

@@ -11,6 +11,7 @@ import { supabase } from '@/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import type { UserProfile } from '@/types';
 import { getGravatarUrl } from '@/lib/gravatar';
+import { Browser } from '@capacitor/browser';
 
 interface AuthContextType {
   user: User | null;
@@ -181,11 +182,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ? 'com.ethiocosmos.learning://login' 
       : window.location.origin;
 
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo },
+      options: { 
+        redirectTo,
+        skipBrowserRedirect: isMobile,
+      },
     });
+    
     if (error) throw error;
+
+    // If on mobile, manually open the browser to handle the OAuth flow
+    if (isMobile && data?.url) {
+      await Browser.open({ url: data.url });
+    }
   }, []);
 
   const signInWithEmail = useCallback(

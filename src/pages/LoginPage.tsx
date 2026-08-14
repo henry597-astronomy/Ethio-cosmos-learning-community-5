@@ -36,11 +36,18 @@ export default function LoginPage() {
     setActionLoading(true);
     setAuthError(null);
     setAuthNotice(null);
+    
+    // Set a safety timeout to reset loading state if the browser doesn't open or redirect stalls
+    const timeout = setTimeout(() => {
+      if (actionLoading) setActionLoading(false);
+    }, 10000);
+
     try {
       await signInWithGoogle();
       // Supabase handles the redirect. The listener in AuthContext will pick up
       // the session the moment we come back with ?code=... in the URL.
     } catch (err) {
+      clearTimeout(timeout);
       const message = err instanceof Error ? err.message : 'Google sign-in failed.';
       console.error('Google sign-in error:', err);
       setAuthError(message);

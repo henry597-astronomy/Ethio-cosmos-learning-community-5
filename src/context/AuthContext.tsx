@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchTotalUsers();
 
     // Handle deep links for mobile OAuth
-    const handleDeepLink = async (data: any) => {
+    const handleDeepLink = useCallback(async (data: { url: string }) => {
       const urlString = data.url;
       if (!urlString) return;
 
@@ -185,17 +185,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Close native browser if open
         await Browser.close();
 
-        // Manual robust parsing for deep link tokens
-        let access_token = null;
-        let refresh_token = null;
-
-        // Try parsing tokens from hash or query
-        const parts = urlString.split(/[#?]/);
-        if (parts.length > 1) {
-          const params = new URLSearchParams(parts[1]);
-          access_token = params.get('access_token');
-          refresh_token = params.get('refresh_token');
-        }
+        // Ultra-robust token extraction using regex
+        const accessTokenMatch = urlString.match(/[#?&]access_token=([^&]+)/);
+        const refreshTokenMatch = urlString.match(/[#?&]refresh_token=([^&]+)/);
+        
+        const access_token = accessTokenMatch ? accessTokenMatch[1] : null;
+        const refresh_token = refreshTokenMatch ? refreshTokenMatch[1] : null;
 
         if (access_token && refresh_token) {
           const { data: sessionData, error } = await supabase.auth.setSession({
@@ -205,23 +200,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (!error && sessionData.session) {
             applySession(sessionData.session);
+            // Force a state refresh
+            setTimeout(() => {
+              window.location.hash = '/';
+            }, 100);
           }
         }
       } catch (err) {
         console.error('Deep link error:', err);
       }
-    };
+    }, [applySession]);
 
-    const deepLinkListener = CapApp.addListener('appUrlOpen', handleDeepLink);
+    const deepLinkListener = CapApp.addListener('appUrlOpen', (data) => {
+      handleDeepLink(data);
+    });
     
     // Also check session when app comes to foreground (for robust state sync)
     const stateChangeListener = CapApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        supabase.auth.getSession().then(({ data }) => {
-          if (mountedRef.current && data.session) {
-            applySession(data.session);
-          }
-        });
+        // Poll for session a few times to catch late redirects
+        let attempts = 0;
+        const check = () => {
+          supabase.auth.getSession().then(({ data }) => {
+            if (mountedRef.current && data.session) {
+              applySession(data.session);
+            } else if (attempts < 3) {
+              attempts++;
+              setTimeout(check, 1000);
+            }
+          });
+        };
+        check();
       }
     });
 
@@ -243,10 +252,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { 
+      options: ({ 
         redirectTo,
         skipBrowserRedirect: isMobile,
-      },
+        flowType: isMobile ? 'implicit' : 'pkce',
+      } as any),
     });
     
     if (error) throw error;

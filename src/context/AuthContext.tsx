@@ -174,9 +174,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession]);
 
   const signInWithGoogle = useCallback(async () => {
+    // For mobile (Capacitor), we use a custom URL scheme to redirect back to the app.
+    // The user must add 'com.ethiocosmos.learning://login' to their Supabase Redirect URLs.
+    const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+    const redirectTo = isMobile 
+      ? 'com.ethiocosmos.learning://login' 
+      : window.location.origin;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo },
     });
     if (error) throw error;
   }, []);
@@ -195,12 +202,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, username?: string) => {
+      const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+      const redirectTo = isMobile 
+        ? 'com.ethiocosmos.learning://login' 
+        : window.location.origin;
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: username ? { username, full_name: username } : undefined,
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: redirectTo,
         },
       });
       if (error) throw error;

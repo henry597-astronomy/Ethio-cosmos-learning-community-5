@@ -61,8 +61,13 @@ export default function LoginPage() {
       }
       setActionLoading(true);
       try {
+        const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+        const redirectTo = isMobile 
+          ? 'com.ethiocosmos.learning://login' 
+          : `${window.location.origin}/login`;
+
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/login`,
+          redirectTo,
         });
         if (error) throw error;
         setAuthNotice(

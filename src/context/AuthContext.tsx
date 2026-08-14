@@ -232,6 +232,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: { 
         redirectTo,
         skipBrowserRedirect: isMobile,
+        // Implicit flow is more reliable for mobile deep-linking as it doesn't
+        // rely on shared localStorage for the PKCE verifier.
+        flowType: isMobile ? 'implicit' : 'pkce',
       },
     });
     

@@ -213,11 +213,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const deepLinkListener = CapApp.addListener('appUrlOpen', handleDeepLink);
+    
+    // Also check session when app comes to foreground (for robust state sync)
+    const stateChangeListener = CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        supabase.auth.getSession().then(({ data }) => {
+          if (mountedRef.current && data.session) {
+            applySession(data.session);
+          }
+        });
+      }
+    });
 
     return () => {
       mountedRef.current = false;
       sub.subscription.unsubscribe();
       deepLinkListener.then(l => l.remove());
+      stateChangeListener.then(l => l.remove());
     };
   }, [applySession]);
 
@@ -231,13 +243,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: ({ 
+      options: { 
         redirectTo,
         skipBrowserRedirect: isMobile,
-        // Implicit flow is more reliable for mobile deep-linking as it doesn't
-        // rely on shared localStorage for the PKCE verifier.
-        flowType: isMobile ? 'implicit' : 'pkce',
-      } as any),
+      },
     });
     
     if (error) throw error;

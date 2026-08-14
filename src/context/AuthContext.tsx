@@ -12,6 +12,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import type { UserProfile } from '@/types';
 import { getGravatarUrl } from '@/lib/gravatar';
 import { Browser } from '@capacitor/browser';
+import { App as CapApp } from '@capacitor/app';
 
 interface AuthContextType {
   user: User | null;
@@ -168,9 +169,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     fetchTotalUsers();
 
+    // Handle deep links for mobile OAuth
+    const handleDeepLink = async (data: any) => {
+      try {
+        const url = new URL(data.url);
+        
+        // Close native browser if open
+        await Browser.close();
+
+        let access_token = null;
+        let refresh_token = null;
+
+        // 1. Check hash (Supabase default)
+        if (url.hash) {
+          const hashParams = new URLSearchParams(url.hash.substring(1));
+          access_token = hashParams.get('access_token');
+          refresh_token = hashParams.get('refresh_token');
+        }
+
+        // 2. Check query params
+        if (!access_token) {
+          access_token = url.searchParams.get('access_token');
+          refresh_token = url.searchParams.get('refresh_token');
+        }
+
+        if (access_token && refresh_token) {
+          const { data: sessionData, error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+          
+          if (!error && sessionData.session) {
+            applySession(sessionData.session);
+            // Force redirect to home
+            window.location.hash = '/';
+          }
+        }
+      } catch (err) {
+        console.error('Deep link error:', err);
+      }
+    };
+
+    const deepLinkListener = CapApp.addListener('appUrlOpen', handleDeepLink);
+
     return () => {
       mountedRef.current = false;
       sub.subscription.unsubscribe();
+      deepLinkListener.then(l => l.remove());
     };
   }, [applySession]);
 

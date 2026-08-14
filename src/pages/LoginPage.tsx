@@ -39,8 +39,8 @@ export default function LoginPage() {
     
     // Set a safety timeout to reset loading state if the browser doesn't open or redirect stalls
     const timeout = setTimeout(() => {
-      if (actionLoading) setActionLoading(false);
-    }, 10000);
+      setActionLoading(false);
+    }, 6000);
 
     try {
       await signInWithGoogle();

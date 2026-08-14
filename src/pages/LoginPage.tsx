@@ -32,6 +32,22 @@ export default function LoginPage() {
     }
   }, [user, loading, navigate, redirectTarget]);
 
+  // Reset local loading state when app comes back to foreground
+  useEffect(() => {
+    import('@capacitor/app').then(({ App }) => {
+      const listener = App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          // If we return to the app, reset the "Please wait" state after a short delay
+          // to allow the auth listener in AuthContext to work first.
+          setTimeout(() => setActionLoading(false), 2000);
+        }
+      });
+      return () => {
+        listener.then(l => l.remove());
+      };
+    });
+  }, []);
+
   const handleGoogleSignIn = async () => {
     setActionLoading(true);
     setAuthError(null);

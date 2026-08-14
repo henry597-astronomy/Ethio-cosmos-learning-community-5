@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { Preferences } from '@capacitor/preferences';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -23,6 +24,20 @@ if (!isSupabaseConfigured && import.meta.env.DEV) {
 const dummyUrl = atob('aHR0cHM6Ly9wbmttbmJnanJyZmhtdWh3ZHdrZS5zdXBhYmFzZS5jbw==');
 const dummyKey = atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW5CdWEyMXVZbWRxY25KbWFHMTFhSGRrZDJ0bElpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpjMU5UVXlNemtzSW1WNGNDSTZNakE1TXpFek1USXpPWDAuWHZzQ0FOUWIzdmJzbDVfY3ZJSEl0WXJxODdkMjR0dW03SkJQNGh4blhtMA==');
 
+// Custom storage for Capacitor to ensure session persistence across browser jumps
+const capacitorStorage = {
+  getItem: async (key: string) => {
+    const { value } = await Preferences.get({ key });
+    return value;
+  },
+  setItem: async (key: string, value: string) => {
+    await Preferences.set({ key, value });
+  },
+  removeItem: async (key: string) => {
+    await Preferences.remove({ key });
+  },
+};
+
 export const supabase = createClient(
   isSupabaseConfigured ? supabaseUrl : dummyUrl,
   isSupabaseConfigured ? supabaseAnonKey : dummyKey,
@@ -31,6 +46,7 @@ export const supabase = createClient(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      storage: capacitorStorage as any,
       flowType: 'pkce',
     },
     realtime: {

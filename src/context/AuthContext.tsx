@@ -138,26 +138,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Close native browser if open
       await Browser.close();
 
-      // Ultra-robust token extraction using regex
-      const accessTokenMatch = urlString.match(/[#?&]access_token=([^&]+)/);
-      const refreshTokenMatch = urlString.match(/[#?&]refresh_token=([^&]+)/);
+      const url = new URL(urlString);
       
-      const access_token = accessTokenMatch ? accessTokenMatch[1] : null;
-      const refresh_token = refreshTokenMatch ? refreshTokenMatch[1] : null;
+      // 1. Handle PKCE Flow (Standard)
+      const code = url.searchParams.get('code');
+      if (code) {
+        const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!error && sessionData.session) {
+          applySession(sessionData.session);
+          return;
+        }
+      }
+
+      // 2. Handle Implicit Flow (Fallback)
+      const hashParams = new URLSearchParams(url.hash.substring(1));
+      const access_token = hashParams.get('access_token');
+      const refresh_token = hashParams.get('refresh_token');
 
       if (access_token && refresh_token) {
         const { data: sessionData, error } = await supabase.auth.setSession({
           access_token,
           refresh_token,
         });
-        
         if (!error && sessionData.session) {
           applySession(sessionData.session);
-          // Force a state refresh
-          setTimeout(() => {
-            window.location.hash = '/';
-          }, 100);
+          return;
         }
+      }
+
+      // 3. Final Fallback: Refresh session
+      const { data: refreshData } = await supabase.auth.getSession();
+      if (refreshData.session) {
+        applySession(refreshData.session);
       }
     } catch (err) {
       console.error('Deep link error:', err);
@@ -215,22 +227,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       handleDeepLink(data);
     });
     
-    // Also check session when app comes to foreground (for robust state sync)
+    // Also check session when app comes to foreground
     const stateChangeListener = CapApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        // Poll for session a few times to catch late redirects
-        let attempts = 0;
-        const check = () => {
-          supabase.auth.getSession().then(({ data }) => {
-            if (mountedRef.current && data.session) {
-              applySession(data.session);
-            } else if (attempts < 3) {
-              attempts++;
-              setTimeout(check, 1000);
-            }
-          });
-        };
-        check();
+        supabase.auth.getSession().then(({ data }) => {
+          if (mountedRef.current && data.session) {
+            applySession(data.session);
+          }
+        });
       }
     });
 
@@ -243,8 +247,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession, handleDeepLink]);
 
   const signInWithGoogle = useCallback(async () => {
-    // For mobile (Capacitor), we use a custom URL scheme to redirect back to the app.
-    // The user must add 'com.ethiocosmos.learning://login' to their Supabase Redirect URLs.
     const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
     const redirectTo = isMobile 
       ? 'com.ethiocosmos.learning://login' 
@@ -252,16 +254,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: ({ 
+      options: { 
         redirectTo,
         skipBrowserRedirect: isMobile,
-        flowType: isMobile ? 'implicit' : 'pkce',
-      } as any),
+      },
     });
     
     if (error) throw error;
 
-    // If on mobile, manually open the browser to handle the OAuth flow
     if (isMobile && data?.url) {
       await Browser.open({ url: data.url });
     }

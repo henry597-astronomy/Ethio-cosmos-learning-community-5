@@ -13,6 +13,7 @@
   "dependencies": {
     "@capacitor/app": "^6.0.3",
     "@capacitor/browser": "^6.0.6",
+    "@capacitor/preferences": "^6.0.4",
     "@hookform/resolvers": "^5.2.2",
     "@livekit/components-react": "^2.9.21",
     "@livekit/components-styles": "^1.2.0",

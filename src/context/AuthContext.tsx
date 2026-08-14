@@ -129,76 +129,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [fetchProfile]
   );
 
-  // Handle deep links for mobile OAuth - moved outside useEffect to follow hook rules
+  // Handle deep links for mobile OAuth
   const handleDeepLink = useCallback(async (data: { url: string }) => {
     const urlString = data.url;
     if (!urlString) return;
 
     try {
-      // Close native browser if open
       await Browser.close();
-
       const url = new URL(urlString);
       
-      // 1. Handle PKCE Flow (Standard)
-      const code = url.searchParams.get('code');
-      if (code) {
-        const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
-        if (!error && sessionData.session) {
-          applySession(sessionData.session);
-          return;
-        }
-      }
-
-      // 2. Handle Implicit Flow (Fallback)
+      // 1. Check for access_token (Implicit Flow)
       const hashParams = new URLSearchParams(url.hash.substring(1));
       const access_token = hashParams.get('access_token');
       const refresh_token = hashParams.get('refresh_token');
 
       if (access_token && refresh_token) {
-        const { data: sessionData, error } = await supabase.auth.setSession({
-          access_token,
-          refresh_token,
-        });
-        if (!error && sessionData.session) {
-          applySession(sessionData.session);
-          return;
-        }
+        await supabase.auth.setSession({ access_token, refresh_token });
+        return;
       }
 
-      // 3. Final Fallback: Refresh session
-      const { data: refreshData } = await supabase.auth.getSession();
-      if (refreshData.session) {
-        applySession(refreshData.session);
+      // 2. Check for code (PKCE Flow)
+      const code = url.searchParams.get('code');
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code);
+        return;
       }
     } catch (err) {
       console.error('Deep link error:', err);
     }
-  }, [applySession]);
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
 
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (!mountedRef.current) return;
-        applySession(data.session ?? null);
-      })
-      .catch((e) => {
-        console.error('getSession error:', e);
-        if (mountedRef.current) setAuthReady(true);
-      });
-
+    // Listen for auth state changes globally
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mountedRef.current) return;
+      
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         applySession(session);
-        // Force home redirect on mobile after successful login
+        // If we just signed in on mobile, force jump to home
         const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
         if (event === 'SIGNED_IN' && isMobile) {
-          setTimeout(() => {
-            window.location.hash = '/';
-          }, 500);
+          window.location.hash = '/';
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -207,36 +180,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    // Initial session check
+    supabase.auth.getSession().then(({ data }) => {
+      if (mountedRef.current) applySession(data.session);
+    });
+
+    // Mobile specific listeners
+    const deepLinkListener = CapApp.addListener('appUrlOpen', (data) => {
+      handleDeepLink(data);
+    });
+    
+    const stateChangeListener = CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        supabase.auth.getSession().then(({ data }) => {
+          if (mountedRef.current && data.session) applySession(data.session);
+        });
+      }
+    });
+
     // Fetch Total Registered Users
     const fetchTotalUsers = async () => {
       try {
-        const { count, error } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
-        
-        if (error) throw error;
+        const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
         if (mountedRef.current) setTotalUsersCount(count || 0);
       } catch (err) {
         console.error('Error fetching total users:', err);
       }
     };
-
     fetchTotalUsers();
-
-    const deepLinkListener = CapApp.addListener('appUrlOpen', (data) => {
-      handleDeepLink(data);
-    });
-    
-    // Also check session when app comes to foreground
-    const stateChangeListener = CapApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        supabase.auth.getSession().then(({ data }) => {
-          if (mountedRef.current && data.session) {
-            applySession(data.session);
-          }
-        });
-      }
-    });
 
     return () => {
       mountedRef.current = false;

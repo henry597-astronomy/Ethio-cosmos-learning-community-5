@@ -46,7 +46,10 @@ export default function LiveHostModal({
 
       // Call the API to generate a token
       const slugifiedRoomName = slugify(roomName.trim());
-      const response = await fetch(getApiUrl('/api/livekit/token'), {
+      const apiUrl = getApiUrl('/api/livekit/token');
+      console.log('Fetching token from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +83,13 @@ export default function LiveHostModal({
       setRoomName('');
       console.log('Stream started with identity:', identity, 'metadata:', metadata);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred while starting the stream';
+      let errorMessage = 'An error occurred while starting the stream';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        if (errorMessage === 'Failed to fetch') {
+          errorMessage = 'Connection failed. Please check your internet or try again later.';
+        }
+      }
       setError(errorMessage);
       console.error('Error starting stream:', err);
     } finally {

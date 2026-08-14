@@ -299,7 +299,8 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       }
 
       // Start fetching token immediately
-      const response = await fetch(getApiUrl('/api/livekit/token'), {
+      const apiUrl = getApiUrl('/api/livekit/token');
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -314,7 +315,12 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+        }
         throw new Error(errorData.error || 'Failed to get token');
       }
       
@@ -326,7 +332,13 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       console.log('Joined stream with identity:', identity, 'metadata:', metadata);
     } catch (error) {
       console.error('Error joining session:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Failed to join session';
+      let errorMsg = 'Failed to join session';
+      if (error instanceof Error) {
+        errorMsg = error.message;
+        if (errorMsg === 'Failed to fetch') {
+          errorMsg = 'Connection failed. Please check your internet or try again later.';
+        }
+      }
       setStreamError(errorMsg);
       clearSession();
       // Re-throw so the UI can catch and display the error

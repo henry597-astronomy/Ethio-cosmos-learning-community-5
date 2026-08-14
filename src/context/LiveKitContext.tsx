@@ -9,6 +9,7 @@ import {
 import { supabase } from '@/supabase';
 import { useAuth } from './AuthContext';
 import { slugify } from '@/lib/utils';
+import { getApiUrl } from '@/lib/api-config';
 
 interface LiveSession {
   id: string;
@@ -298,7 +299,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       }
 
       // Start fetching token immediately
-      const response = await fetch('/api/livekit/token', {
+      const response = await fetch(getApiUrl('/api/livekit/token'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

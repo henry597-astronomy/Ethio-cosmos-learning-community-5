@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { slugify } from '@/lib/utils';
+import { getApiUrl } from '@/lib/api-config';
 
 interface LiveHostModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export default function LiveHostModal({
 
       // Call the API to generate a token
       const slugifiedRoomName = slugify(roomName.trim());
-      const response = await fetch('/api/livekit/token', {
+      const response = await fetch(getApiUrl('/api/livekit/token'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

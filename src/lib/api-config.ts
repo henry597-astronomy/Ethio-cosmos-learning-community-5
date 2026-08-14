@@ -4,7 +4,7 @@
  */
 
 // Production Vercel URL as the default fallback for mobile builds
-export const PRODUCTION_URL = 'https://ethio-cosmos-learning-community-5-4e8umju66.vercel.app';
+export const PRODUCTION_URL = 'https://ethio-cosmos-learning-community-5.vercel.app';
 
 // Determine the API base URL based on environment
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || PRODUCTION_URL;

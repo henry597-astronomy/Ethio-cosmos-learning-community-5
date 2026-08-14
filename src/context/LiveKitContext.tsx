@@ -241,7 +241,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         const data = new FormData();
         data.append('host_id', user.id);
         data.append('room_name', liveRoomName);
-        navigator.sendBeacon('/api/livekit/stop-hosting', data);
+        navigator.sendBeacon(getApiUrl('/api/livekit/stop-hosting'), data);
         console.log('Stream cleanup on unload');
       }
     };

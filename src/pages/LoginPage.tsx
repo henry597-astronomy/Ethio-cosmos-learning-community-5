@@ -10,7 +10,7 @@ type LocationState = { from?: { pathname?: string } } | null;
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { user, loading, isProcessingAuth, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -145,6 +145,24 @@ export default function LoginPage() {
       setActionLoading(false);
     }
   };
+
+  // Show a clean "Signing in..." screen during the OAuth jump
+  if (isProcessingAuth) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950">
+        <div className="text-center space-y-6">
+          <div className="relative">
+            <div className="h-20 w-20 border-4 border-orange-500/20 rounded-full" />
+            <div className="absolute inset-0 h-20 w-20 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-white">Signing in...</h2>
+            <p className="text-gray-400">Finalizing your cosmic journey</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Only show a global loader while the FIRST session check runs. After that
   // the page is interactive immediately.

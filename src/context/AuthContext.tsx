@@ -18,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;          // Legacy loading state (for backward compatibility)
+  isProcessingAuth: boolean; // true during the jump back from Google/OAuth
   authReady: boolean;        // true once session is confirmed (near-instant)
   profileLoading: boolean;   // true while fetching DB profile
   isAdmin: boolean;
@@ -42,6 +43,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [totalUsersCount, setTotalUsersCount] = useState(0);
@@ -134,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const urlString = data.url;
     if (!urlString) return;
 
+    setIsProcessingAuth(true);
     try {
       await Browser.close();
       const url = new URL(urlString);
@@ -156,6 +159,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error('Deep link error:', err);
+    } finally {
+      // Small safety timeout to ensure session is applied before removing overlay
+      setTimeout(() => {
+        if (mountedRef.current) setIsProcessingAuth(false);
+      }, 1500);
     }
   }, []);
 
@@ -324,19 +332,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         profile,
-        loading: !authReady, // Map legacy loading to authReady
+        loading: !authReady,
+        isProcessingAuth,
         authReady,
         profileLoading,
         isAdmin,
         isSuperAdmin,
         isBlocked,
-        displayName,
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,
         logout,
         updateProfile,
         avatarUrl,
+        displayName,
         totalUsersCount,
       }}
     >

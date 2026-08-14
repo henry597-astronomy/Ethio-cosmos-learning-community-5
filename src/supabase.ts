@@ -1,28 +1,26 @@
 import { createClient } from '@supabase/supabase-js';
 import { Preferences } from '@capacitor/preferences';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Real production credentials as absolute fallbacks for mobile builds
+const PROD_URL = 'https://pnkmnbgjrrfhmuhwdwke.supabase.co';
+const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBua21uYmdqcnJmaG11aHdkd2tlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NTUyMzksImV4cCI6MjA5MzEzMTIzOX0.XvsCANQb3vbsl5_cvIHItYrq87d24tum7JBP4hxnXm0';
 
-// Boolean flag the rest of the app uses to detect a missing/incomplete .env.
-// Both names are exported so existing imports keep working without rewrites.
-export const isSupabaseConfigured: boolean = Boolean(supabaseUrl && supabaseAnonKey);
-export const isValidConfig: boolean = isSupabaseConfigured;
+const envUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!isSupabaseConfigured && import.meta.env.DEV) {
-  // Surface the misconfiguration loudly in dev so it's easy to spot.
-  // We do NOT throw here, because that would crash the entire bundle and
-  // prevent the login screen from ever rendering.
-  console.warn(
-    '[supabase] VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing. ' +
-      'Auth and data calls will fail until your .env is configured.'
-  );
-}
+// A configuration is valid only if it's not the placeholder
+export const isSupabaseConfigured = Boolean(
+  envUrl && 
+  envKey && 
+  !envUrl.includes('placeholder') &&
+  envUrl.includes('.')
+);
 
-// Guard initialization to prevent crash if URL is missing (common in CI builds)
-// Production fallbacks for mobile builds, encoded to bypass basic scanners
-const dummyUrl = atob('aHR0cHM6Ly9wbmttbmJnanJyZmhtdWh3ZHdrZS5zdXBhYmFzZS5jbw==');
-const dummyKey = atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW5CdWEyMXVZbWRxY25KbWFHMTFhSGRrZDJ0bElpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpjMU5UVXlNemtzSW1WNGNDSTZNakE1TXpFek1USXpPWDAuWHZzQ0FOUWIzdmJzbDVfY3ZJSEl0WXJxODdkMjR0dW03SkJQNGh4blhtMA==');
+export const isValidConfig = isSupabaseConfigured;
+
+// Use environment variables if valid, otherwise fallback to hardcoded production keys
+const finalUrl = isSupabaseConfigured ? envUrl : PROD_URL;
+const finalKey = isSupabaseConfigured ? envKey : PROD_KEY;
 
 // Custom storage for Capacitor to ensure session persistence across browser jumps
 const capacitorStorage = {
@@ -38,23 +36,19 @@ const capacitorStorage = {
   },
 };
 
-export const supabase = createClient(
-  isSupabaseConfigured ? supabaseUrl : dummyUrl,
-  isSupabaseConfigured ? supabaseAnonKey : dummyKey,
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      storage: capacitorStorage as any,
-      flowType: 'pkce',
+export const supabase = createClient(finalUrl, finalKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storage: capacitorStorage as any,
+    flowType: 'pkce',
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
     },
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
-      },
-    },
-  }
-);
+  },
+});
 
 export type SupabaseClient = typeof supabase;

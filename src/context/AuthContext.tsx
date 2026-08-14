@@ -185,6 +185,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mountedRef.current) applySession(data.session);
     });
 
+    // Check if app was launched by a deep link
+    CapApp.getLaunchUrl().then((data) => {
+      if (data?.url) handleDeepLink(data);
+    });
+
     // Mobile specific listeners
     const deepLinkListener = CapApp.addListener('appUrlOpen', (data) => {
       handleDeepLink(data);

@@ -27,8 +27,6 @@ export default function AppUpdatePrompt() {
   const [downloadProgress, setDownloadProgress] = useState<PrefetchProgress>(INITIAL_PROGRESS);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  if (!user) return null;
-
   const beginOfflineDownload = useCallback(async () => {
     setModePromptVisible(true);
     setDownloadError(null);
@@ -114,7 +112,8 @@ export default function AppUpdatePrompt() {
     setModePromptVisible(false);
   };
 
-  if (!modePromptVisible) return null;
+  // Move the conditional return to the END to avoid breaking hooks order
+  if (!user || !modePromptVisible) return null;
 
   const isUpdate = Boolean(updateRegistration);
   const isDownloading = downloadProgress.status === 'running';
@@ -203,12 +202,3 @@ export default function AppUpdatePrompt() {
     </div>
   );
 }
-
-export { AppUpdatePrompt };
-
-// Keep the exported type available to the compiler when this component is imported
-// in environments that do not expose ServiceWorkerRegistration globally.
-export type { UpdateEventDetail };
-
-// Prevent a tree-shaker from treating the type-only import as runtime code.
-void INITIAL_PROGRESS;

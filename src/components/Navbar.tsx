@@ -128,23 +128,18 @@ export default function Navbar() {
               <Sheet open={profilePanelOpen} onOpenChange={setProfilePanelOpen}>
                 <button
                   onClick={() => setProfilePanelOpen(true)}
-                  className="flex items-center gap-1.5 px-2 h-10 rounded-xl border-2 border-white/10 bg-slate-900/50 hover:border-orange-500/50 transition-all focus:outline-none"
+                  className="flex items-center gap-2 px-1.5 h-11 rounded-xl border-2 border-white/10 bg-slate-900/50 hover:border-orange-500/50 transition-all focus:outline-none"
                 >
-                  <div className="w-6 h-6 rounded-lg overflow-hidden flex items-center justify-center bg-slate-800">
+                  <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/5">
                     {avatarUrl ? (
-                      <img 
-                        src={avatarUrl} 
-                        alt={displayName} 
-                        className="w-full h-full object-cover" 
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
+                      <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-xs text-white font-bold">{displayName.charAt(0)}</span>
+                      <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold">
+                        {displayName.charAt(0)}
+                      </div>
                     )}
                   </div>
-                  <Menu size={16} className="text-orange-400" />
+                  <Menu size={18} className="text-orange-400/80 mr-0.5" />
                 </button>
 
                 <SheetContent side="right" className="w-[85%] sm:max-w-md p-0 bg-slate-950 border-l border-white/10">
@@ -153,14 +148,7 @@ export default function Navbar() {
                       <div className="relative group">
                         <div className="w-24 h-24 rounded-3xl border-2 border-orange-500/40 overflow-hidden shadow-xl">
                           {avatarUrl ? (
-                            <img 
-                              src={avatarUrl} 
-                              alt={displayName} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
+                            <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full bg-slate-800 flex items-center justify-center text-3xl text-white font-bold">
                               {displayName.charAt(0)}

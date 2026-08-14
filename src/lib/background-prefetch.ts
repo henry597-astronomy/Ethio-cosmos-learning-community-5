@@ -36,8 +36,22 @@ export function setPrefetchProgressCallback(callback: (progress: PrefetchProgres
 }
 
 function updateProgress(update: Partial<PrefetchProgress>) {
-  prefetchProgress = { ...prefetchProgress, ...update };
+  // Ensure we don't have race conditions with the completed count
+  const nextCompleted = update.completed !== undefined 
+    ? update.completed 
+    : prefetchProgress.completed;
+    
+  prefetchProgress = { 
+    ...prefetchProgress, 
+    ...update,
+    completed: nextCompleted 
+  };
   onProgressCallback?.(prefetchProgress);
+}
+
+// Helper to safely increment completed count
+function incrementCompleted() {
+  updateProgress({ completed: prefetchProgress.completed + 1 });
 }
 
 /**
@@ -106,7 +120,7 @@ async function prefetchTopics(): Promise<string[]> {
     return urls;
   });
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
   return imageUrls;
 }
 
@@ -122,7 +136,7 @@ async function prefetchSubtopics(): Promise<void> {
 
   if (error) throw error;
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
 }
 
 /**
@@ -148,7 +162,7 @@ async function prefetchLessons(): Promise<string[]> {
     }
   });
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
   return imageUrls;
 }
 
@@ -172,7 +186,7 @@ async function prefetchQuizzes(): Promise<void> {
     if (questionsError) throw questionsError;
   }
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
 }
 
 /**
@@ -194,7 +208,7 @@ async function prefetchSiteContent(): Promise<string[]> {
     imageUrls.push(...itemImages);
   });
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
   return imageUrls;
 }
 
@@ -219,7 +233,7 @@ async function prefetchGalleryImages(): Promise<string[]> {
     });
   }
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
   return imageUrls;
 }
 
@@ -262,7 +276,7 @@ async function prefetchMaterials(): Promise<string[]> {
     });
   }
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
   return mediaUrls;
 }
 
@@ -326,7 +340,7 @@ async function prefetchPublicCommunityContent(): Promise<{ imageUrls: string[]; 
     collect(short.video_url || short.url);
   });
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
   return { imageUrls, mediaUrls };
 }
 
@@ -343,7 +357,7 @@ async function prefetchUserContent(): Promise<void> {
     ]);
   }
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
 }
 
 /**
@@ -377,7 +391,7 @@ async function prefetchAboutContent(): Promise<string[]> {
     }
   }
 
-  updateProgress({ completed: prefetchProgress.completed + 1 });
+  incrementCompleted();
   return imageUrls;
 }
 

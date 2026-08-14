@@ -129,6 +129,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [fetchProfile]
   );
 
+  // Handle deep links for mobile OAuth - moved outside useEffect to follow hook rules
+  const handleDeepLink = useCallback(async (data: { url: string }) => {
+    const urlString = data.url;
+    if (!urlString) return;
+
+    try {
+      // Close native browser if open
+      await Browser.close();
+
+      // Ultra-robust token extraction using regex
+      const accessTokenMatch = urlString.match(/[#?&]access_token=([^&]+)/);
+      const refreshTokenMatch = urlString.match(/[#?&]refresh_token=([^&]+)/);
+      
+      const access_token = accessTokenMatch ? accessTokenMatch[1] : null;
+      const refresh_token = refreshTokenMatch ? refreshTokenMatch[1] : null;
+
+      if (access_token && refresh_token) {
+        const { data: sessionData, error } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+        
+        if (!error && sessionData.session) {
+          applySession(sessionData.session);
+          // Force a state refresh
+          setTimeout(() => {
+            window.location.hash = '/';
+          }, 100);
+        }
+      }
+    } catch (err) {
+      console.error('Deep link error:', err);
+    }
+  }, [applySession]);
+
   useEffect(() => {
     mountedRef.current = true;
 
@@ -176,41 +211,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     fetchTotalUsers();
 
-    // Handle deep links for mobile OAuth
-    const handleDeepLink = useCallback(async (data: { url: string }) => {
-      const urlString = data.url;
-      if (!urlString) return;
-
-      try {
-        // Close native browser if open
-        await Browser.close();
-
-        // Ultra-robust token extraction using regex
-        const accessTokenMatch = urlString.match(/[#?&]access_token=([^&]+)/);
-        const refreshTokenMatch = urlString.match(/[#?&]refresh_token=([^&]+)/);
-        
-        const access_token = accessTokenMatch ? accessTokenMatch[1] : null;
-        const refresh_token = refreshTokenMatch ? refreshTokenMatch[1] : null;
-
-        if (access_token && refresh_token) {
-          const { data: sessionData, error } = await supabase.auth.setSession({
-            access_token,
-            refresh_token,
-          });
-          
-          if (!error && sessionData.session) {
-            applySession(sessionData.session);
-            // Force a state refresh
-            setTimeout(() => {
-              window.location.hash = '/';
-            }, 100);
-          }
-        }
-      } catch (err) {
-        console.error('Deep link error:', err);
-      }
-    }, [applySession]);
-
     const deepLinkListener = CapApp.addListener('appUrlOpen', (data) => {
       handleDeepLink(data);
     });
@@ -240,7 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       deepLinkListener.then(l => l.remove());
       stateChangeListener.then(l => l.remove());
     };
-  }, [applySession]);
+  }, [applySession, handleDeepLink]);
 
   const signInWithGoogle = useCallback(async () => {
     // For mobile (Capacitor), we use a custom URL scheme to redirect back to the app.

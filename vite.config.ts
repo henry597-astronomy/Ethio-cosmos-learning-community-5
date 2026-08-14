@@ -18,25 +18,8 @@ export default defineConfig({
   build: {
     // Use default esbuild minifier (faster and already included)
     minify: 'esbuild',
-    // Code splitting for better caching
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-              return 'vendor-react';
-            }
-            if (id.includes('@radix-ui')) {
-              return 'vendor-ui';
-            }
-            if (id.includes('lucide-react')) {
-              return 'vendor-icons';
-            }
-            return 'vendor';
-          }
-        },
-      },
-    },
+    // Standard rollup options without artificial chunk splitting to ensure reliable load order in mobile WebViews
+    rollupOptions: {},
     // Optimize chunk size
     chunkSizeWarningLimit: 2000,
     // Enable CSS code splitting

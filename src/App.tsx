@@ -12,22 +12,18 @@ import AppUpdatePrompt from '@/components/AppUpdatePrompt';
 import AIChatBar from '@/components/AIChatBar';
 import BottomTaskBar from '@/components/BottomTaskBar';
 
-
-import { lazy, Suspense } from 'react';
-
-const HomePage = lazy(() => import('@/pages/HomePage'));
-const LearningPage = lazy(() => import('@/pages/LearningPage'));
-const TopicDetailPage = lazy(() => import('@/pages/TopicDetailPage'));
-const LessonPage = lazy(() => import('@/pages/LessonPage'));
-const AboutPage = lazy(() => import('@/pages/AboutPage'));
-const MaterialsPage = lazy(() => import('@/pages/MaterialsPage'));
-const LoginPage = lazy(() => import('@/pages/LoginPage'));
-const ChatPage = lazy(() => import('@/pages/ChatPage'));
-const AdminPage = lazy(() => import('@/pages/AdminPage'));
-const TestsPage = lazy(() => import('@/pages/TestsPage'));
-const BookmarksPage = lazy(() => import('@/pages/BookmarksPage'));
-const ProgressPage = lazy(() => import('@/pages/ProgressPage'));
-
+import HomePage from '@/pages/HomePage';
+import LearningPage from '@/pages/LearningPage';
+import TopicDetailPage from '@/pages/TopicDetailPage';
+import LessonPage from '@/pages/LessonPage';
+import AboutPage from '@/pages/AboutPage';
+import MaterialsPage from '@/pages/MaterialsPage';
+import LoginPage from '@/pages/LoginPage';
+import ChatPage from '@/pages/ChatPage';
+import AdminPage from '@/pages/AdminPage';
+import TestsPage from '@/pages/TestsPage';
+import BookmarksPage from '@/pages/BookmarksPage';
+import ProgressPage from '@/pages/ProgressPage';
 
 const GRADIENT_THEME_BACKGROUNDS: Record<string, string> = {
   'gradient-sakura': 'linear-gradient(135deg, #4a1942 0%, #c06c84 52%, #f8b195 100%)',
@@ -50,12 +46,7 @@ function AppRoutes() {
       <InstallPrompt />
       <AppUpdatePrompt />
       <main className="flex-1 overflow-y-auto pt-24" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
-        <Suspense fallback={
-          <div className="flex items-center justify-center min-h-[50vh]">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        }>
-          <Routes>
+        <Routes>
           {/* Login is always accessible */}
           <Route path="/login" element={<LoginPage />} />
 
@@ -81,7 +72,6 @@ function AppRoutes() {
           {/* Catch-all route - redirect to home */}
           <Route path="*" element={<HomePage />} />
         </Routes>
-        </Suspense>
       </main>
     </div>
   );
@@ -100,7 +90,6 @@ function App() {
               </ThemeProvider>
               <AIChatBar />
               <BottomTaskBar />
-              
             </LiveKitProvider>
           </NotificationProvider>
         </Router>

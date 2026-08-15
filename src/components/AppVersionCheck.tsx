@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ShieldAlert, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/supabase';
 
 // Current app version matching the latest build
@@ -13,6 +14,12 @@ export default function AppVersionCheck({ children }: { children: React.ReactNod
 
   useEffect(() => {
     async function checkVersion() {
+      // The web deployment must remain available; enforce retirement only in native APKs.
+      if (!Capacitor.isNativePlatform()) {
+        setLoading(false);
+        return;
+      }
+
       try {
         // Fetch minimum required version from Supabase site_content
         const { data, error } = await supabase

@@ -9,6 +9,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import InstallPrompt from '@/components/InstallPrompt';
 import AppUpdatePrompt from '@/components/AppUpdatePrompt';
+import AppVersionCheck from '@/components/AppVersionCheck';
 import AIChatBar from '@/components/AIChatBar';
 import BottomTaskBar from '@/components/BottomTaskBar';
 
@@ -39,12 +40,13 @@ function AppRoutes() {
   const gradientBackground = GRADIENT_THEME_BACKGROUNDS[theme];
 
   return (
-    <div className={`h-screen w-full flex flex-col overflow-hidden transition-colors duration-300 ${
-      theme === 'light' ? 'bg-[#f1f5f9] text-[#0f172a]' : 'bg-[#0a0e1a] text-white'
-    }`} style={{ background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
-      <Navbar />
-      <InstallPrompt />
-      <AppUpdatePrompt />
+    <AppVersionCheck>
+      <div className={`h-screen w-full flex flex-col overflow-hidden transition-colors duration-300 ${
+        theme === 'light' ? 'bg-[#f1f5f9] text-[#0f172a]' : 'bg-[#0a0e1a] text-white'
+      }`} style={{ background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
+        <Navbar />
+        <InstallPrompt />
+        <AppUpdatePrompt />
       <main className="flex-1 overflow-y-auto pt-24" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
         <Routes>
           {/* Login is always accessible */}
@@ -74,6 +76,7 @@ function AppRoutes() {
         </Routes>
       </main>
     </div>
+    </AppVersionCheck>
   );
 }
 

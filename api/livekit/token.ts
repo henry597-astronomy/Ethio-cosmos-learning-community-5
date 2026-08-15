@@ -1,113 +1,156 @@
 import { AccessToken } from 'livekit-server-sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import {
+  authenticateSupabaseRequest,
+  boundedString,
+  cleanupRateLimitBuckets,
+  enforceRateLimit,
+  getClientAddress,
+  handleOptions,
+  isValidRoomName,
+} from '../_lib/security.js';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
-  // Add CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins for mobile compatibility
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+type TokenRequestBody = {
+  roomName?: unknown;
+  isHost?: unknown;
+};
 
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+function getProfileDisplayName(
+  profile: { username?: string | null } | null,
+  user: { email?: string; user_metadata?: Record<string, unknown> },
+): string {
+  const metadata = user.user_metadata || {};
+  const candidate = profile?.username
+    || (typeof metadata.full_name === 'string' ? metadata.full_name : null)
+    || (typeof metadata.name === 'string' ? metadata.name : null)
+    || user.email?.split('@')[0]
+    || 'User';
+
+  return boundedString(candidate, 80) || 'User';
+}
+
+function getSafeAvatarUrl(
+  profile: { avatar_url?: string | null } | null,
+  user: { user_metadata?: Record<string, unknown> },
+): string | null {
+  const metadataAvatar = user.user_metadata?.avatar_url;
+  const candidate = profile?.avatar_url || (typeof metadataAvatar === 'string' ? metadataAvatar : null);
+  if (!candidate || candidate.length > 2048) return null;
+
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'https:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (handleOptions(req, res, 'OPTIONS, POST')) return;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  cleanupRateLimitBuckets();
+  const requestBody = (req.body && typeof req.body === 'object' ? req.body : {}) as TokenRequestBody;
+  const auth = await authenticateSupabaseRequest(req);
+  const rateKey = `livekit-token:${getClientAddress(req)}:${auth.user?.id || 'anonymous'}`;
+
+  if (!enforceRateLimit(rateKey, 30, 60_000, res)) {
+    return res.status(429).json({ error: 'Too many token requests. Please try again shortly.' });
   }
 
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (!auth.user || !auth.client) {
+    return res.status(auth.reason === 'configuration' ? 500 : 401).json({
+      error: auth.reason === 'configuration' ? 'Server configuration error' : 'Authentication required',
+    });
+  }
+
+  const roomName = boundedString(requestBody.roomName, 64);
+  if (!roomName || !isValidRoomName(roomName)) {
+    return res.status(400).json({ error: 'Invalid room name' });
+  }
+
+  if (typeof requestBody.isHost !== 'boolean') {
+    return res.status(400).json({ error: 'Invalid host flag' });
+  }
+
+  const isHost = requestBody.isHost;
+  const { data: profile, error: profileError } = await auth.client
+    .from('profiles')
+    .select('username, avatar_url, is_blocked')
+    .eq('id', auth.user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error('[livekit/token] Profile lookup failed:', profileError.message);
+    return res.status(500).json({ error: 'Unable to verify account' });
+  }
+
+  if (!profile) {
+    return res.status(403).json({ error: 'Account profile is not available' });
+  }
+
+  if (profile.is_blocked === true) {
+    return res.status(403).json({ error: 'Account is blocked' });
+  }
+
+  const { data: activeSession, error: sessionError } = await auth.client
+    .from('live_sessions')
+    .select('id')
+    .eq('room_name', roomName)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+
+  if (sessionError) {
+    console.error('[livekit/token] Active session lookup failed:', sessionError.message);
+    return res.status(500).json({ error: 'Unable to verify live session' });
+  }
+
+  if (isHost && activeSession) {
+    return res.status(409).json({ error: 'A live session with that name is already active' });
+  }
+
+  if (!isHost && !activeSession) {
+    return res.status(404).json({ error: 'Live session is not active' });
+  }
+
+  const apiKey = process.env.LIVEKIT_API_KEY;
+  const apiSecret = process.env.LIVEKIT_API_SECRET;
+  if (!apiKey || !apiSecret) {
+    console.error('[livekit/token] Missing LiveKit credentials');
+    return res.status(500).json({ error: 'Server configuration error' });
   }
 
   try {
-    const authorization = req.headers.authorization;
-    const accessToken = authorization?.startsWith('Bearer ')
-      ? authorization.slice('Bearer '.length).trim()
-      : '';
+    const identitySuffix = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().replaceAll('-', '').slice(0, 12)
+      : Math.random().toString(36).slice(2, 14);
+    const identity = `${auth.user.id}-${identitySuffix}`;
+    const username = getProfileDisplayName(profile, auth.user);
+    const avatarUrl = getSafeAvatarUrl(profile, auth.user);
+    const metadata = {
+      avatar_url: avatarUrl,
+      username,
+      participant_id: auth.user.id,
+      role: isHost ? 'host' : 'viewer',
+    };
 
-    if (!accessToken) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Missing Supabase public server configuration');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
-
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: authData, error: authError } = await authClient.auth.getUser(accessToken);
-    if (authError || !authData.user) {
-      return res.status(401).json({ error: 'Invalid or expired session' });
-    }
-
-    const { userName, roomName, isHost, avatarUrl, userId } = req.body || {};
-
-    // Validate inputs
-    if (!userName || !roomName) {
-      return res.status(400).json({ error: 'Missing userName or roomName' });
-    }
-
-    if (userId && userId !== authData.user.id) {
-      return res.status(403).json({ error: 'User identity mismatch' });
-    }
-
-    // Get environment variables
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-
-    if (!apiKey || !apiSecret) {
-      console.error('Missing LiveKit credentials');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
-
-    // Create access token
     const at = new AccessToken(apiKey, apiSecret);
-
-    // Grant permissions
-    // We allow everyone to publish so they can be promoted to co-host dynamically
     at.addGrant({
       room: roomName,
       roomJoin: true,
-      canPublish: true,
-      canPublishData: true,
+      canPublish: isHost,
+      canPublishData: isHost,
       canSubscribe: true,
     });
-
-    // Use a unique identity
-    const identity = isHost ? userName : `${userName}-${Math.random().toString(36).substring(2, 7)}`;
     at.identity = identity;
-    at.name = userName;
-    
-    // Attach participant metadata
-    const metadata = {
-      avatar_url: avatarUrl || null,
-      username: userName,
-      participant_id: userId || null,
-      role: isHost ? 'host' : 'viewer'
-    };
+    at.name = username;
     at.metadata = JSON.stringify(metadata);
 
     const token = await at.toJwt();
-
-    return res.status(200).json({ 
-      token,
-      identity,
-      metadata
-    });
+    return res.status(200).json({ token, identity, metadata });
   } catch (error) {
-    console.error('Token generation error:', error);
-    return res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to generate token',
-    });
+    console.error('[livekit/token] Token generation failed:', error);
+    return res.status(500).json({ error: 'Failed to generate token' });
   }
 }

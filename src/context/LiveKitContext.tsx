@@ -313,11 +313,8 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          userName: displayName || 'Viewer',
           roomName: slugifiedRoomName,
           isHost: false,
-          avatarUrl: user?.user_metadata?.avatar_url || null,
-          userId: user?.id || null,
         }),
       });
 

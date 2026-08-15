@@ -22,7 +22,7 @@ export default function LiveHostModal({
   contextError,
   onClearError,
 }: LiveHostModalProps) {
-  const { user, displayName, avatarUrl } = useAuth();
+  const { displayName } = useAuth();
   const [roomName, setRoomName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,11 +63,8 @@ export default function LiveHostModal({
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          userName: displayName,
           roomName: slugifiedRoomName,
           isHost: true,
-          avatarUrl: avatarUrl || null,
-          userId: user?.id || null,
         }),
       });
 

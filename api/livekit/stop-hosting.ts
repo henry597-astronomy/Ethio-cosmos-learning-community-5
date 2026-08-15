@@ -1,95 +1,93 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import {
+  authenticateSupabaseRequest,
+  boundedString,
+  cleanupRateLimitBuckets,
+  enforceRateLimit,
+  getClientAddress,
+  handleOptions,
+  isValidRoomName,
+} from '../_lib/security.js';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
-  // Add CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+type StopHostingBody = {
+  room_name?: unknown;
+  host_id?: unknown;
+  token?: unknown;
+};
 
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+function parseBody(req: VercelRequest): StopHostingBody {
+  if (req.body && typeof req.body === 'object') return req.body as StopHostingBody;
+  if (typeof req.body !== 'string' && !Buffer.isBuffer(req.body)) return {};
 
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  const bodyString = typeof req.body === 'string' ? req.body : req.body.toString('utf8');
+  const params = new URLSearchParams(bodyString);
+  if (params.has('room_name') || params.has('token')) {
+    return {
+      room_name: params.get('room_name'),
+      host_id: params.get('host_id'),
+      token: params.get('token'),
+    };
   }
 
   try {
-    let host_id: string | undefined;
-    let room_name: string | undefined;
+    return JSON.parse(bodyString) as StopHostingBody;
+  } catch {
+    return {};
+  }
+}
 
-    // Handle both JSON and FormData (from navigator.sendBeacon)
-    if (typeof req.body === 'string' || req.body instanceof Buffer) {
-      // FormData comes as buffer/string, parse it
-      const bodyStr = typeof req.body === 'string' ? req.body : req.body.toString();
-      if (bodyStr.includes('host_id=')) {
-        // URL-encoded FormData
-        const params = new URLSearchParams(bodyStr);
-        host_id = params.get('host_id') || undefined;
-        room_name = params.get('room_name') || undefined;
-      } else {
-        // Try JSON
-        try {
-          const json = JSON.parse(bodyStr);
-          host_id = json.host_id;
-          room_name = json.room_name;
-        } catch (e) {
-          console.warn('Could not parse body as JSON or FormData:', bodyStr);
-        }
-      }
-    } else {
-      // Regular JSON object
-      host_id = req.body?.host_id;
-      room_name = req.body?.room_name;
-    }
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (handleOptions(req, res, 'OPTIONS, POST')) return;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    // Validate inputs
-    if (!host_id || !room_name) {
-      console.warn('Missing host_id or room_name:', { host_id, room_name, bodyType: typeof req.body });
-      return res.status(400).json({ error: 'Missing host_id or room_name' });
-    }
+  cleanupRateLimitBuckets();
+  const body = parseBody(req);
+  const auth = await authenticateSupabaseRequest(req, body.token);
+  const rateKey = `livekit-stop:${getClientAddress(req)}:${auth.user?.id || 'anonymous'}`;
 
-    // Get Supabase credentials from environment
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!enforceRateLimit(rateKey, 20, 60_000, res)) {
+    return res.status(429).json({ error: 'Too many requests. Please try again shortly.' });
+  }
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase credentials');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
+  if (!auth.user) {
+    return res.status(auth.reason === 'configuration' ? 500 : 401).json({
+      error: auth.reason === 'configuration' ? 'Server configuration error' : 'Authentication required',
+    });
+  }
 
-    // Create Supabase admin client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const roomName = boundedString(body.room_name, 64);
+  if (!roomName || !isValidRoomName(roomName)) {
+    return res.status(400).json({ error: 'Invalid room name' });
+  }
 
-    // Deactivate the session
-    const { error, data } = await supabase
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('[livekit/stop-hosting] Missing Supabase credentials');
+    return res.status(500).json({ error: 'Server configuration error' });
+  }
+
+  try {
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data, error } = await adminClient
       .from('live_sessions')
       .update({ is_active: false })
-      .eq('host_id', host_id)
-      .eq('room_name', room_name)
-      .select();
+      .eq('host_id', auth.user.id)
+      .eq('room_name', roomName)
+      .eq('is_active', true)
+      .select('id');
 
     if (error) {
-      console.error('Error stopping hosting:', error);
+      console.error('[livekit/stop-hosting] Session update failed:', error.message);
       return res.status(500).json({ error: 'Failed to stop hosting' });
     }
 
-    console.log('Session stopped successfully:', { host_id, room_name, updated_rows: data?.length });
     return res.status(200).json({ success: true, updated: data?.length || 0 });
   } catch (error) {
-    console.error('Stop hosting error:', error);
-    return res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to stop hosting',
-    });
+    console.error('[livekit/stop-hosting] Request failed:', error);
+    return res.status(500).json({ error: 'Failed to stop hosting' });
   }
 }

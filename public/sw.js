@@ -7,7 +7,7 @@
 // 4. Network-first for API calls with cache fallback
 // 5. Cache-first for static assets with network refresh
 
-const CACHE_VERSION = 'v16';
+const CACHE_VERSION = 'v17';
 const STATIC_CACHE = `ethio-cosmos-static-${CACHE_VERSION}`;
 const API_CACHE = `ethio-cosmos-api-${CACHE_VERSION}`;
 const IMAGE_CACHE = `ethio-cosmos-images-${CACHE_VERSION}`;
@@ -86,13 +86,7 @@ const PUBLIC_API_PATTERNS = [
   'topics',
   'subtopics',
   'lessons',
-  'quizzes',
-  'quiz_questions',
   'space_news',
-  'channel_posts',
-  'channel_reactions',
-  'channel_comments',
-  'comment_reactions',
   'live_sessions',
   'shorts',
 ];
@@ -103,6 +97,7 @@ const PRIVATE_API_PATTERNS = [
   'profiles',
   'user_progress',
   'bookmarks',
+  'chat_messages',
 ];
 
 function shouldBypass(url) {
@@ -423,40 +418,10 @@ self.addEventListener('sync', (event) => {
 
 // ── Prefetch all CMS content ─────────────────────────────────────────────
 async function prefetchAllContent() {
-  console.log('[SW] Starting comprehensive content prefetch...');
-  
-  try {
-    // Fetch all CMS data
-    const apiBase = 'https://your-supabase-url/rest/v1'; // Will be replaced by client
-    
-    const endpoints = [
-      'site_content',
-      'topics',
-      'subtopics',
-      'lessons',
-      'quizzes',
-      'quiz_questions',
-    ];
-
-    for (const endpoint of endpoints) {
-      try {
-        const url = `${apiBase}/${endpoint}`;
-        const response = await fetch(url);
-        if (response.ok) {
-          const cache = await caches.open(API_CACHE);
-          await cache.put(url, response.clone());
-          console.log(`[SW] Prefetched: ${endpoint}`);
-        }
-      } catch (err) {
-        console.warn(`[SW] Failed to prefetch ${endpoint}:`, err);
-      }
-    }
-
-    console.log('[SW] Content prefetch completed');
-  } catch (err) {
-    console.error('[SW] Prefetch error:', err);
-    throw err;
-  }
+  // The previous implementation used a placeholder Supabase URL and could
+  // cache responses without the caller's authentication scope. Content is
+  // now cached only when the app makes a real, scoped GET request.
+  console.log('[SW] Background content prefetch skipped; waiting for scoped app requests.');
 }
 
 // ── Message handler: Receive commands from clients ────────────────────────
@@ -530,8 +495,20 @@ async function cacheAssetsIfNeeded(cache, assets) {
 }
 
 async function cacheUrls(urls) {
+  if (!Array.isArray(urls)) return { downloaded: 0, skipped: 0 };
+
+  const safeUrls = urls.filter((value) => {
+    if (typeof value !== 'string' || value.length > 2048) return false;
+    try {
+      const parsed = new URL(value, self.location.origin);
+      return parsed.protocol === 'https:' || parsed.origin === self.location.origin;
+    } catch {
+      return false;
+    }
+  });
+
   const cache = await caches.open(MEDIA_CACHE);
-  const uniqueUrls = [...new Set(urls)];
+  const uniqueUrls = [...new Set(safeUrls)].slice(0, 100);
   let downloaded = 0;
   let skipped = 0;
 

@@ -39,7 +39,7 @@ interface LiveKitContextType {
 const LiveKitContext = createContext<LiveKitContextType | undefined>(undefined);
 
 export function LiveKitProvider({ children }: { children: ReactNode }) {
-  const { user, displayName } = useAuth();
+  const { user, displayName, accessToken } = useAuth();
   const [isLiveModalOpen, setIsLiveModalOpen] = useState(false);
   const [isHosting, setIsHosting] = useState(false);
   const [activeSessions, setActiveSessions] = useState<LiveSession[]>([]);
@@ -238,9 +238,11 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     const handleBeforeUnload = async () => {
       if (isHosting && user && liveRoomName) {
         // Use sendBeacon for reliable cleanup on page close
-        const data = new FormData();
+        if (!accessToken) return;
+        const data = new URLSearchParams();
         data.append('host_id', user.id);
         data.append('room_name', liveRoomName);
+        data.append('token', accessToken);
         navigator.sendBeacon(getApiUrl('/api/livekit/stop-hosting'), data);
         console.log('Stream cleanup on unload');
       }
@@ -250,7 +252,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isHosting, user, liveRoomName]);
+  }, [isHosting, user, liveRoomName, accessToken]);
 
   const clearSession = useCallback(() => {
     setLiveRoomName(null);
@@ -299,18 +301,20 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       }
 
       // Start fetching token immediately
+      if (!accessToken) {
+        throw new Error('Your session has expired. Please log in again.');
+      }
+
       const apiUrl = getApiUrl('/api/livekit/token');
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userName: displayName || 'Viewer',
           roomName: slugifiedRoomName,
           isHost: false,
-          avatarUrl: user?.user_metadata?.avatar_url || null,
-          userId: user?.id || null,
         }),
       });
 
@@ -324,12 +328,12 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         throw new Error(errorData.error || 'Failed to get token');
       }
       
-      const { token, identity, metadata } = await response.json();
+      const { token } = await response.json();
       setLiveRoomName(slugifiedRoomName);
       setLiveHostUserId(session?.host_id || null);
       setLiveToken(token);
       setIsHosting(false); // We are viewing, not hosting
-      console.log('Joined stream with identity:', identity, 'metadata:', metadata);
+      console.debug('Live stream joined.');
     } catch (error) {
       console.error('Error joining session:', error);
       let errorMsg = 'Failed to join session';
@@ -344,7 +348,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       // Re-throw so the UI can catch and display the error
       throw error;
     }
-  }, [displayName, user, clearSession]);
+  }, [displayName, user, accessToken, clearSession]);
 
   return (
     <LiveKitContext.Provider

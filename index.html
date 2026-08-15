@@ -122,7 +122,13 @@
         errDiv.style.color = 'white';
         errDiv.style.padding = '20px';
         errDiv.style.zIndex = '9999';
-        errDiv.innerHTML = '<strong>Startup Error:</strong><br>' + msg + '<br>at ' + url + ':' + line;
+        var title = document.createElement('strong');
+        title.textContent = 'Startup Error:';
+        errDiv.appendChild(title);
+        errDiv.appendChild(document.createElement('br'));
+        var details = document.createElement('span');
+        details.textContent = String(msg) + ' at ' + String(url || '') + ':' + String(line || '');
+        errDiv.appendChild(details);
         body.appendChild(errDiv);
         return false;
       };

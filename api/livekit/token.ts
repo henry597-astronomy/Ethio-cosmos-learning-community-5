@@ -8,7 +8,7 @@ import {
   getClientAddress,
   handleOptions,
   isValidRoomName,
-} from '../_lib/security';
+} from '../_lib/security.js';
 
 type TokenRequestBody = {
   roomName?: unknown;

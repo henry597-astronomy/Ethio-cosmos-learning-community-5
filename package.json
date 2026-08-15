@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build && npx cap sync android",
     "postinstall": "node scripts/patch-android.cjs",
     "lint": "eslint .",
+    "security:check": "node scripts/security-regression-check.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

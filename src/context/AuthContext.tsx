@@ -16,6 +16,7 @@ import { App as CapApp } from '@capacitor/app';
 
 interface AuthContextType {
   user: User | null;
+  accessToken: string | null;
   profile: UserProfile | null;
   loading: boolean;          // Legacy loading state (for backward compatibility)
   isProcessingAuth: boolean; // true during the jump back from Google/OAuth
@@ -42,6 +43,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -88,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (session: Session | null) => {
       const nextUser = session?.user ?? null;
       setUser(nextUser);
+      setAccessToken(session?.access_token ?? null);
 
       if (nextUser) {
         // Build optimistic profile from metadata
@@ -183,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        setAccessToken(null);
         setProfile(null);
         setAuthReady(true);
       }
@@ -331,6 +335,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        accessToken,
         profile,
         loading: !authReady,
         isProcessingAuth,

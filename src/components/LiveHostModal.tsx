@@ -21,7 +21,7 @@ export default function LiveHostModal({
   contextError,
   onClearError,
 }: LiveHostModalProps) {
-  const { user, displayName, avatarUrl } = useAuth();
+  const { user, accessToken } = useAuth();
   const [roomName, setRoomName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,27 +39,24 @@ export default function LiveHostModal({
     }
 
     try {
-      // Validate user is authenticated
-      if (!displayName) {
-        throw new Error('User not authenticated. Please log in first.');
+      // Validate user is authenticated before requesting a server-issued token.
+      if (!user || !accessToken) {
+        throw new Error('Your session has expired. Please log in again.');
       }
 
-      // Call the API to generate a token
+      // Call the API to generate a token. The server derives identity and
+      // metadata from the verified Supabase session instead of trusting the browser.
       const slugifiedRoomName = slugify(roomName.trim());
       const apiUrl = getApiUrl('/api/livekit/token');
-      console.log('Fetching token from:', apiUrl);
-      
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userName: displayName,
           roomName: slugifiedRoomName,
           isHost: true,
-          avatarUrl: avatarUrl || null,
-          userId: user?.id || null,
         }),
       });
 
@@ -73,7 +70,7 @@ export default function LiveHostModal({
         throw new Error(errorData.error || 'Failed to generate token');
       }
 
-      const { token, identity, metadata } = await response.json();
+      const { token } = await response.json();
       
       if (!token) {
         throw new Error('No token received from server');
@@ -81,7 +78,7 @@ export default function LiveHostModal({
       
       onStartStream(slugifiedRoomName, token);
       setRoomName('');
-      console.log('Stream started with identity:', identity, 'metadata:', metadata);
+      console.debug('Live stream token received.');
     } catch (err) {
       let errorMessage = 'An error occurred while starting the stream';
       if (err instanceof Error) {

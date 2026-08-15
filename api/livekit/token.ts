@@ -1,5 +1,6 @@
 import { AccessToken } from 'livekit-server-sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(
   req: VercelRequest,
@@ -25,11 +26,39 @@ export default async function handler(
   }
 
   try {
-    const { userName, roomName, isHost, avatarUrl, userId } = req.body;
+    const authorization = req.headers.authorization;
+    const accessToken = authorization?.startsWith('Bearer ')
+      ? authorization.slice('Bearer '.length).trim()
+      : '';
+
+    if (!accessToken) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase public server configuration');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: authData, error: authError } = await authClient.auth.getUser(accessToken);
+    if (authError || !authData.user) {
+      return res.status(401).json({ error: 'Invalid or expired session' });
+    }
+
+    const { userName, roomName, isHost, avatarUrl, userId } = req.body || {};
 
     // Validate inputs
     if (!userName || !roomName) {
       return res.status(400).json({ error: 'Missing userName or roomName' });
+    }
+
+    if (userId && userId !== authData.user.id) {
+      return res.status(403).json({ error: 'User identity mismatch' });
     }
 
     // Get environment variables

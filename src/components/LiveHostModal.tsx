@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { slugify } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api-config';
+import { supabase } from '@/supabase';
 
 interface LiveHostModalProps {
   isOpen: boolean;
@@ -44,7 +45,13 @@ export default function LiveHostModal({
         throw new Error('User not authenticated. Please log in first.');
       }
 
-      // Call the API to generate a token
+      // Call the API to generate a token using the current authenticated session.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+
       const slugifiedRoomName = slugify(roomName.trim());
       const apiUrl = getApiUrl('/api/livekit/token');
       console.log('Fetching token from:', apiUrl);
@@ -53,6 +60,7 @@ export default function LiveHostModal({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           userName: displayName,

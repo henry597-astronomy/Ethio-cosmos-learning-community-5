@@ -298,12 +298,19 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         session = sessionData[0];
       }
 
-      // Start fetching token immediately
+      // Start fetching token immediately using the current authenticated session.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+
       const apiUrl = getApiUrl('/api/livekit/token');
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           userName: displayName || 'Viewer',

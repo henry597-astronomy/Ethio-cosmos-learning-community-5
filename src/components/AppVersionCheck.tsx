@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/supabase';
 
 // Current app version matching the latest build
-const CURRENT_APP_VERSION = 16; // v1.6 corresponds to 16
+const CURRENT_APP_VERSION = 18; // v1.8 hardened build
 
 export default function AppVersionCheck({ children }: { children: React.ReactNode }) {
   const [updateRequired, setUpdateRequired] = useState(false);
-  const [minVersion, setMinVersion] = useState(16);
+  const [minVersion, setMinVersion] = useState(CURRENT_APP_VERSION);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, Download, RefreshCw, Wifi, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 import {
   getPrefetchProgress,
   prefetchAllContent,
@@ -20,12 +21,15 @@ const INITIAL_PROGRESS: PrefetchProgress = {
 };
 
 export default function AppUpdatePrompt() {
+  const { user } = useAuth();
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [modePromptVisible, setModePromptVisible] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<PrefetchProgress>(INITIAL_PROGRESS);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const beginOfflineDownload = useCallback(async () => {
+    if (!user) return;
+
     setModePromptVisible(true);
     setDownloadError(null);
     setDownloadProgress({ ...getPrefetchProgress(), status: 'running', currentItem: 'Preparing offline content...' });
@@ -44,7 +48,7 @@ export default function AppUpdatePrompt() {
       setDownloadError(error instanceof Error ? error.message : 'Offline download failed.');
       setDownloadProgress((progress) => ({ ...progress, status: 'error' }));
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const handleServiceWorkerUpdate = (event: Event) => {
@@ -57,7 +61,7 @@ export default function AppUpdatePrompt() {
     window.addEventListener('ethio:sw-update', handleServiceWorkerUpdate);
 
     const pendingOfflineDownload = sessionStorage.getItem('ethio-offline-download-pending') === '1';
-    if (pendingOfflineDownload) {
+    if (pendingOfflineDownload && user) {
       sessionStorage.removeItem('ethio-offline-download-pending');
       const timer = window.setTimeout(() => {
         void beginOfflineDownload();
@@ -84,7 +88,7 @@ export default function AppUpdatePrompt() {
       window.removeEventListener('ethio:sw-update', handleServiceWorkerUpdate);
       setPrefetchProgressCallback(() => undefined);
     };
-  }, [beginOfflineDownload]);
+  }, [beginOfflineDownload, user]);
 
   const handleUseOnline = () => {
     sessionStorage.setItem('ethio-usage-mode-chosen', '1');
@@ -100,6 +104,8 @@ export default function AppUpdatePrompt() {
   };
 
   const handleDownloadOffline = () => {
+    if (!user) return;
+
     sessionStorage.setItem('ethio-usage-mode-chosen', '1');
 
     if (updateRegistration) {
@@ -118,7 +124,8 @@ export default function AppUpdatePrompt() {
     setModePromptVisible(false);
   };
 
-  if (!modePromptVisible) return null;
+  // Move the conditional return to the END to avoid breaking hooks order
+  if (!user || !modePromptVisible) return null;
 
   const isUpdate = Boolean(updateRegistration);
   const isDownloading = downloadProgress.status === 'running';

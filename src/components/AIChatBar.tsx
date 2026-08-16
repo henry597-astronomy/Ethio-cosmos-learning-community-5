@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Send, Sparkles, X, MessageSquare, Loader2 } from 'lucide-react';
+import { Send, Sparkles, X, MessageSquare, Loader2, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { getGroqChatCompletion, type Message } from '@/services/groq';
+import { transcribeVoiceRecording } from '@/services/voice';
 import { cn } from '@/lib/utils';
 
 export default function AIChatBar() {
@@ -10,7 +11,14 @@ export default function AIChatBar() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
   
   // Draggable state
   const [position, setPosition] = useState({ x: window.innerWidth - 88, y: window.innerHeight - 88 });
@@ -67,6 +75,16 @@ export default function AIChatBar() {
   };
 
   useEffect(() => () => clearSnapTimeout(), []);
+
+  useEffect(() => () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -169,26 +187,142 @@ export default function AIChatBar() {
     };
   }, [isDragging]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const speakResponse = (text: string) => {
+    if (!isSpeechEnabled || !('speechSynthesis' in window)) return;
 
-    const userMessage: Message = { role: 'user', content: input.trim() };
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = navigator.language || 'en-US';
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const submitMessage = async (messageText: string) => {
+    const trimmedMessage = messageText.trim();
+    if (!trimmedMessage || isLoading || isTranscribing) return;
+
+    const userMessage: Message = { role: 'user', content: trimmedMessage };
     const newMessages = [...messages, userMessage];
-    
+
     setMessages(newMessages);
     setInput('');
+    setVoiceError(null);
     setIsLoading(true);
 
     try {
       const response = await getGroqChatCompletion(newMessages);
       setMessages([...newMessages, { role: 'assistant', content: response }]);
+      speakResponse(response);
     } catch (error) {
       console.error('Chat error:', error);
       setMessages([...newMessages, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitMessage(input);
+  };
+
+  const stopMediaStream = () => {
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
+    mediaRecorderRef.current = null;
+  };
+
+  const stopVoiceRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
+    if (recorder.state !== 'inactive') {
+      recorder.stop();
+    }
+  };
+
+  const startVoiceRecording = async () => {
+    if (isLoading || isTranscribing || isRecording) return;
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setVoiceError('Voice recording is not supported on this device.');
+      return;
+    }
+
+    setVoiceError(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      const supportedMimeType = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+      ].find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
+      const recorder = supportedMimeType
+        ? new MediaRecorder(stream, { mimeType: supportedMimeType })
+        : new MediaRecorder(stream);
+
+      mediaStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+      recordingChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordingChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const recording = new Blob(recordingChunksRef.current, {
+          type: recorder.mimeType || 'audio/webm',
+        });
+        stopMediaStream();
+        setIsRecording(false);
+        recordingChunksRef.current = [];
+
+        if (recording.size <= 0) {
+          setVoiceError('No audio was recorded. Please try again.');
+          return;
+        }
+
+        setIsTranscribing(true);
+        void transcribeVoiceRecording(recording)
+          .then((transcribedText) => submitMessage(transcribedText))
+          .catch((error: unknown) => {
+            console.error('Voice transcription error:', error);
+            setVoiceError(error instanceof Error ? error.message : 'Voice transcription failed.');
+          })
+          .finally(() => setIsTranscribing(false));
+      };
+
+      recorder.onerror = () => {
+        stopMediaStream();
+        setIsRecording(false);
+        setVoiceError('Microphone recording failed. Please try again.');
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      stopMediaStream();
+      setIsRecording(false);
+      const errorName = error instanceof DOMException ? error.name : '';
+      setVoiceError(errorName === 'NotAllowedError'
+        ? 'Microphone permission is required for voice input.'
+        : 'Microphone is unavailable. Please try again.');
+    }
+  };
+
+  const toggleSpeech = () => {
+    if (isSpeechEnabled && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeechEnabled((enabled) => !enabled);
   };
 
   // Calculate a centered chat window inside the currently visible viewport.
@@ -240,14 +374,25 @@ export default function AIChatBar() {
                 </div>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon-sm" 
-              onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white hover:bg-white/10"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={toggleSpeech}
+                aria-label={isSpeechEnabled ? 'Mute AI voice' : 'Enable AI voice'}
+                className="text-slate-400 hover:text-white hover:bg-white/10"
+              >
+                {isSpeechEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setIsOpen(false)}
+                className="text-slate-400 hover:text-white hover:bg-white/10"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -293,18 +438,36 @@ export default function AIChatBar() {
 
           {/* Input */}
           <form onSubmit={handleSubmit} className="shrink-0 p-3 sm:p-4 border-t border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] bg-white/5 dark:bg-white/5 light-theme:bg-slate-100">
+            {(isRecording || isTranscribing || voiceError) && (
+              <div className="mb-2 text-[11px] text-slate-300 dark:text-slate-300 light-theme:text-slate-600" role="status">
+                {isRecording ? 'Listening… tap the microphone to stop.' : isTranscribing ? 'Transcribing your question…' : voiceError}
+              </div>
+            )}
             <div className="flex gap-2">
+              <Button
+                type="button"
+                size="icon"
+                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                disabled={isLoading || isTranscribing}
+                aria-label={isRecording ? 'Stop voice recording' : 'Start voice recording'}
+                className={cn(
+                  'text-white shrink-0',
+                  isRecording ? 'bg-red-600 hover:bg-red-500' : 'bg-violet-600 hover:bg-violet-500',
+                )}
+              >
+                {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask a question..."
                 className="bg-slate-800/50 dark:bg-slate-800/50 light-theme:bg-white border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] text-white dark:text-white light-theme:text-[#0f172a] placeholder:text-slate-500 light-theme:placeholder:text-slate-400 focus:ring-blue-500"
-                disabled={isLoading}
+                disabled={isLoading || isRecording || isTranscribing}
               />
-              <Button 
-                type="submit" 
-                size="icon" 
-                disabled={!input.trim() || isLoading}
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!input.trim() || isLoading || isRecording || isTranscribing}
                 className="bg-blue-600 hover:bg-blue-500 text-white shrink-0"
               >
                 <Send className="w-4 h-4" />

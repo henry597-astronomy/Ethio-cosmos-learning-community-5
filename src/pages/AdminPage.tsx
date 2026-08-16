@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Check, X, Search, ShieldCheck, ShieldOff, Ban, CircleCheck } from 'lucide-react';
+import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Check, X, Search, ShieldCheck, ShieldOff, Ban, CircleCheck, Download, RefreshCw, Smartphone } from 'lucide-react';
 import type {
   Topic,
   Subtopic,
@@ -141,6 +141,34 @@ export default function AdminPage() {
   const [spaceNews, setSpaceNews] = useState<SpaceNews[]>([]);
   const [spaceNewsLoading, setSpaceNewsLoading] = useState(false);
   const [spaceNewsError, setSpaceNewsError] = useState<string | null>(null);
+  const [analyticsEvents, setAnalyticsEvents] = useState<{
+    event_name: 'apk_download_click' | 'apk_first_open' | 'apk_open';
+    anonymous_id: string;
+    platform: 'web' | 'android';
+    app_version: number | null;
+    release_tag: string | null;
+    created_at: string;
+  }[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+
+  const fetchAnalytics = async () => {
+    setAnalyticsLoading(true);
+    setAnalyticsError(null);
+    try {
+      const { data, error } = await supabase
+        .from('app_analytics_events')
+        .select('event_name, anonymous_id, platform, app_version, release_tag, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      setAnalyticsEvents((data || []) as typeof analyticsEvents);
+    } catch (error) {
+      setAnalyticsError(error instanceof Error ? error.message : 'Failed to load analytics');
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
 
   const fetchSpaceNews = async () => {
     setSpaceNewsLoading(true);
@@ -181,6 +209,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (activeTab === 'space-news') fetchSpaceNews();
+    if (activeTab === 'analytics') fetchAnalytics();
   }, [activeTab]);
 
   const fetchUsers = async () => {
@@ -356,8 +385,8 @@ export default function AdminPage() {
   if (!user) return null;
 
   // Define which tabs are available for regular admins vs super admin
-  const regularAdminTabs = ['home', 'lessons', 'space-news'];
-  const allTabs = ['home', 'homepage', 'topics', 'subtopics', 'lessons', 'space-news', 'about', 'materials', 'quizzes', 'users'];
+  const regularAdminTabs = ['home', 'lessons', 'space-news', 'analytics'];
+  const allTabs = ['home', 'homepage', 'topics', 'subtopics', 'lessons', 'space-news', 'about', 'materials', 'quizzes', 'users', 'analytics'];
   const availableTabs = isSuperAdmin ? allTabs : regularAdminTabs;
 
   // If user tries to access a restricted tab, reset to first available tab
@@ -368,6 +397,12 @@ export default function AdminPage() {
   // Only block on initial load errors, not on save errors
   const allLoading = topicsLoading || subtopicsLoading || lessonLoading || quizzesLoading || quizQuestionsLoading || homepageHero.loading || homepageFeatureCards.loading || homepageFeaturedTopics.loading || aboutContent.loading || materialsGalleryImages.loading || materialsVideos.loading || materialsPdfs.loading;
   const initialLoadError = topicsError || subtopicsError || lessonError || quizzesError || quizQuestionsError || homepageHero.error || homepageFeatureCards.error || homepageFeaturedTopics.error || aboutContent.error || materialsGalleryImages.error || materialsVideos.error || materialsPdfs.error;
+  const downloadEvents = analyticsEvents.filter((event) => event.event_name === 'apk_download_click');
+  const firstOpenEvents = analyticsEvents.filter((event) => event.event_name === 'apk_first_open');
+  const appOpenEvents = analyticsEvents.filter((event) => event.event_name === 'apk_open');
+  const uniqueDownloadVisitors = new Set(downloadEvents.map((event) => event.anonymous_id)).size;
+  const uniqueInstallations = new Set(firstOpenEvents.map((event) => event.anonymous_id)).size;
+  const uniqueOpenDevices = new Set(appOpenEvents.map((event) => event.anonymous_id)).size;
 
   if (allLoading) {
     return (
@@ -1019,6 +1054,76 @@ export default function AdminPage() {
                   </div>
                 </article>
               ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-white">APK Analytics</h2>
+                <p className="mt-1 text-sm text-gray-400">Anonymous download clicks, first opens, and repeat app opens. Visible to administrators only.</p>
+              </div>
+              <Button onClick={fetchAnalytics} disabled={analyticsLoading} className="bg-orange-500 text-white hover:bg-orange-600">
+                <RefreshCw size={16} className={`mr-2 ${analyticsLoading ? 'animate-spin' : ''}`} />
+                {analyticsLoading ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </div>
+
+            {analyticsError && <p className="rounded-lg border border-red-500/30 bg-red-950/30 p-4 text-sm text-red-300">{analyticsError}</p>}
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-orange-500/20 bg-slate-900/70 p-4">
+                <div className="flex items-center justify-between text-gray-400"><span>APK download clicks</span><Download size={18} className="text-orange-400" /></div>
+                <p className="mt-2 text-3xl font-bold text-white">{downloadEvents.length}</p>
+                <p className="mt-1 text-xs text-gray-500">{uniqueDownloadVisitors} unique web visitors</p>
+              </div>
+              <div className="rounded-xl border border-green-500/20 bg-slate-900/70 p-4">
+                <div className="flex items-center justify-between text-gray-400"><span>First opens</span><Smartphone size={18} className="text-green-400" /></div>
+                <p className="mt-2 text-3xl font-bold text-white">{firstOpenEvents.length}</p>
+                <p className="mt-1 text-xs text-gray-500">{uniqueInstallations} unique APK installations</p>
+              </div>
+              <div className="rounded-xl border border-blue-500/20 bg-slate-900/70 p-4">
+                <div className="flex items-center justify-between text-gray-400"><span>App opens</span><CircleCheck size={18} className="text-blue-400" /></div>
+                <p className="mt-2 text-3xl font-bold text-white">{appOpenEvents.length}</p>
+                <p className="mt-1 text-xs text-gray-500">{uniqueOpenDevices} unique Android devices</p>
+              </div>
+              <div className="rounded-xl border border-purple-500/20 bg-slate-900/70 p-4">
+                <div className="flex items-center justify-between text-gray-400"><span>Events loaded</span><RefreshCw size={18} className="text-purple-400" /></div>
+                <p className="mt-2 text-3xl font-bold text-white">{analyticsEvents.length}</p>
+                <p className="mt-1 text-xs text-gray-500">Most recent 5,000 events</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-slate-900/70 p-4">
+              <p className="text-sm text-gray-400">First-open counts show unique anonymous APK installations per released app version. Download clicks and first opens are separate totals; a direct APK download cannot be technically attributed to a later installation without using a store attribution service.</p>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-900/70">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3">Event</th>
+                    <th className="px-4 py-3">Platform</th>
+                    <th className="px-4 py-3">Version</th>
+                    <th className="px-4 py-3">Time</th>
+                    <th className="px-4 py-3">Anonymous ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analyticsEvents.slice(0, 100).map((event, index) => (
+                    <tr key={`${event.created_at}-${event.anonymous_id}-${index}`} className="border-b border-white/5 text-gray-300 last:border-0">
+                      <td className="px-4 py-3 font-medium text-white">{event.event_name.replaceAll('_', ' ')}</td>
+                      <td className="px-4 py-3">{event.platform}</td>
+                      <td className="px-4 py-3">{event.release_tag || (event.app_version ? `v1.${event.app_version}` : '—')}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{new Date(event.created_at).toLocaleString()}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{event.anonymous_id.slice(0, 8)}…</td>
+                    </tr>
+                  ))}
+                  {!analyticsLoading && analyticsEvents.length === 0 && (
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No analytics events have been recorded yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </TabsContent>
 

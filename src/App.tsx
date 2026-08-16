@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
@@ -12,6 +13,7 @@ import AppUpdatePrompt from '@/components/AppUpdatePrompt';
 import AppVersionCheck from '@/components/AppVersionCheck';
 import AIChatBar from '@/components/AIChatBar';
 import BottomTaskBar from '@/components/BottomTaskBar';
+import { recordAndroidAppOpen } from '@/services/app-analytics';
 
 import HomePage from '@/pages/HomePage';
 import LearningPage from '@/pages/LearningPage';
@@ -81,6 +83,10 @@ function AppRoutes() {
 }
 
 function App() {
+  useEffect(() => {
+    void recordAndroidAppOpen();
+  }, []);
+
   return (
     <AuthProvider>
       <CmsProvider>

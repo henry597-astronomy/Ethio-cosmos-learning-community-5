@@ -17,6 +17,7 @@ function getAllowedOrigins(): Set<string> {
   return new Set([
     'https://ethio-cosmos-learning-community-5.vercel.app',
     'capacitor://localhost',
+    'https://localhost',
     'http://localhost',
     'http://localhost:5173',
     ...configuredOrigins,

@@ -43,6 +43,22 @@ export default function InstallPrompt() {
     sessionStorage.setItem(APK_PROMPT_DISMISSED_KEY, 'true');
   };
 
+  const triggerDownload = (e: React.MouseEvent) => {
+    e.preventDefault();
+    recordApkDownloadClick();
+    
+    // Create a hidden iframe to trigger the download without navigating the main page
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = '/api/download/apk';
+    document.body.appendChild(iframe);
+    
+    // Remove the iframe after a short delay
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+    }, 2000);
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -71,14 +87,14 @@ export default function InstallPrompt() {
               Note: If Chrome shows a security warning ("File might be harmful"), tap <strong>Keep</strong> or <strong>Download anyway</strong> to complete the installation.
             </p>
             <div className="flex gap-3">
-              <a
-                href="/api/download/apk"
-                onClick={recordApkDownloadClick}
+              <button
+                type="button"
+                onClick={triggerDownload}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
               >
                 <Download size={16} />
                 Download APK
-              </a>
+              </button>
               <button
                 type="button"
                 onClick={handleDismiss}

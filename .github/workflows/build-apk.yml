@@ -1,7 +1,7 @@
 name: Build Android APK
 on:
   push:
-    branches: [ feature/android-wrapper ]
+    branches: [ main, feature/android-wrapper ]
   workflow_dispatch:
 jobs:
   build:

@@ -7,6 +7,9 @@ import {
   handleOptions,
 } from './_lib/security.js';
 
+// Groq's legacy Llama model IDs are retired. Pin the production proxy to a supported model.
+const GROQ_MODEL = 'openai/gpt-oss-120b';
+
 const SYSTEM_PROMPT = `You are the Ethio-Cosmos AI assistant for the Ethio-Cosmos Learning Community. 
 CRITICAL PROJECT FACTS (Always use these when asked about who created or built this platform):
 - Platform Name: Ethio-Cosmos Learning Community
@@ -72,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: process.env.GROQ_MODEL || 'llama-3.1-70b-versatile',
+        model: GROQ_MODEL,
         messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
         temperature: 0.7,
         max_tokens: 1024,

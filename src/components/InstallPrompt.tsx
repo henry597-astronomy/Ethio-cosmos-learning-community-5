@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Download, Smartphone, X } from 'lucide-react';
 import { recordApkDownloadClick } from '@/services/app-analytics';
 
-const APK_DOWNLOAD_URL = '/api/download/apk';
+const APK_DOWNLOAD_URL =
+  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.8.0/ethiocosmos-v1.8-hardened.apk';
 const APK_PROMPT_DISMISSED_KEY = 'android-apk-prompt-dismissed';
 
 type CapacitorWindow = Window & {
@@ -45,8 +46,8 @@ export default function InstallPrompt() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-6 left-4 right-4 z-[200] animate-in fade-in slide-in-from-bottom-4 duration-500 md:left-auto md:right-6 md:w-96">
-      <div className="relative overflow-hidden rounded-xl border border-orange-400/60 bg-[#06131f] p-5 shadow-2xl shadow-black/70 ring-1 ring-orange-300/20">
+    <div className="fixed bottom-6 left-4 right-4 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-500 md:left-auto md:right-6 md:w-96">
+      <div className="relative overflow-hidden rounded-xl border border-orange-500/30 bg-slate-900 p-5 shadow-2xl">
         <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-500/10 blur-3xl" />
         <button
           type="button"
@@ -69,7 +70,8 @@ export default function InstallPrompt() {
             <div className="flex gap-3">
               <a
                 href={APK_DOWNLOAD_URL}
-                download="ethiocosmos-v1.8.0.apk"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={recordApkDownloadClick}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
               >

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { slugify } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api-config';
+import { supabase } from '@/supabase';
 
 interface LiveHostModalProps {
   isOpen: boolean;
@@ -21,7 +22,7 @@ export default function LiveHostModal({
   contextError,
   onClearError,
 }: LiveHostModalProps) {
-  const { user, accessToken } = useAuth();
+  const { displayName } = useAuth();
   const [roomName, setRoomName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,20 +40,27 @@ export default function LiveHostModal({
     }
 
     try {
-      // Validate user is authenticated before requesting a server-issued token.
-      if (!user || !accessToken) {
-        throw new Error('Your session has expired. Please log in again.');
+      // Validate user is authenticated
+      if (!displayName) {
+        throw new Error('User not authenticated. Please log in first.');
       }
 
-      // Call the API to generate a token. The server derives identity and
-      // metadata from the verified Supabase session instead of trusting the browser.
+      // Call the API to generate a token using the current authenticated session.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+
       const slugifiedRoomName = slugify(roomName.trim());
       const apiUrl = getApiUrl('/api/livekit/token');
+      console.log('Fetching token from:', apiUrl);
+      
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           roomName: slugifiedRoomName,
@@ -70,7 +78,7 @@ export default function LiveHostModal({
         throw new Error(errorData.error || 'Failed to generate token');
       }
 
-      const { token } = await response.json();
+      const { token, identity, metadata } = await response.json();
       
       if (!token) {
         throw new Error('No token received from server');
@@ -78,7 +86,7 @@ export default function LiveHostModal({
       
       onStartStream(slugifiedRoomName, token);
       setRoomName('');
-      console.debug('Live stream token received.');
+      console.log('Stream started with identity:', identity, 'metadata:', metadata);
     } catch (err) {
       let errorMessage = 'An error occurred while starting the stream';
       if (err instanceof Error) {

@@ -15,7 +15,10 @@ type TokenRequestBody = {
   isHost?: unknown;
 };
 
-function getProfileDisplayName(profile: { username?: string | null } | null, user: { email?: string; user_metadata?: Record<string, unknown> }): string {
+function getProfileDisplayName(
+  profile: { username?: string | null } | null,
+  user: { email?: string; user_metadata?: Record<string, unknown> },
+): string {
   const metadata = user.user_metadata || {};
   const candidate = profile?.username
     || (typeof metadata.full_name === 'string' ? metadata.full_name : null)
@@ -26,7 +29,10 @@ function getProfileDisplayName(profile: { username?: string | null } | null, use
   return boundedString(candidate, 80) || 'User';
 }
 
-function getSafeAvatarUrl(profile: { avatar_url?: string | null } | null, user: { user_metadata?: Record<string, unknown> }): string | null {
+function getSafeAvatarUrl(
+  profile: { avatar_url?: string | null } | null,
+  user: { user_metadata?: Record<string, unknown> },
+): string | null {
   const metadataAvatar = user.user_metadata?.avatar_url;
   const candidate = profile?.avatar_url || (typeof metadataAvatar === 'string' ? metadataAvatar : null);
   if (!candidate || candidate.length > 2048) return null;

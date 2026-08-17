@@ -35,9 +35,9 @@ The "Host Live" button is now available in the center of the bottom taskbar, all
 The following environment variables must be configured in Vercel:
 
 ```
-VITE_LIVEKIT_URL=wss://ethiocosmos-learning-community-1vp1cr43.livekit.cloud
-LIVEKIT_API_KEY=API44EwLtPL9qPg
-LIVEKIT_API_SECRET=bb79QVaGDsuYSV8ibGWcfAaCF97jyHzMLlNfcnNPnAn
+VITE_LIVEKIT_URL=wss://your-livekit-project.livekit.cloud
+LIVEKIT_API_KEY=<set-in-vercel-only>
+LIVEKIT_API_SECRET=<set-in-vercel-only>
 ```
 
 **Important**: 

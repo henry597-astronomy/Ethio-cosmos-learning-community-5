@@ -73,16 +73,8 @@ export default function AppUpdatePrompt() {
       };
     }
 
-    const hasChosenMode = sessionStorage.getItem('ethio-usage-mode-chosen') === '1';
-    const hasOfflineCache = localStorage.getItem('ethio-offline-cache-ready') === '1';
-    if (!hasChosenMode && !hasOfflineCache && navigator.onLine) {
-      const timer = window.setTimeout(() => setModePromptVisible(true), 1400);
-      return () => {
-        window.clearTimeout(timer);
-        window.removeEventListener('ethio:sw-update', handleServiceWorkerUpdate);
-        setPrefetchProgressCallback(() => undefined);
-      };
-    }
+    // Only show prompt if there is a new update/change detected by service worker
+    // (Removed initial first-load prompt so it only comes when there are new changes)
 
     return () => {
       window.removeEventListener('ethio:sw-update', handleServiceWorkerUpdate);
@@ -214,12 +206,3 @@ export default function AppUpdatePrompt() {
     </div>
   );
 }
-
-export { AppUpdatePrompt };
-
-// Keep the exported type available to the compiler when this component is imported
-// in environments that do not expose ServiceWorkerRegistration globally.
-export type { UpdateEventDetail };
-
-// Prevent a tree-shaker from treating the type-only import as runtime code.
-void INITIAL_PROGRESS;

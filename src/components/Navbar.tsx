@@ -128,15 +128,18 @@ export default function Navbar() {
               <Sheet open={profilePanelOpen} onOpenChange={setProfilePanelOpen}>
                 <button
                   onClick={() => setProfilePanelOpen(true)}
-                  className="w-10 h-10 rounded-xl border-2 border-white/10 overflow-hidden hover:border-orange-500/50 transition-all focus:outline-none"
+                  className="flex items-center gap-2 px-1.5 h-11 rounded-xl border-2 border-white/10 bg-slate-900/50 hover:border-orange-500/50 transition-all focus:outline-none"
                 >
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white font-bold">
-                      {displayName.charAt(0)}
-                    </div>
-                  )}
+                  <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/5">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold">
+                        {displayName.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <Menu size={18} className="text-orange-400/80 mr-0.5" />
                 </button>
 
                 <SheetContent side="right" className="w-[85%] sm:max-w-md p-0 bg-slate-950 border-l border-white/10">

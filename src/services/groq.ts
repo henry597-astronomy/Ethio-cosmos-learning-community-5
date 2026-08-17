@@ -6,29 +6,20 @@ export interface Message {
 }
 
 export async function getGroqChatCompletion(messages: Message[]): Promise<string> {
-  const response = await fetch(getApiUrl('/api/groq'), {
+  const response = await fetch(getApiUrl('/api/groq/chat'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      messages: messages.map(({ role, content }) => ({ role, content })),
-    }),
+    body: JSON.stringify({ messages }),
   });
 
-  let data: { content?: unknown; error?: unknown } = {};
-  try {
-    data = await response.json();
-  } catch {
-    // Keep the user-facing error generic if the server did not return JSON.
-  }
-
+  const data = await response.json().catch(() => null);
   if (!response.ok) {
-    const message = typeof data.error === 'string' ? data.error : 'AI service is temporarily unavailable';
-    throw new Error(message);
+    throw new Error(data?.error || 'Failed to get response from AI service');
   }
 
-  if (typeof data.content !== 'string' || data.content.length === 0) {
+  if (typeof data?.content !== 'string') {
     throw new Error('AI service returned an invalid response');
   }
 

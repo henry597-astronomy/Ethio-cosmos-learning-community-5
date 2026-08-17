@@ -7,8 +7,9 @@ android {
         applicationId "com.ethiocosmos.learning"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.0"
+        // Version 18 is the hardened build following v1.7. Older APKs can be retired remotely.
+        versionCode 18
+        versionName "1.8.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,8 +19,20 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Keep the release wrapper smaller and harder to reverse-engineer.
+            // The APK still contains the web bundle, so server secrets must never be placed in frontend code.
+            minifyEnabled true
+            shrinkResources true
+            // Use the debug signing key for this installable test artifact only.
+            // A private release keystore is required before Play Store publication.
+            signingConfig signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // CI currently distributes app-debug.apk; keep it compatible while applying native shrinking.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     compileOptions {

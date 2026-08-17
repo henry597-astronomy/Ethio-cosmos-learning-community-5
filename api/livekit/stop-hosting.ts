@@ -18,8 +18,8 @@ type StopHostingBody = {
 
 function parseBody(req: VercelRequest): StopHostingBody {
   if (req.body && typeof req.body === 'object') return req.body as StopHostingBody;
-
   if (typeof req.body !== 'string' && !Buffer.isBuffer(req.body)) return {};
+
   const bodyString = typeof req.body === 'string' ? req.body : req.body.toString('utf8');
   const params = new URLSearchParams(bodyString);
   if (params.has('room_name') || params.has('token')) {

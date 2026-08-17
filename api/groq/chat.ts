@@ -105,7 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-70b-versatile',
         messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...safeMessages.filter((message) => message.role !== 'system')],
         temperature: 0.7,
         max_tokens: 1024,

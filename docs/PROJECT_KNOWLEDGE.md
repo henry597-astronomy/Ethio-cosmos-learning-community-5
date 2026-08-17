@@ -33,7 +33,7 @@ This document summarizes the core vision, mission, and technical requirements of
 3.  **Android Optimization:** Enhancing offline access and native performance for regional connectivity challenges.
 
 ## 6. Organization (Lead Developers)
-*   **Henok Girma:** Founder, Team Leader, Lead Developer, and UI/UX Designer. A student at Dodola Ifa Boru Special Boarding School (Class of 2018 E.C.), who established the EthioCosmos development team.
+*   **Henok Girma:** Founder, Team Leader, Lead Developer, and UI/UX Designer. A student at Dodola Ifa Boru Special Boarding School (Class of 2017 E.C.), who established the EthioCosmos development team.
 *   **Rebira Bekele:** Lead Developer, UI/UX Designer, DevOps Engineer.
 
 ---

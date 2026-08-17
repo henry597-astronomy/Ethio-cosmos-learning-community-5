@@ -188,14 +188,45 @@ export default function AIChatBar() {
   }, [isDragging]);
 
   const speakResponse = (text: string) => {
-    if (!isSpeechEnabled || !('speechSynthesis' in window)) return;
+    if (!isSpeechEnabled) return;
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = navigator.language || 'en-US';
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
-    window.speechSynthesis.speak(utterance);
+    // Check if the text contains Ethiopic/Amharic characters
+    const isAmharic = /[\u1200-\u137F]/.test(text);
+    const targetLang = isAmharic ? 'am-ET' : (navigator.language || 'en-US');
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = targetLang;
+      utterance.rate = 0.90; // Slower rate for clearer Amharic articulation
+      utterance.pitch = 1;
+
+      // Try to find a native Amharic voice if available
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        const matchingVoice = voices.find(v => v.lang.startsWith(isAmharic ? 'am' : targetLang.slice(0, 2)));
+        if (matchingVoice) {
+          utterance.voice = matchingVoice;
+        }
+      }
+
+      // If synthesis finishes or errors, we're good
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // If it's Amharic and device TTS might fail, also trigger a clean client-side audio stream fallback for perfect pronunciation
+    if (isAmharic) {
+      try {
+        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text.slice(0, 200))}&tl=am&client=tw-ob`;
+        const audio = new Audio(ttsUrl);
+        audio.volume = 0.9;
+        audio.play().catch(() => {
+          // Fallback to browser synthesis if network audio is blocked
+        });
+      } catch {
+        // Ignore audio playback errors on restricted mobile webviews
+      }
+    }
   };
 
   const submitMessage = async (messageText: string) => {

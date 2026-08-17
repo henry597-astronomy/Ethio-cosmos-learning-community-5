@@ -5,8 +5,8 @@ const APK_RELEASE_URL =
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+  res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.8.apk"');
 
   if (req.method === 'GET' || req.method === 'HEAD') {
     res.statusCode = 302;

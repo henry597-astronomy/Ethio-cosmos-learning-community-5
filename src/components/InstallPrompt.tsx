@@ -47,8 +47,8 @@ export default function InstallPrompt() {
 
   return (
     <div className="fixed bottom-6 left-4 right-4 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-500 md:left-auto md:right-6 md:w-96">
-      <div className="relative overflow-hidden rounded-xl border border-orange-500/30 bg-slate-900 p-5 shadow-2xl">
-        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-500/10 blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl border-2 border-orange-500 bg-slate-950 p-6 shadow-[0_0_50px_rgba(249,115,22,0.25)]">
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-500/20 blur-2xl" />
         <button
           type="button"
           onClick={handleDismiss}
@@ -64,8 +64,11 @@ export default function InstallPrompt() {
           </div>
           <div className="flex-1">
             <h3 className="mb-1 text-lg font-bold text-white">Download the EthioCosmos APK</h3>
-            <p className="mb-4 text-sm text-gray-400">
+            <p className="mb-2 text-sm text-gray-200">
               Get the Android app for faster access, live streaming, and offline learning content.
+            </p>
+            <p className="mb-4 text-xs text-orange-400 font-medium">
+              Note: If Chrome shows a security warning ("File might be harmful"), tap <strong>Keep</strong> or <strong>Download anyway</strong> to complete the installation.
             </p>
             <div className="flex gap-3">
               <a

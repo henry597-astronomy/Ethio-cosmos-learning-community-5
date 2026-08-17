@@ -3,7 +3,7 @@ import { Download, Smartphone, X } from 'lucide-react';
 import { recordApkDownloadClick } from '@/services/app-analytics';
 
 const APK_DOWNLOAD_URL =
-  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.8.0/ethiocosmos-v1.8-hardened.apk';
+  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.9.0/ethiocosmos-v1.9-voice.apk';
 const APK_PROMPT_DISMISSED_KEY = 'android-apk-prompt-dismissed';
 
 type CapacitorWindow = Window & {
@@ -47,16 +47,9 @@ export default function InstallPrompt() {
     e.preventDefault();
     recordApkDownloadClick();
     
-    // Create a hidden iframe to trigger the download without navigating the main page
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = '/api/download/apk';
-    document.body.appendChild(iframe);
-    
-    // Remove the iframe after a short delay
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-    }, 2000);
+    // Use direct location assignment which is more reliable for downloads
+    // Chrome will stay on the page because the response is a file download.
+    window.location.href = '/api/download/apk';
   };
 
   if (!isVisible) return null;

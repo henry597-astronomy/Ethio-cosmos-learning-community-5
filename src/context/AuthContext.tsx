@@ -13,6 +13,7 @@ import type { UserProfile } from '@/types';
 import { getGravatarUrl } from '@/lib/gravatar';
 import { Browser } from '@capacitor/browser';
 import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthContextType {
   user: User | null;
@@ -180,7 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         applySession(session);
         // If we just signed in on mobile, force jump to home
-        const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+        const isMobile = Capacitor.isNativePlatform();
         if (event === 'SIGNED_IN' && isMobile) {
           window.location.hash = '/';
         }
@@ -235,7 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession, handleDeepLink]);
 
   const signInWithGoogle = useCallback(async () => {
-    const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+    const isMobile = Capacitor.isNativePlatform();
     const redirectTo = isMobile 
       ? 'com.ethiocosmos.learning://login' 
       : window.location.origin;
@@ -269,7 +270,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, username?: string) => {
-      const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+      const isMobile = Capacitor.isNativePlatform();
       const redirectTo = isMobile 
         ? 'com.ethiocosmos.learning://login' 
         : window.location.origin;

@@ -7,9 +7,9 @@ android {
         applicationId "com.ethiocosmos.learning"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Version 23 switches to TikTok embed/v2 player and production hostname matching.
-        versionCode 23
-        versionName "1.9.4"
+        // Version 24 fixes mobile OAuth redirect by using Capacitor.isNativePlatform().
+        versionCode 24
+        versionName "1.9.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

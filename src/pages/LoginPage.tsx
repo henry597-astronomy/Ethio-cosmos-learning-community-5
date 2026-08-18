@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -84,7 +85,7 @@ export default function LoginPage() {
       }
       setActionLoading(true);
       try {
-        const isMobile = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+        const isMobile = Capacitor.isNativePlatform();
         const redirectTo = isMobile 
           ? 'com.ethiocosmos.learning://login' 
           : `${window.location.origin}/login`;

@@ -7,7 +7,7 @@
 // 4. Network-first for API calls with cache fallback
 // 5. Cache-first for static assets with network refresh
 
-const CACHE_VERSION = 'v17';
+const CACHE_VERSION = 'v18';
 const STATIC_CACHE = `ethio-cosmos-static-${CACHE_VERSION}`;
 const API_CACHE = `ethio-cosmos-api-${CACHE_VERSION}`;
 const IMAGE_CACHE = `ethio-cosmos-images-${CACHE_VERSION}`;
@@ -189,11 +189,9 @@ function isMediaUrl(url) {
 // ── Install: Cache all static assets ──────────────────────────────────────
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
-  // First install should activate immediately; later updates wait so the app
-  // can ask the user whether to use the live update or prepare offline content.
-  if (!self.registration.active) {
-    self.skipWaiting();
-  }
+  // Activate updates immediately so the website cannot remain on an old
+  // cached bundle or download endpoint after a production deployment.
+  self.skipWaiting();
   
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
@@ -256,6 +254,10 @@ self.addEventListener('fetch', (event) => {
 
   // 1. Never intercept non-GET requests
   if (request.method !== 'GET') return;
+
+  // APK downloads must always reach the Vercel streaming proxy. Never cache
+  // them, otherwise a previously downloaded APK can be served indefinitely.
+  if (getUrlPath(url) === '/api/download/apk') return;
 
   // 2. Never intercept auth/OAuth or unrelated third-party requests.
   // Supabase REST reads are allowed through the public/private cache paths below.

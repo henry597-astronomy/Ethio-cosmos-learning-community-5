@@ -26,38 +26,21 @@ export default function LoginPage() {
   const redirectTarget =
     ((location.state as LocationState)?.from?.pathname) || '/';
 
-  // Handle "native=true" redirect from Supabase.
-  // If we are in the browser but the URL says native=true, it means the OAuth
-  // flow finished and we need to bounce the user back to the app scheme.
+  // Reset local loading state when app comes back to foreground
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const isNativeRedirect = params.get('native') === 'true';
-    
-    // Check for PKCE code or Implicit flow tokens
-    const hasAuthData = params.has('code') || 
-                        window.location.hash.includes('access_token') ||
-                        window.location.hash.includes('error');
-
-    if (isNativeRedirect && hasAuthData) {
-      // Build the deep link URL
-      const deepLink = `com.ethiocosmos.learning://login${window.location.search}${window.location.hash}`;
-      
-      // Update notice so user knows what's happening
-      setAuthNotice('Authentication successful! Please return to the app.');
-      
-      // Attempt automatic redirect
-      const timeout = setTimeout(() => {
-        window.location.href = deepLink;
-      }, 1000);
-
-      return () => clearTimeout(timeout);
-    }
+    import('@capacitor/app').then(({ App }) => {
+      const listener = App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          // If we return to the app, reset the "Please wait" state after a short delay
+          // to allow the auth listener in AuthContext to work first.
+          setTimeout(() => setActionLoading(false), 2000);
+        }
+      });
+      return () => {
+        listener.then(l => l.remove());
+      };
+    });
   }, []);
-
-  const handleManualDeepLink = () => {
-    const deepLink = `com.ethiocosmos.learning://login${window.location.search}${window.location.hash}`;
-    window.location.href = deepLink;
-  };
 
   // If the user is already authenticated, go straight to where they wanted.
   useEffect(() => {
@@ -244,16 +227,8 @@ export default function LoginPage() {
           </div>
         )}
         {authNotice && (
-          <div className="bg-green-500/10 border border-green-500/50 text-green-400 p-4 rounded-md mb-6 text-sm text-center">
-            <p className="mb-4">{authNotice}</p>
-            {window.location.search.includes('native=true') && (
-              <Button 
-                onClick={handleManualDeepLink}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3"
-              >
-                Open EthioCosmos App
-              </Button>
-            )}
+          <div className="bg-green-500/10 border border-green-500/50 text-green-400 p-3 rounded-md mb-4 text-sm">
+            {authNotice}
           </div>
         )}
 

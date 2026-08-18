@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Force redeploy timestamp: 2026-08-18T12:36:00Z
 const APK_RELEASE_URL =
-  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.9.5/ethiocosmos-v1.9.5.apk';
+  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.9.6/ethiocosmos-v1.9.6.apk';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!upstreamRes.ok || !upstreamRes.body) {
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-      res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.9.5.apk"');
+      res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.9.6.apk"');
       res.statusCode = 302;
       res.setHeader('Location', APK_RELEASE_URL);
       return res.end();
@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-    res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.9.5.apk"');
+    res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.9.6.apk"');
     
     const contentLength = upstreamRes.headers.get('content-length');
     if (contentLength) {

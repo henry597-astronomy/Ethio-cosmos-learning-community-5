@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase';
 import type { Short } from '@/types';
-import { getEmbedUrl, getVideoType } from '@/lib/video-utils';
+import { getEmbedUrl, getVideoType, resolveVideoUrl } from '@/lib/video-utils';
 import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX, Trash2, MoreVertical, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -48,9 +48,39 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
   const menuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const videoType = getVideoType(short.video_url);
-  const embedUrl = getEmbedUrl(short.video_url);
-  const isEmbed = videoType === 'youtube' || videoType === 'tiktok' || videoType === 'google-drive';
+  const [playbackUrl, setPlaybackUrl] = useState(short.video_url);
+  const [isResolvingUrl, setIsResolvingUrl] = useState(false);
+  const [embedLoadError, setEmbedLoadError] = useState(false);
+  const videoType = getVideoType(playbackUrl);
+  const embedUrl = getEmbedUrl(playbackUrl);
+  const isExternalVideo = videoType === 'youtube' || videoType === 'tiktok' || videoType === 'google-drive';
+
+  useEffect(() => {
+    let cancelled = false;
+    const sourceUrl = short.video_url.trim();
+    setPlaybackUrl(sourceUrl);
+    setEmbedLoadError(false);
+
+    if (getVideoType(sourceUrl) === 'tiktok' && !getEmbedUrl(sourceUrl)) {
+      setIsResolvingUrl(true);
+      resolveVideoUrl(sourceUrl)
+        .then((resolvedUrl) => {
+          if (!cancelled) setPlaybackUrl(resolvedUrl);
+        })
+        .catch((error) => {
+          console.warn('Could not resolve TikTok share URL:', error);
+        })
+        .finally(() => {
+          if (!cancelled) setIsResolvingUrl(false);
+        });
+    } else {
+      setIsResolvingUrl(false);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [short.video_url]);
 
   useEffect(() => {
     setLikeCount(short.likes_count || 0);
@@ -90,8 +120,8 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
   }, [short.id, user?.id]);
 
   useEffect(() => {
-    if (isEmbed) {
-      setIsPlaying(true);
+    if (isExternalVideo) {
+      setIsPlaying(Boolean(embedUrl));
       return;
     }
 
@@ -124,7 +154,7 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
         observer.unobserve(videoRef.current);
       }
     };
-  }, [isEmbed]);
+  }, [embedUrl, isExternalVideo]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -277,24 +307,21 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
     setShowMenu(false);
     
     try {
-      // Extract the file path from the video URL
-      const urlParts = short.video_url.split('/storage/v1/object/public/shorts/');
-      if (urlParts.length !== 2) {
-        throw new Error('Invalid video URL format');
-      }
-      const filePath = decodeURIComponent(urlParts[1]);
+      // Uploaded files need storage cleanup; embedded social links only need DB cleanup.
+      const storageMarker = '/storage/v1/object/public/shorts/';
+      const storageIndex = short.video_url.indexOf(storageMarker);
+      if (storageIndex >= 0) {
+        const filePath = decodeURIComponent(short.video_url.slice(storageIndex + storageMarker.length));
+        const { error: storageError } = await supabase.storage
+          .from('shorts')
+          .remove([filePath]);
 
-      // Step 1: Delete from storage first
-      const { error: storageError } = await supabase.storage
-        .from('shorts')
-        .remove([filePath]);
-
-      // Log storage error but continue (file might already be deleted)
-      if (storageError) {
-        console.warn('Storage deletion warning:', storageError.message);
+        if (storageError) {
+          console.warn('Storage deletion warning:', storageError.message);
+        }
       }
 
-      // Step 2: Delete from database
+      // Delete the database record
       const { error: dbError } = await supabase
         .from('shorts')
         .delete()
@@ -336,19 +363,51 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
         flexShrink: 0,
       }}
     >
-      {isEmbed && embedUrl ? (
+      {isExternalVideo && embedUrl && !embedLoadError ? (
         <iframe
           src={embedUrl}
           className="w-full h-full border-0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
           allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
           title={short.caption || 'Embedded video'}
+          onLoad={() => {
+            setEmbedLoadError(false);
+            setIsPlaying(true);
+          }}
+          onError={() => {
+            setEmbedLoadError(true);
+            setIsPlaying(false);
+          }}
         />
+      ) : isExternalVideo ? (
+        <div className="flex max-w-sm flex-col items-center gap-4 px-8 text-center text-white">
+          {isResolvingUrl ? (
+            <Loader className="animate-spin" size={44} />
+          ) : (
+            <>
+              <p className="text-sm text-white/80">
+                This video link could not be embedded on this device.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-white/40 bg-white/10 text-white hover:bg-white/20"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  window.open(short.video_url, '_blank', 'noopener,noreferrer');
+                }}
+              >
+                Open original video
+              </Button>
+            </>
+          )}
+        </div>
       ) : (
         <>
           <video
             ref={videoRef}
-            src={short.video_url}
+            src={playbackUrl}
             className="max-h-full max-w-full object-contain"
             loop
             muted={isMuted}
@@ -371,7 +430,7 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
       )}
       
       {/* Play/Pause Overlay Indicator */}
-      {!isPlaying && (
+      {!isPlaying && !isExternalVideo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="bg-black/20 p-6 rounded-full backdrop-blur-sm">
             <Loader className="text-white animate-spin" size={48} />
@@ -658,19 +717,24 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
       return;
     }
 
-    const videoType = getVideoType(videoLink);
-    if (videoType === 'unknown') {
-      toast.error('Unsupported video link. Please use YouTube or TikTok.');
+    const sourceType = getVideoType(videoLink.trim());
+    if (!['youtube', 'tiktok', 'google-drive'].includes(sourceType)) {
+      toast.error('Unsupported video link. Please use YouTube, TikTok, or Google Drive.');
       return;
     }
 
     try {
       setUploading(true);
+      const normalizedVideoLink = await resolveVideoUrl(videoLink.trim());
+      if (!getEmbedUrl(normalizedVideoLink)) {
+        throw new Error('This link could not be converted to a playable embed.');
+      }
+
       const { error: dbError } = await supabase
         .from('shorts')
         .insert({
           user_id: user.id,
-          video_url: videoLink,
+          video_url: normalizedVideoLink,
           caption: 'New short',
           is_active: true,
         });

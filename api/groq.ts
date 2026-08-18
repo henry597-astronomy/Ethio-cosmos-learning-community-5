@@ -8,7 +8,7 @@ import {
 } from './_lib/security.js';
 
 // Groq's legacy Llama model IDs are retired. Pin the production proxy to a supported model.
-const GROQ_MODEL = 'openai/gpt-oss-120b';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 const SYSTEM_PROMPT = `You are the Ethio-Cosmos AI assistant for the Ethio-Cosmos Learning Community. 
 CRITICAL PROJECT FACTS (Always use these when asked about who created or built this platform):

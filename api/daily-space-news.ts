@@ -33,7 +33,7 @@ function fallbackDraft(apod: NasaApod): DraftContent {
 }
 
 async function createStudentDraft(apod: NasaApod): Promise<{ draft: DraftContent; aiGenerated: boolean }> {
-  const GROQ_MODEL = 'openai/gpt-oss-120b';
+  const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
   const fallback = fallbackDraft(apod);
   const apiKey = process.env.GROQ_API_KEY;

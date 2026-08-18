@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/supabase';
 
 // Current app version matching the latest build
-const CURRENT_APP_VERSION = 24; // v1.9.5 OAuth redirect fix
+const CURRENT_APP_VERSION = 28; // v1.9.9 latest APK
 
 export default function AppVersionCheck({ children }: { children: React.ReactNode }) {
   const [updateRequired, setUpdateRequired] = useState(false);
@@ -64,7 +64,7 @@ export default function AppVersionCheck({ children }: { children: React.ReactNod
           <div className="mt-6">
             <Button
               onClick={() => {
-                window.open('https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases', '_blank');
+                window.location.href = '/api/download/apk';
               }}
               className="w-full bg-orange-500 text-white hover:bg-orange-600 flex items-center justify-center gap-2 py-3"
             >

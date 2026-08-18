@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Download, Smartphone, X } from 'lucide-react';
 import { recordApkDownloadClick } from '@/services/app-analytics';
 
-const APK_DOWNLOAD_URL =
-  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.9.5/ethiocosmos-v1.9.5.apk';
+const APK_DOWNLOAD_URL = '/api/download/apk';
 const APK_PROMPT_DISMISSED_KEY = 'android-apk-prompt-dismissed';
 
 type CapacitorWindow = Window & {
@@ -49,7 +48,7 @@ export default function InstallPrompt() {
     
     // Use direct location assignment which is more reliable for downloads
     // Chrome will stay on the page because the response is a file download.
-    window.location.href = '/api/download/apk';
+    window.location.href = APK_DOWNLOAD_URL;
   };
 
   if (!isVisible) return null;

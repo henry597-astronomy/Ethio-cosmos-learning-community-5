@@ -7,9 +7,9 @@ android {
         applicationId "com.ethiocosmos.learning"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Version 21 fixes TikTok share-link resolution and embeds using the official player.
-        versionCode 21
-        versionName "1.9.2"
+        // Version 22 fixes TikTok embed server error in Android WebView and cleans player UI.
+        versionCode 22
+        versionName "1.9.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

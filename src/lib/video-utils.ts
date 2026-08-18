@@ -108,7 +108,7 @@ export function getEmbedUrl(url: string): string | null {
   if (type === 'tiktok') {
     const videoId = extractTikTokVideoId(url);
     return videoId
-      ? `https://www.tiktok.com/player/v1/${videoId}?controls=1&description=1&music_info=1`
+      ? `https://www.tiktok.com/player/v1/${videoId}?autoplay=1&loop=1&controls=0&music_info=0&description=0`
       : null;
   }
 

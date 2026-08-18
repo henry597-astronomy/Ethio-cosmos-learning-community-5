@@ -404,7 +404,20 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
           )}
         </div>
       ) : (
-        <>
+        <div 
+          className="relative w-full h-full flex items-center justify-center cursor-pointer"
+          onClick={() => {
+            if (videoRef.current) {
+              if (isPlaying) {
+                videoRef.current.pause();
+                setIsPlaying(false);
+              } else {
+                videoRef.current.play().catch(() => {});
+                setIsPlaying(true);
+              }
+            }
+          }}
+        >
           <video
             ref={videoRef}
             src={playbackUrl}
@@ -414,6 +427,16 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
             playsInline
             preload="auto"
           />
+
+          {!isPlaying && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all">
+              <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center text-white shadow-lg">
+                <svg className="w-8 h-8 fill-current ml-1" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </div>
+          )}
           
           {/* Volume Toggle Button */}
           <button

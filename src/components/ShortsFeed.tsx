@@ -449,7 +449,7 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
           >
             {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
           </button>
-        </>
+        </div>
       )}
       
       {/* Play/Pause Overlay Indicator */}

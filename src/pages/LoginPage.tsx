@@ -26,6 +26,33 @@ export default function LoginPage() {
   const redirectTarget =
     ((location.state as LocationState)?.from?.pathname) || '/';
 
+  // Handle "native=true" redirect from Supabase.
+  // If we are in the browser but the URL says native=true, it means the OAuth
+  // flow finished and we need to bounce the user back to the app scheme.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isNativeRedirect = params.get('native') === 'true';
+    
+    // Check for PKCE code or Implicit flow tokens
+    const hasAuthData = params.has('code') || 
+                        window.location.hash.includes('access_token') ||
+                        window.location.hash.includes('error');
+
+    if (isNativeRedirect && hasAuthData) {
+      // Build the deep link URL
+      // We pass the entire search and hash so the app can process the code/token
+      const deepLink = `com.ethiocosmos.learning://login${window.location.search}${window.location.hash}`;
+      
+      // Update notice so user knows what's happening
+      setAuthNotice('Redirecting you back to the app...');
+      
+      // Small delay to ensure the UI renders the notice
+      setTimeout(() => {
+        window.location.href = deepLink;
+      }, 500);
+    }
+  }, []);
+
   // If the user is already authenticated, go straight to where they wanted.
   useEffect(() => {
     if (!loading && user) {

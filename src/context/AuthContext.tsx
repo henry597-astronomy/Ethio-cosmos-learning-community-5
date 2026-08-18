@@ -237,9 +237,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     const isMobile = Capacitor.isNativePlatform();
-    const redirectTo = isMobile 
-      ? 'com.ethiocosmos.learning://login' 
+    // Use the web production URL as the primary redirect even on mobile.
+    // We append ?native=true so the website knows to bounce the user back to the app.
+    // This is more reliable than custom schemes which browsers often block.
+    const origin = window.location.origin.includes('localhost') 
+      ? 'https://ethio-cosmos-learning-community-5.vercel.app' 
       : window.location.origin;
+      
+    const redirectTo = isMobile 
+      ? `${origin}/login?native=true` 
+      : origin;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

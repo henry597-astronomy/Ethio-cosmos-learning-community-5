@@ -19,17 +19,75 @@ interface ShortVideoProps {
   onDelete: (id: string) => void;
 }
 
+interface ShortComment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profile?: {
+    username?: string | null;
+    avatar_url?: string | null;
+  } | null;
+}
+
 function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVideoProps) {
+  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(short.likes_count || 0);
+  const [isLikeSaving, setIsLikeSaving] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<ShortComment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [commentsCount, setCommentsCount] = useState(0);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const videoType = getVideoType(short.video_url);
   const embedUrl = getEmbedUrl(short.video_url);
   const isEmbed = videoType === 'youtube' || videoType === 'tiktok' || videoType === 'google-drive';
+
+  useEffect(() => {
+    setLikeCount(short.likes_count || 0);
+  }, [short.likes_count]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadInteractionState = async () => {
+      const [{ count }, likedResult] = await Promise.all([
+        supabase
+          .from('short_comments')
+          .select('id', { count: 'exact', head: true })
+          .eq('short_id', short.id),
+        user
+          ? supabase
+              .from('short_likes')
+              .select('short_id')
+              .eq('short_id', short.id)
+              .eq('user_id', user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (cancelled) return;
+      setCommentsCount(count || 0);
+      setIsLiked(Boolean(likedResult.data));
+    };
+
+    loadInteractionState().catch((error) => {
+      console.warn('Could not load Shorts interaction state:', error);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [short.id, user?.id]);
 
   useEffect(() => {
     if (isEmbed) {
@@ -81,6 +139,128 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showMenu]);
+
+  const handleLike = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+
+    if (!user) {
+      toast.info('Sign in to like Shorts.');
+      return;
+    }
+
+    if (isLikeSaving) return;
+
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+    setLikeCount((current) => Math.max(0, current + (nextLiked ? 1 : -1)));
+    setIsLikeSaving(true);
+
+    try {
+      const result = nextLiked
+        ? await supabase.from('short_likes').insert({ short_id: short.id, user_id: user.id })
+        : await supabase
+            .from('short_likes')
+            .delete()
+            .eq('short_id', short.id)
+            .eq('user_id', user.id);
+
+      if (result.error) throw result.error;
+    } catch (error) {
+      setIsLiked(!nextLiked);
+      setLikeCount((current) => Math.max(0, current + (nextLiked ? -1 : 1)));
+      console.error('Error saving Short like:', error);
+      toast.error('Could not save your like. Please try again.');
+    } finally {
+      setIsLikeSaving(false);
+    }
+  };
+
+  const loadComments = async () => {
+    setIsLoadingComments(true);
+    try {
+      const { data, error } = await supabase
+        .from('short_comments')
+        .select('id, content, created_at, user_id')
+        .eq('short_id', short.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setComments((data || []) as ShortComment[]);
+      setCommentsCount(data?.length || 0);
+    } catch (error) {
+      console.error('Error loading Short comments:', error);
+      toast.error('Could not load comments.');
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
+
+  const handleComments = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    const nextOpen = !showComments;
+    setShowComments(nextOpen);
+    if (nextOpen) await loadComments();
+  };
+
+  const handleSubmitComment = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+
+    if (!user) {
+      toast.info('Sign in to comment on Shorts.');
+      return;
+    }
+
+    const content = commentText.trim();
+    if (!content) return;
+    if (content.length > 500) {
+      toast.error('Comments must be 500 characters or fewer.');
+      return;
+    }
+
+    setIsSubmittingComment(true);
+    try {
+      const { error } = await supabase.from('short_comments').insert({
+        short_id: short.id,
+        user_id: user.id,
+        content,
+      });
+
+      if (error) throw error;
+      setCommentText('');
+      await loadComments();
+      toast.success('Comment added.');
+    } catch (error) {
+      console.error('Error adding Short comment:', error);
+      toast.error('Could not add your comment. Please try again.');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleShare = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    const shareUrl = short.video_url || window.location.href;
+    const shareData = {
+      title: short.caption || 'EthioCosmos Short',
+      text: short.caption || 'Watch this Short on EthioCosmos',
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Short link copied.');
+      } else {
+        window.prompt('Copy this Short link:', shareUrl);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      console.error('Error sharing Short:', error);
+      toast.error('Could not share this Short.');
+    }
+  };
 
   const handleDelete = async () => {
     // Show confirmation dialog
@@ -218,19 +398,32 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
         </div>
 
         <div className="flex flex-col gap-6 items-center text-white">
-          <button className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200">
-            <div className="bg-white/10 p-3 rounded-full backdrop-blur-md hover:bg-red-500/30">
-              <Heart size={24} />
+          <button
+            onClick={handleLike}
+            disabled={isLikeSaving}
+            className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200 disabled:opacity-60"
+            aria-label={isLiked ? 'Unlike Short' : 'Like Short'}
+          >
+            <div className={`p-3 rounded-full backdrop-blur-md transition-colors ${isLiked ? 'bg-red-500/80' : 'bg-white/10 hover:bg-red-500/30'}`}>
+              <Heart size={24} fill={isLiked ? 'currentColor' : 'none'} />
             </div>
-            <span className="text-xs">{short.likes_count || 0}</span>
+            <span className="text-xs">{likeCount}</span>
           </button>
-          <button className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200">
+          <button
+            onClick={handleComments}
+            className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200"
+            aria-label="Open comments"
+          >
             <div className="bg-white/10 p-3 rounded-full backdrop-blur-md hover:bg-blue-500/30">
               <MessageCircle size={24} />
             </div>
-            <span className="text-xs">0</span>
+            <span className="text-xs">{commentsCount}</span>
           </button>
-          <button className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200">
+          <button
+            onClick={handleShare}
+            className="flex flex-col items-center gap-1 hover:scale-110 transition-transform duration-200"
+            aria-label="Share Short"
+          >
             <div className="bg-white/10 p-3 rounded-full backdrop-blur-md hover:bg-green-500/30">
               <Share2 size={24} />
             </div>
@@ -278,6 +471,62 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
           )}
         </div>
       </div>
+
+      {showComments && (
+        <div
+          className="absolute inset-x-0 bottom-0 z-40 max-h-[65%] min-h-[260px] rounded-t-2xl border-t border-white/10 bg-black/95 p-4 text-white shadow-2xl backdrop-blur-md"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold">Comments ({commentsCount})</h3>
+            <button
+              onClick={() => setShowComments(false)}
+              className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white"
+              aria-label="Close comments"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="mb-3 max-h-[calc(65vh-150px)] min-h-[90px] space-y-3 overflow-y-auto pr-1">
+            {isLoadingComments ? (
+              <div className="flex items-center justify-center py-8 text-white/70">
+                <Loader className="mr-2 animate-spin" size={18} /> Loading comments...
+              </div>
+            ) : comments.length === 0 ? (
+              <p className="py-8 text-center text-sm text-white/60">No comments yet. Start the conversation.</p>
+            ) : (
+              comments.map((comment) => (
+                <div key={comment.id} className="rounded-xl bg-white/10 px-3 py-2">
+                  <div className="mb-1 text-xs font-semibold text-orange-300">
+                    {comment.user_id === user?.id ? 'You' : 'Community member'}
+                  </div>
+                  <p className="break-words text-sm text-white/90">{comment.content}</p>
+                </div>
+              ))
+            )}
+          </div>
+
+          <form onSubmit={handleSubmitComment} className="flex items-center gap-2">
+            <input
+              value={commentText}
+              onChange={(event) => setCommentText(event.target.value.slice(0, 500))}
+              placeholder={user ? 'Write a comment...' : 'Sign in to comment'}
+              disabled={!user || isSubmittingComment}
+              className="min-w-0 flex-1 rounded-full border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/50 focus:border-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+              maxLength={500}
+              aria-label="Write a comment"
+            />
+            <Button
+              type="submit"
+              disabled={!user || !commentText.trim() || isSubmittingComment}
+              className="rounded-full bg-orange-500 px-4 text-white hover:bg-orange-600 disabled:opacity-50"
+            >
+              {isSubmittingComment ? <Loader size={17} className="animate-spin" /> : 'Send'}
+            </Button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

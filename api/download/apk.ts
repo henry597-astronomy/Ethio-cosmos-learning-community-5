@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Force redeploy timestamp: 2026-08-18T12:36:00Z
 const APK_RELEASE_URL =
   'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.9.5/ethiocosmos-v1.9.5.apk';
 

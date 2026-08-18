@@ -11,6 +11,17 @@ interface ShortsFeedProps {
   onClose: () => void;
 }
 
+// Shuffle only when the feed is fetched so the order stays stable while users
+// swipe through the current session and changes on the next open/refresh.
+function shuffleShorts<T>(items: T[]): T[] {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 interface ShortVideoProps {
   short: Short;
   isMuted: boolean;
@@ -644,7 +655,7 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
         user_avatar: s.user_avatar || undefined,
       }));
 
-      setShorts(formattedShorts);
+      setShorts(shuffleShorts(formattedShorts));
     } catch (error) {
       console.error('Error fetching shorts:', error);
       toast.error('Failed to load shorts');

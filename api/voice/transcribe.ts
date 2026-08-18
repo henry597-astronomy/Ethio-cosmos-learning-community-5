@@ -52,8 +52,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const auth = await authenticateSupabaseRequest(req);
   if (!auth.user) {
-    return res.status(auth.reason === 'configuration' ? 503 : 401).json({
-      error: auth.reason === 'configuration'
+    return res.status((auth as any).reason === 'configuration' ? 503 : 401).json({
+      error: (auth as any).reason === 'configuration'
         ? 'Voice service is temporarily unavailable.'
         : 'Sign in to use voice input.',
     });

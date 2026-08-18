@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient, type AuthUser as User } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -89,7 +89,7 @@ export async function authenticateSupabaseRequest(
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
 
-  const { data, error } = await client.auth.getUser(token);
+  const { data, error } = await ((client.auth as any).getUser)(token);
   if (error || !data.user) {
     return { user: null, client: null, token: null, reason: 'invalid' };
   }

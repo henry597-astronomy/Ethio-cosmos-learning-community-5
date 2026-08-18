@@ -51,8 +51,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (!auth.user) {
-    return res.status(auth.reason === 'configuration' ? 500 : 401).json({
-      error: auth.reason === 'configuration' ? 'Server configuration error' : 'Authentication required',
+    return res.status((auth as any).reason === 'configuration' ? 500 : 401).json({
+      error: (auth as any).reason === 'configuration' ? 'Server configuration error' : 'Authentication required',
     });
   }
 

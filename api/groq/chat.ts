@@ -7,7 +7,7 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 20;
 // Groq retired the older Llama model IDs. Keep this pinned to a supported production model
 // so a stale GROQ_MODEL environment variable cannot bring the AI route down again.
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'openai/gpt-oss-120b';
 const requestCounts = new Map<string, { count: number; windowStartedAt: number }>();
 
 const SYSTEM_PROMPT = `You are the Ethio-Cosmos AI assistant for the Ethio-Cosmos Learning Community.

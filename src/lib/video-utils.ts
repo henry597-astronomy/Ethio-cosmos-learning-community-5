@@ -16,20 +16,41 @@ export function extractTikTokVideoId(url: string): string | null {
   const match = url.match(/\/video\/(\d+)/) || url.match(/\/v\/(\d+)/);
   if (match) return match[1];
   
-  // Also handle share URLs that might contain IDs or need resolution
   const shortMatch = url.match(/tiktok\.com\/.*\/(\d+)/);
   if (shortMatch) return shortMatch[1];
 
   return null;
 }
 
-export function getVideoType(url: string): 'youtube' | 'tiktok' | 'drive' | 'direct' | 'unknown' {
+export function getVideoType(url: string): 'youtube' | 'tiktok' | 'drive' | 'google-drive' | 'direct' | 'unknown' {
   if (!url) return 'unknown';
   if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
   if (url.includes('tiktok.com') || url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com')) return 'tiktok';
   if (url.includes('drive.google.com') || url.includes('docs.google.com')) return 'drive';
   if (url.match(/\.(mp4|webm|ogg|mov)(#|\?|$)/i) || url.startsWith('blob:')) return 'direct';
   return 'direct';
+}
+
+export async function resolveVideoUrl(url: string): Promise<string> {
+  if (!url) return url;
+  if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com')) {
+    try {
+      const res = await fetch('/api/video/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.url) {
+          return data.url;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to resolve TikTok URL via API:', err);
+    }
+  }
+  return url;
 }
 
 export function getEmbedUrl(url: string): string | null {
@@ -40,7 +61,7 @@ export function getEmbedUrl(url: string): string | null {
     return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}&controls=1` : null;
   }
 
-  if (type === 'drive') {
+  if (type === 'drive' || type === 'google-drive') {
     const fileId = extractGoogleDriveId(url);
     return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : null;
   }

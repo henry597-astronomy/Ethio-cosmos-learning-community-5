@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useMaterialsGroups } from '@/hooks/use-cms-data';
 import { FallbackImage } from '@/components/MediaFallback';
+import { getEmbedUrl, getVideoType } from '@/lib/video-utils';
 import type { MaterialType } from '@/types';
 
 type ViewTab = 'all' | MaterialType;
@@ -23,6 +24,7 @@ interface GroupedSection {
 export default function MaterialsPage() {
   const { grouped, loading } = useMaterialsGroups();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -292,6 +294,7 @@ export default function MaterialsPage() {
                   section={section}
                   viewTab={viewTab}
                   onOpenImage={(url) => setSelectedImage(url)}
+                  onOpenVideo={(url, title) => setSelectedVideo({ url, title })}
                 />
               </div>
             ))}
@@ -319,6 +322,64 @@ export default function MaterialsPage() {
           />
         </div>
       )}
+
+      {/* Video Lightbox */}
+      {selectedVideo && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+          onClick={() => setSelectedVideo(null)}
+        >
+          <button
+            onClick={() => setSelectedVideo(null)}
+            className="absolute top-4 right-4 p-2 text-white hover:text-orange-500 transition-colors z-[60]"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <div 
+            className="w-full max-w-4xl aspect-video bg-black rounded-xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const embedUrl = getEmbedUrl(selectedVideo.url);
+              const type = getVideoType(selectedVideo.url);
+              
+              if (embedUrl) {
+                return (
+                  <iframe
+                    src={embedUrl}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    title={selectedVideo.title}
+                  />
+                );
+              } else if (type === 'direct') {
+                return (
+                  <video
+                    src={selectedVideo.url}
+                    controls
+                    autoPlay
+                    className="w-full h-full"
+                  />
+                );
+              } else {
+                return (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-white p-8 text-center">
+                    <p className="mb-4">This video format cannot be played directly.</p>
+                    <Button
+                      onClick={() => window.open(selectedVideo.url, '_blank')}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Open in New Tab
+                    </Button>
+                  </div>
+                );
+              }
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -329,10 +390,12 @@ function GroupContent({
   section,
   viewTab,
   onOpenImage,
+  onOpenVideo,
 }: {
   section: GroupedSection;
   viewTab: ViewTab;
   onOpenImage: (url: string) => void;
+  onOpenVideo: (url: string, title: string) => void;
 }) {
   return (
     <div className="space-y-8">
@@ -367,12 +430,10 @@ function GroupContent({
           <h3 className="text-xl font-bold text-white mb-4">Videos</h3>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {section.videos.map((video) => (
-              <a
+              <button
                 key={video.id}
-                href={video.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative rounded-xl overflow-hidden bg-slate-900 border border-white/10 hover:border-orange-500/50 transition-all"
+                onClick={() => onOpenVideo(video.url, video.title)}
+                className="group relative rounded-xl overflow-hidden bg-slate-900 border border-white/10 hover:border-orange-500/50 transition-all text-left"
               >
                 <div className="relative aspect-video">
                   <FallbackImage
@@ -391,7 +452,7 @@ function GroupContent({
                     {video.title}
                   </h4>
                 </div>
-              </a>
+              </button>
             ))}
           </div>
         </section>

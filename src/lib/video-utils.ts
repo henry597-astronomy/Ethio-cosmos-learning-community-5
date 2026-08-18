@@ -3,7 +3,7 @@
  * Supports: YouTube (including Shorts), Google Drive, and Direct Video Files
  */
 
-export type VideoType = 'youtube' | 'google-drive' | 'direct' | 'unknown';
+export type VideoType = 'youtube' | 'tiktok' | 'google-drive' | 'direct' | 'unknown';
 
 /**
  * Extracts YouTube video ID from various YouTube URL formats
@@ -22,6 +22,26 @@ export function extractYouTubeVideoId(url: string): string | null {
     // Matches youtube.com/watch?v=ID or youtube.com/embed/ID
     const longUrlMatch = url.match(/(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
     if (longUrlMatch) return longUrlMatch[1];
+    
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extracts TikTok video ID from various TikTok URL formats
+ */
+export function extractTikTokVideoId(url: string): string | null {
+  if (!url) return null;
+  try {
+    // Matches tiktok.com/@user/video/ID
+    const videoMatch = url.match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/);
+    if (videoMatch) return videoMatch[1];
+    
+    // Matches tiktok.com/v/ID
+    const vMatch = url.match(/tiktok\.com\/v\/(\d+)/);
+    if (vMatch) return vMatch[1];
     
     return null;
   } catch {
@@ -57,6 +77,10 @@ export function getVideoType(url: string): VideoType {
     return 'google-drive';
   }
 
+  if (url.includes('tiktok.com')) {
+    return 'tiktok';
+  }
+
   const directExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
   if (directExtensions.some(ext => url.toLowerCase().includes(ext))) {
     return 'direct';
@@ -83,6 +107,12 @@ export function getEmbedUrl(url: string): string | null {
   if (type === 'google-drive') {
     const fileId = extractGoogleDriveId(url);
     return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : null;
+  }
+
+  if (type === 'tiktok') {
+    const videoId = extractTikTokVideoId(url);
+    // Note: TikTok embeds require a script for full functionality, but the iframe works for basic playback
+    return videoId ? `https://www.tiktok.com/embed/v2/${videoId}` : null;
   }
 
   return null;

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase';
 import type { Short } from '@/types';
-import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX, Trash2, MoreVertical } from 'lucide-react';
+import { getEmbedUrl, getVideoType } from '@/lib/video-utils';
+import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX, Trash2, MoreVertical, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -26,11 +27,20 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
   const menuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const videoType = getVideoType(short.video_url);
+  const embedUrl = getEmbedUrl(short.video_url);
+  const isEmbed = videoType === 'youtube' || videoType === 'tiktok' || videoType === 'google-drive';
+
   useEffect(() => {
+    if (isEmbed) {
+      setIsPlaying(true);
+      return;
+    }
+
     const options = {
       root: null,
       rootMargin: '0px',
-      threshold: 0.6, // Trigger when 60% of the video is visible
+      threshold: 0.6,
     };
 
     const observer = new IntersectionObserver((entries) => {
@@ -56,7 +66,7 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
         observer.unobserve(videoRef.current);
       }
     };
-  }, []);
+  }, [isEmbed]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -146,27 +156,39 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
         flexShrink: 0,
       }}
     >
-      <video
-        ref={videoRef}
-        src={short.video_url}
-        className="max-h-full max-w-full object-contain"
-        loop
-        muted={isMuted}
-        playsInline
-        preload="auto"
-      />
-      
-      {/* Volume Toggle Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onMuteToggle();
-        }}
-        className="absolute top-20 right-6 z-20 bg-white/20 hover:bg-white/30 p-3 rounded-full backdrop-blur-md transition-all duration-200 text-white"
-        title={isMuted ? 'Unmute' : 'Mute'}
-      >
-        {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
-      </button>
+      {isEmbed && embedUrl ? (
+        <iframe
+          src={embedUrl}
+          className="w-full h-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          title={short.caption || 'Embedded video'}
+        />
+      ) : (
+        <>
+          <video
+            ref={videoRef}
+            src={short.video_url}
+            className="max-h-full max-w-full object-contain"
+            loop
+            muted={isMuted}
+            playsInline
+            preload="auto"
+          />
+          
+          {/* Volume Toggle Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMuteToggle();
+            }}
+            className="absolute top-20 right-6 z-20 bg-white/20 hover:bg-white/30 p-3 rounded-full backdrop-blur-md transition-all duration-200 text-white"
+            title={isMuted ? 'Unmute' : 'Mute'}
+          >
+            {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+          </button>
+        </>
+      )}
       
       {/* Play/Pause Overlay Indicator */}
       {!isPlaying && (
@@ -267,6 +289,8 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
   const [uploading, setUploading] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [videoLink, setVideoLink] = useState('');
 
   useEffect(() => {
     fetchShorts();
@@ -374,6 +398,49 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
     }
   };
 
+  const handleAddLink = async () => {
+    if (!isAdmin || !user) {
+      toast.error('Only administrators can add shorts.');
+      return;
+    }
+
+    if (!videoLink.trim()) {
+      toast.error('Please enter a video link');
+      return;
+    }
+
+    const videoType = getVideoType(videoLink);
+    if (videoType === 'unknown') {
+      toast.error('Unsupported video link. Please use YouTube or TikTok.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const { error: dbError } = await supabase
+        .from('shorts')
+        .insert({
+          user_id: user.id,
+          video_url: videoLink,
+          caption: 'New short',
+          is_active: true,
+        });
+
+      if (dbError) throw new Error(`Database insert failed: ${dbError.message}`);
+
+      toast.success('Short added successfully!');
+      setVideoLink('');
+      setShowLinkInput(false);
+      fetchShorts();
+    } catch (error) {
+      console.error('Error adding short link:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add short link';
+      toast.error(errorMessage);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Header */}
@@ -398,16 +465,22 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
                 title="Admin: Upload a new short video"
               >
                 {uploading ? (
-                  <>
-                    <Loader className="animate-spin" size={24} />
-                    <span className="hidden sm:inline ml-2 text-sm">Uploading...</span>
-                  </>
+                  <Loader className="animate-spin" size={24} />
                 ) : (
-                  <>
-                    <Upload size={24} />
-                    <span className="hidden sm:inline ml-2 text-sm">Upload</span>
-                  </>
+                  <Upload size={24} />
                 )}
+                <span className="hidden sm:inline ml-2 text-sm">Upload</span>
+              </Button>
+
+              <Button
+                onClick={() => setShowLinkInput(!showLinkInput)}
+                disabled={uploading}
+                variant="ghost"
+                className="text-white hover:bg-white/20 transition-all duration-300"
+                title="Admin: Add a video link (YouTube/TikTok)"
+              >
+                <Link size={24} />
+                <span className="hidden sm:inline ml-2 text-sm">Link</span>
               </Button>
             </>
           )}
@@ -416,6 +489,44 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
           </button>
         </div>
       </div>
+
+      {/* Link Input Overlay */}
+      {showLinkInput && (
+        <div className="absolute top-20 left-4 right-4 z-30 bg-gray-900/90 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-2xl animate-in slide-in-from-top-4">
+          <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+            <Link size={18} /> Add Video Link
+          </h3>
+          <div className="flex flex-col gap-3">
+            <input
+              type="text"
+              value={videoLink}
+              onChange={(e) => setVideoLink(e.target.value)}
+              placeholder="Paste YouTube or TikTok link here..."
+              className="bg-slate-800 border border-white/20 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-orange-500 transition-colors"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={handleAddLink}
+                disabled={uploading || !videoLink.trim()}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {uploading ? <Loader className="animate-spin" size={18} /> : 'Add Short'}
+              </Button>
+              <Button
+                onClick={() => setShowLinkInput(false)}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+            </div>
+            <p className="text-[10px] text-gray-400">
+              Supports YouTube, YouTube Shorts, and TikTok video links.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Feed */}
       <div 

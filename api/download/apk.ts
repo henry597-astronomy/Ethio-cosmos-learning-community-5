@@ -11,13 +11,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const upstreamRes = await fetch(APK_RELEASE_URL, {
+      redirect: 'follow',
       headers: {
         'User-Agent': 'EthioCosmos-AppDownloader/1.0',
       },
     });
 
     if (!upstreamRes.ok || !upstreamRes.body) {
-      // Fallback to redirect if streaming fails
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'application/vnd.android.package-archive');
       res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.9.2-tiktok-fix.apk"');
@@ -39,7 +39,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.end();
     }
 
-    // Stream the binary data from GitHub directly to the client
     const reader = upstreamRes.body.getReader();
     const pump = async () => {
       try {

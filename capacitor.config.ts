@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
+    hostname: 'ethio-cosmos-learning-community-5.vercel.app',
     cleartext: true,
     allowNavigation: [
       '*.tiktok.com',

@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/supabase';
 
 // Current app version matching the latest build
-const CURRENT_APP_VERSION = 22; // v1.9.3 TikTok embed WebView authorization fix
+const CURRENT_APP_VERSION = 23; // v1.9.4 TikTok embed/v2 player & hostname fix
 
 export default function AppVersionCheck({ children }: { children: React.ReactNode }) {
   const [updateRequired, setUpdateRequired] = useState(false);

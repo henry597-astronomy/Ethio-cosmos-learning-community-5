@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const APK_RELEASE_URL =
-  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.9.0/ethiocosmos-v1.9-voice.apk';
+  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.9.1/ethiocosmos-v1.9.1-shorts.apk';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-  res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.9-voice.apk"');
+  res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.9.1-shorts.apk"');
 
   if (req.method === 'GET' || req.method === 'HEAD') {
     res.statusCode = 302;

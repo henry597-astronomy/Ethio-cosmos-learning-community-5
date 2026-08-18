@@ -3,7 +3,7 @@ import { Download, Smartphone, X } from 'lucide-react';
 import { recordApkDownloadClick } from '@/services/app-analytics';
 
 const APK_DOWNLOAD_URL =
-  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.9.0/ethiocosmos-v1.9-voice.apk';
+  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.9.1/ethiocosmos-v1.9.1-shorts.apk';
 const APK_PROMPT_DISMISSED_KEY = 'android-apk-prompt-dismissed';
 
 type CapacitorWindow = Window & {

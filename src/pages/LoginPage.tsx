@@ -40,18 +40,24 @@ export default function LoginPage() {
 
     if (isNativeRedirect && hasAuthData) {
       // Build the deep link URL
-      // We pass the entire search and hash so the app can process the code/token
       const deepLink = `com.ethiocosmos.learning://login${window.location.search}${window.location.hash}`;
       
       // Update notice so user knows what's happening
-      setAuthNotice('Redirecting you back to the app...');
+      setAuthNotice('Authentication successful! Please return to the app.');
       
-      // Small delay to ensure the UI renders the notice
-      setTimeout(() => {
+      // Attempt automatic redirect
+      const timeout = setTimeout(() => {
         window.location.href = deepLink;
-      }, 500);
+      }, 1000);
+
+      return () => clearTimeout(timeout);
     }
   }, []);
+
+  const handleManualDeepLink = () => {
+    const deepLink = `com.ethiocosmos.learning://login${window.location.search}${window.location.hash}`;
+    window.location.href = deepLink;
+  };
 
   // If the user is already authenticated, go straight to where they wanted.
   useEffect(() => {
@@ -238,8 +244,16 @@ export default function LoginPage() {
           </div>
         )}
         {authNotice && (
-          <div className="bg-green-500/10 border border-green-500/50 text-green-400 p-3 rounded-md mb-4 text-sm">
-            {authNotice}
+          <div className="bg-green-500/10 border border-green-500/50 text-green-400 p-4 rounded-md mb-6 text-sm text-center">
+            <p className="mb-4">{authNotice}</p>
+            {window.location.search.includes('native=true') && (
+              <Button 
+                onClick={handleManualDeepLink}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3"
+              >
+                Open EthioCosmos App
+              </Button>
+            )}
           </div>
         )}
 

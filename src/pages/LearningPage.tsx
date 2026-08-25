@@ -136,8 +136,6 @@ export default function LearningPage() {
           )}
         </div>
       </div>
-      <div className="h-[10rem]" aria-hidden="true" />
-
       {/* Hero Section */}
       <section
         className="relative py-24"
@@ -158,13 +156,11 @@ export default function LearningPage() {
             From the basics of stargazing to the mysteries of black holes,
             discover the wonders of astronomy through our structured lessons.
           </p>
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
+          <div className="flex items-center justify-center text-sm text-gray-400">
             <span className="flex items-center gap-1">
               <BookOpen className="h-4 w-4" />
               {topics.length} Topics
             </span>
-            <span>•</span>
-            <span>Expert Written</span>
           </div>
         </div>
       </section>

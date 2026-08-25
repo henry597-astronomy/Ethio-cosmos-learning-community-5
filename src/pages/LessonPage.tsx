@@ -4,6 +4,7 @@ import { useSubtopics, useLesson } from '@/hooks/use-cms-data';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/supabase';
 import { ArrowLeft, ArrowRight, BookmarkPlus, BookmarkCheck, CheckCircle } from 'lucide-react';
+import LessonTutor from '@/components/LessonTutor';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SafeImage } from '@/components/SafeImage';
@@ -152,6 +153,9 @@ export default function LessonPage() {
   ];
 
   const blocks = lesson?.content_blocks || defaultBlocks;
+  const lessonReference = blocks
+    .map((block) => block.type === 'text' ? block.content : '[Lesson illustration]')
+    .join('\n\n');
 
   return (
     <div className="min-h-screen bg-[#0a0e1a]">
@@ -254,6 +258,12 @@ export default function LessonPage() {
             </div>
           ))}
         </div>
+
+        <LessonTutor
+          topicTitle={topic.title}
+          lessonTitle={currentSubtopic.title}
+          lessonContent={lessonReference}
+        />
 
         {/* Navigation */}
         <div className="flex items-center justify-between pt-8 border-t border-white/10">

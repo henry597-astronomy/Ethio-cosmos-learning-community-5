@@ -6,11 +6,26 @@ export interface Message {
   content: string;
 }
 
+export type TutorMode = 'tutor' | 'quiz';
+export type TutorLanguage = 'English' | 'Amharic';
+
+export interface TutorContext {
+  topicTitle?: string;
+  lessonTitle: string;
+  lessonContent: string;
+  mode: TutorMode;
+  language: TutorLanguage;
+}
+
 const CHAT_PATH = '/api/groq/chat';
 const CONNECT_TIMEOUT_MS = 15_000;
 const READ_TIMEOUT_MS = 60_000;
 
 type ChatResponse = { content?: unknown; error?: unknown };
+
+type ChatOptions = {
+  tutorContext?: TutorContext;
+};
 
 function getServerError(data: ChatResponse | null, status: number): Error {
   const serverMessage = typeof data?.error === 'string'
@@ -29,8 +44,11 @@ function validateChatResponse(data: ChatResponse | null, status: number): string
   return data.content;
 }
 
-async function requestChat(url: string, messages: Message[]): Promise<string> {
-  const requestData = { messages };
+async function requestChat(url: string, messages: Message[], options?: ChatOptions): Promise<string> {
+  const requestData = {
+    messages,
+    ...(options?.tutorContext ? { tutorContext: options.tutorContext } : {}),
+  };
 
   if (Capacitor.isNativePlatform()) {
     // Native HTTP avoids Android WebView CORS, DNS, and fetch-implementation
@@ -65,17 +83,20 @@ async function requestChat(url: string, messages: Message[]): Promise<string> {
   return validateChatResponse(data, response.status);
 }
 
-export async function getGroqChatCompletion(messages: Message[]): Promise<string> {
+export async function getGroqChatCompletion(
+  messages: Message[],
+  options?: ChatOptions,
+): Promise<string> {
   const primaryUrl = getApiUrl(CHAT_PATH);
   const productionUrl = `${PRODUCTION_URL}${CHAT_PATH}`;
 
   try {
-    return await requestChat(primaryUrl, messages);
+    return await requestChat(primaryUrl, messages, options);
   } catch (primaryError) {
     // A stale build-time host or transient WebView/native-network failure
     // should not make chat unusable when the canonical endpoint is available.
     console.warn('Primary AI endpoint failed; retrying production endpoint.', primaryError);
     if (primaryUrl === productionUrl) throw primaryError;
-    return requestChat(productionUrl, messages);
+    return requestChat(productionUrl, messages, options);
   }
 }

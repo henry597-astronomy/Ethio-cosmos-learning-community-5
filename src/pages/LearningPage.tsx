@@ -45,7 +45,7 @@ export default function LearningPage() {
   return (
     <div className="min-h-screen bg-[#050810]">
       {/* Fixed search engine: it stays below the top task bar while users scroll. */}
-      <div className="fixed top-24 left-0 right-0 z-40 border-b border-white/10 bg-[#050810]/95 px-2 py-2 backdrop-blur-md sm:px-4">
+      <div className="fixed left-0 right-0 top-[6.5rem] z-40 border-b border-white/10 bg-[#050810] px-2 py-2 sm:px-4">
         <div className="relative mx-auto max-w-3xl">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-400" />
           <input
@@ -54,7 +54,7 @@ export default function LearningPage() {
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search topics and lessons..."
             aria-label="Search topics and lessons"
-            className="h-10 w-full rounded-lg border border-white/15 bg-slate-900/90 pl-9 pr-9 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-orange-500/70 focus:ring-1 focus:ring-orange-500/40"
+            className="h-10 w-full rounded-lg border border-white/15 bg-slate-900 pl-9 pr-9 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-orange-500/70 focus:ring-1 focus:ring-orange-500/40"
           />
           {searchQuery && (
             <button
@@ -69,7 +69,7 @@ export default function LearningPage() {
           )}
 
           {hasSearch && (
-            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] max-h-[60vh] overflow-y-auto rounded-lg border border-white/10 bg-slate-950/98 p-2 shadow-2xl shadow-black/40">
+            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 max-h-[60vh] overflow-y-auto rounded-lg border border-white/10 bg-slate-950 p-2 shadow-2xl shadow-black/60" style={{ isolation: 'isolate' }}>
               {lessonsLoading && (
                 <p className="px-3 py-2 text-xs text-gray-500">Loading lesson search results...</p>
               )}
@@ -136,7 +136,7 @@ export default function LearningPage() {
           )}
         </div>
       </div>
-      <div className="h-[9.5rem]" aria-hidden="true" />
+      <div className="h-[10rem]" aria-hidden="true" />
 
       {/* Hero Section */}
       <section

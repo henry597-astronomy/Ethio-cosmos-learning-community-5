@@ -490,7 +490,7 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
           <p className="text-sm line-clamp-2">{short.caption}</p>
         </div>
 
-        <div className="flex flex-col gap-6 items-center text-white">
+        <div className="flex translate-x-2 flex-col items-center gap-6 text-white">
           <button
             onClick={handleLike}
             disabled={isLikeSaving}

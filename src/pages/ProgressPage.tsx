@@ -4,6 +4,8 @@ import { supabase } from '@/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, BookOpen, Target, Star, Loader } from 'lucide-react';
+import { useAppLanguage } from '@/context/AppLanguageContext';
+import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 
 interface TopicProgress {
   topicId: string;
@@ -32,6 +34,7 @@ interface SubtopicRow {
 
 export default function ProgressPage() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useAppLanguage();
 
   const [topicProgress, setTopicProgress] = useState<TopicProgress[]>([]);
   const [totalCompleted, setTotalCompleted] = useState(0);
@@ -87,7 +90,7 @@ export default function ProgressPage() {
         setTotalLessons(total);
       } catch (err) {
         console.error('Error fetching progress:', err);
-        setError('Failed to load progress. Please try again.');
+        setError(t('progressLoadError'));
       } finally {
         setLoading(false);
       }
@@ -114,14 +117,14 @@ export default function ProgressPage() {
     return () => {
       channel.unsubscribe();
     };
-  }, [user]);
+  }, [t, user]);
 
   if (authLoading || loading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
         <div className="text-center">
           <Loader size={48} className="text-orange-500 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-400">Loading your progress...</p>
+          <p className="text-gray-400">{t('loadingProgress')}</p>
         </div>
       </div>
     );
@@ -152,8 +155,8 @@ export default function ProgressPage() {
     <div className="min-h-screen pt-24 bg-[#0a0e1a]" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
       <div className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-6">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Your Progress</h1>
-          <p className="text-gray-400 text-sm">Track your journey through the cosmos</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('yourProgress')}</h1>
+          <p className="text-gray-400 text-sm">{t('trackJourney')}</p>
         </div>
 
         {error && (
@@ -168,14 +171,14 @@ export default function ProgressPage() {
             <CardContent className="p-4 text-center">
               <BookOpen className="text-orange-500 mx-auto mb-1" size={24} />
               <div className="text-2xl font-bold text-white">{totalCompleted}</div>
-              <div className="text-gray-400 text-xs">Lessons Completed</div>
+              <div className="text-gray-400 text-xs">{t('lessonsCompleted')}</div>
             </CardContent>
           </Card>
           <Card className="bg-slate-900/50 border-white/10 rounded-lg">
             <CardContent className="p-4 text-center">
               <Target className="text-blue-500 mx-auto mb-1" size={24} />
               <div className="text-2xl font-bold text-white">{Math.round(overallProgress)}%</div>
-              <div className="text-gray-400 text-xs">Overall Progress</div>
+              <div className="text-gray-400 text-xs">{t('overallProgress')}</div>
             </CardContent>
           </Card>
           <Card className="bg-slate-900/50 border-white/10 rounded-lg">
@@ -184,7 +187,7 @@ export default function ProgressPage() {
               <div className="text-2xl font-bold text-white">
                 {unlockedCount}/{achievements.length}
               </div>
-              <div className="text-gray-400 text-xs">Achievements</div>
+              <div className="text-gray-400 text-xs">{t('achievements')}</div>
             </CardContent>
           </Card>
         </div>
@@ -192,11 +195,11 @@ export default function ProgressPage() {
         {/* Per-topic progress */}
         <Card className="bg-slate-900/50 border-white/10 mb-6 rounded-lg">
           <CardHeader className="py-4">
-            <CardTitle className="text-lg text-white">Progress by Topic</CardTitle>
+            <CardTitle className="text-lg text-white">{t('progressByTopic')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 pb-6">
             {topicProgress.length === 0 ? (
-              <p className="text-gray-400 text-sm">No topics yet.</p>
+              <p className="text-gray-400 text-sm">{t('noTopicsYet')}</p>
             ) : (
               topicProgress.map((tp) => {
                 const pct =
@@ -204,7 +207,9 @@ export default function ProgressPage() {
                 return (
                   <div key={tp.topicId}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-white">{tp.topicName}</span>
+                      <span className="text-sm text-white">
+                        <LocalizedOfficialText sourceType="topic" sourceId={tp.topicId} field="title" sourceText={tp.topicName} />
+                      </span>
                       <span className="text-sm text-gray-400">
                         {tp.completedLessons}/{tp.totalLessons}
                       </span>
@@ -221,7 +226,7 @@ export default function ProgressPage() {
         <Card className="bg-slate-900/50 border-white/10 rounded-lg">
           <CardHeader className="py-4">
             <CardTitle className="text-lg text-white flex items-center gap-2">
-              <Star size={18} className="text-yellow-400" /> Achievements
+              <Star size={18} className="text-yellow-400" /> {t('achievements')}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pb-6">

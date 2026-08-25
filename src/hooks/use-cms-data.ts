@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { cacheOfflineData, getOfflineData } from '@/lib/offline-cache';
+import { cacheOfflineData, getValidatedOfflineData } from '@/lib/offline-cache';
 import {
   getHomepageHero, updateHomepageHero,
   getHomepageFeatureCards, updateHomepageFeatureCards,
@@ -54,7 +54,7 @@ export function useHomepageHero() {
         console.error(err);
         // Try to load from offline cache if online fetch fails
         try {
-          const cachedData = await getOfflineData('homepage_hero');
+          const cachedData = await getValidatedOfflineData<NonNullable<typeof hero>>('homepage_hero');
           if (cachedData) {
             setHero(cachedData);
             setError(null);
@@ -115,7 +115,7 @@ export function useHomepageFeatureCards() {
         console.error(err);
         // Try to load from offline cache if online fetch fails
         try {
-          const cachedData = await getOfflineData('homepage_feature_cards');
+          const cachedData = await getValidatedOfflineData<FeatureCard[]>('homepage_feature_cards');
           if (cachedData) {
             setFeatureCards(cachedData);
             setError(null);
@@ -165,7 +165,7 @@ export function useHomepageFeaturedTopics() {
         console.error(err);
         // Try to load from offline cache if online fetch fails
         try {
-          const cachedData = await getOfflineData('homepage_featured_topics');
+          const cachedData = await getValidatedOfflineData<FeaturedTopic[]>('homepage_featured_topics');
           if (cachedData) {
             setFeaturedTopics(cachedData);
             setError(null);
@@ -217,7 +217,7 @@ export function useAboutContent() {
         console.error(err);
         // Try to load from offline cache if online fetch fails
         try {
-          const cachedData = await getOfflineData('about_content');
+          const cachedData = await getValidatedOfflineData<AboutContent>('about_content');
           if (cachedData) {
             setAboutContent(cachedData);
             setError(null);
@@ -272,10 +272,21 @@ export function useMaterialsGalleryImages() {
       try {
         setLoading(true);
         const data = await getMaterialsGalleryImages();
-        setGalleryImages(data || []);
+        const finalData = data || [];
+        setGalleryImages(finalData);
+        await cacheOfflineData('materials_gallery_images', finalData).catch((cacheErr) => console.warn('Failed to cache gallery images:', cacheErr));
       } catch (err) {
         setError("Failed to load gallery images.");
         console.error(err);
+        try {
+          const cachedData = await getValidatedOfflineData<GalleryImage[]>('materials_gallery_images');
+          if (cachedData) {
+            setGalleryImages(cachedData);
+            setError(null);
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to load cached gallery images:', cacheErr);
+        }
       } finally {
         setLoading(false);
       }
@@ -308,10 +319,21 @@ export function useMaterialsVideos() {
       try {
         setLoading(true);
         const data = await getMaterialsVideos();
-        setVideos(data || []);
+        const finalData = data || [];
+        setVideos(finalData);
+        await cacheOfflineData('materials_videos', finalData).catch((cacheErr) => console.warn('Failed to cache videos:', cacheErr));
       } catch (err) {
         setError("Failed to load videos.");
         console.error(err);
+        try {
+          const cachedData = await getValidatedOfflineData<VideoItem[]>('materials_videos');
+          if (cachedData) {
+            setVideos(cachedData);
+            setError(null);
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to load cached videos:', cacheErr);
+        }
       } finally {
         setLoading(false);
       }
@@ -344,10 +366,21 @@ export function useMaterialsPdfs() {
       try {
         setLoading(true);
         const data = await getMaterialsPdfs();
-        setPdfs(data || []);
+        const finalData = data || [];
+        setPdfs(finalData);
+        await cacheOfflineData('materials_pdfs', finalData).catch((cacheErr) => console.warn('Failed to cache PDFs:', cacheErr));
       } catch (err) {
         setError("Failed to load PDFs.");
         console.error(err);
+        try {
+          const cachedData = await getValidatedOfflineData<PdfItem[]>('materials_pdfs');
+          if (cachedData) {
+            setPdfs(cachedData);
+            setError(null);
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to load cached PDFs:', cacheErr);
+        }
       } finally {
         setLoading(false);
       }
@@ -391,9 +424,19 @@ export function useMaterialsGroups() {
       const data = await getMaterialsGroups();
       setGrouped(data);
       setError(null);
+      await cacheOfflineData('materials_groups', data).catch((cacheErr) => console.warn('Failed to cache material groups:', cacheErr));
     } catch (err) {
       setError('Failed to load material groups.');
       console.error(err);
+      try {
+        const cachedData = await getValidatedOfflineData<GroupedMaterials>('materials_groups');
+        if (cachedData) {
+          setGrouped(cachedData);
+          setError(null);
+        }
+      } catch (cacheErr) {
+        console.warn('Failed to load cached material groups:', cacheErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -470,7 +513,7 @@ export function useTopics() {
       console.error(err);
       // Try to load from offline cache if online fetch fails
       try {
-        const cachedData = await getOfflineData('topics');
+        const cachedData = await getValidatedOfflineData<Topic[]>('topics');
         if (cachedData) {
           setTopics(cachedData);
           setError(null);
@@ -549,7 +592,7 @@ export function useAllSubtopics() {
         if (!cancelled) setError('Failed to load lessons for search.');
         console.error(err);
         try {
-          const cachedData = await getOfflineData('all_subtopics');
+          const cachedData = await getValidatedOfflineData<Subtopic[]>('all_subtopics');
           if (!cancelled && cachedData) {
             setSubtopics(cachedData);
             setError(null);
@@ -592,7 +635,7 @@ export function useSubtopics(topicId: string | null) {
       console.error(err);
       // Try to load from offline cache if online fetch fails
       try {
-        const cachedData = await getOfflineData(`subtopics_${topicId}`);
+        const cachedData = await getValidatedOfflineData<Subtopic[]>(`subtopics_${topicId}`);
         if (cachedData) {
           setSubtopics(cachedData);
           setError(null);
@@ -675,7 +718,7 @@ export function useLesson(subtopicId: string | null) {
         console.error(err);
         // Try to load from offline cache if online fetch fails
         try {
-          const cachedData = await getOfflineData(`lesson_${subtopicId}`);
+          const cachedData = await getValidatedOfflineData<Lesson>(`lesson_${subtopicId}`);
           if (cachedData) {
             setLesson(cachedData);
             setError(null);
@@ -724,9 +767,19 @@ export function useQuizzes() {
       setLoading(true);
       const data = await getQuizzes();
       setQuizzes(data);
+      await cacheOfflineData('quizzes', data).catch((cacheErr) => console.warn('Failed to cache quizzes:', cacheErr));
     } catch (err) {
       setError("Failed to load quizzes.");
       console.error(err);
+      try {
+        const cachedData = await getValidatedOfflineData<Quiz[]>('quizzes');
+        if (cachedData) {
+          setQuizzes(cachedData);
+          setError(null);
+        }
+      } catch (cacheErr) {
+        console.warn('Failed to load cached quizzes:', cacheErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -792,9 +845,19 @@ export function useQuizQuestions(quizId: string | null) {
       setLoading(true);
       const data = await getQuizQuestionsByQuizId(quizId);
       setQuizQuestions(data);
+      await cacheOfflineData(`quiz_questions_${quizId}`, data).catch((cacheErr) => console.warn('Failed to cache quiz questions:', cacheErr));
     } catch (err) {
       setError("Failed to load quiz questions.");
       console.error(err);
+      try {
+        const cachedData = await getValidatedOfflineData<QuizQuestion[]>(`quiz_questions_${quizId}`);
+        if (cachedData) {
+          setQuizQuestions(cachedData);
+          setError(null);
+        }
+      } catch (cacheErr) {
+        console.warn('Failed to load cached quiz questions:', cacheErr);
+      }
     } finally {
       setLoading(false);
     }

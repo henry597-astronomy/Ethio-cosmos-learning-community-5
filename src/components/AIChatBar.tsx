@@ -20,7 +20,7 @@ export default function AIChatBar() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [tutorMode, setTutorMode] = useState<TutorMode>('tutor');
   const { activeLesson } = useLessonTutorContext();
-  const { language, languageName } = useAppLanguage();
+  const { language, languageName, t: translate } = useAppLanguage();
   const previousLanguageRef = useRef(language);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -270,7 +270,7 @@ export default function AIChatBar() {
       void speakResponse(response);
     } catch (error) {
       console.error('Chat error:', error);
-      setMessages([...newMessages, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+      setMessages([...newMessages, { role: 'assistant', content: translate('chatError') }]);
     } finally {
       setIsLoading(false);
     }
@@ -299,7 +299,8 @@ export default function AIChatBar() {
     if (isLoading || isTranscribing || isRecording) return;
 
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      setVoiceError('Voice recording is not supported on this device.');
+              setVoiceError(translate('voiceRecordingUnsupported'));
+
       return;
     }
 
@@ -340,7 +341,7 @@ export default function AIChatBar() {
         recordingChunksRef.current = [];
 
         if (recording.size <= 0) {
-          setVoiceError('No audio was recorded. Please try again.');
+          setVoiceError(translate('noAudioRecorded'));
           return;
         }
 
@@ -349,7 +350,7 @@ export default function AIChatBar() {
           .then((transcribedText) => submitMessage(transcribedText))
           .catch((error: unknown) => {
             console.error('Voice transcription error:', error);
-            setVoiceError(error instanceof Error ? error.message : 'Voice transcription failed.');
+            setVoiceError(error instanceof Error ? error.message : translate('voiceTranscriptionFailed'));
           })
           .finally(() => setIsTranscribing(false));
       };
@@ -357,7 +358,7 @@ export default function AIChatBar() {
       recorder.onerror = () => {
         stopMediaStream();
         setIsRecording(false);
-        setVoiceError('Microphone recording failed. Please try again.');
+        setVoiceError(translate('microphoneRecordingFailed'));
       };
 
       recorder.start();
@@ -367,8 +368,8 @@ export default function AIChatBar() {
       setIsRecording(false);
       const errorName = error instanceof DOMException ? error.name : '';
       setVoiceError(errorName === 'NotAllowedError'
-        ? 'Microphone permission is required for voice input.'
-        : 'Microphone is unavailable. Please try again.');
+        ? translate('micPermissionRequired')
+        : translate('microphoneUnavailable'));
     }
   };
 
@@ -422,12 +423,12 @@ export default function AIChatBar() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white dark:text-white light-theme:text-[#0f172a]">
-                  {activeLesson ? 'Ethio-Cosmos Tutor' : 'Ethio-Cosmos Teacher'}
+                  {activeLesson ? `Ethio-Cosmos ${translate('tutor')}` : `Ethio-Cosmos ${translate('teacher')}`}
                 </h3>
                 <div className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
                   <span className="text-[10px] text-slate-400 dark:text-slate-400 light-theme:text-slate-600 uppercase tracking-wider font-medium">
-                    {activeLesson ? `${languageName} · ${tutorMode === 'quiz' ? 'Quiz Coach' : 'Lesson Tutor'}` : `${languageName} · Teacher`}
+                    {activeLesson ? `${languageName} · ${tutorMode === 'quiz' ? translate('quizCoach') : translate('tutor')}` : `${languageName} · ${translate('teacher')}`}
                   </span>
                 </div>
               </div>
@@ -437,7 +438,7 @@ export default function AIChatBar() {
                 variant="ghost"
                 size="icon-sm"
                 onClick={toggleSpeech}
-                aria-label={isSpeechEnabled ? 'Mute AI voice' : 'Enable AI voice'}
+                aria-label={isSpeechEnabled ? translate('muteAIVoice') : translate('enableAIVoice')}
                 className="text-slate-400 hover:text-white hover:bg-white/10"
               >
                 {isSpeechEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -459,9 +460,10 @@ export default function AIChatBar() {
           {activeLesson && (
             <div className="shrink-0 border-b border-white/10 bg-cyan-500/10 px-4 py-2 dark:border-white/10 light-theme:border-[#cbd5e1] light-theme:bg-cyan-50">
               <div className="mb-2 truncate text-[11px] text-cyan-100 light-theme:text-cyan-900" title={activeLesson.lessonTitle}>
-                Current lesson: <span className="font-semibold">{activeLesson.lessonTitle}</span>
+                {translate('currentLesson')}: <span className="font-semibold">{activeLesson.lessonTitle}</span>
               </div>
-              <div className="flex gap-2" role="group" aria-label="Teacher mode">
+                              <div className="flex gap-2" role="group" aria-label={translate('teacherMode')}>
+
                 <button
                   type="button"
                   onClick={() => changeTutorMode('tutor')}
@@ -471,7 +473,7 @@ export default function AIChatBar() {
                   )}
                   aria-pressed={tutorMode === 'tutor'}
                 >
-                  Tutor
+                  {translate('tutor')}
                 </button>
                 <button
                   type="button"
@@ -482,7 +484,7 @@ export default function AIChatBar() {
                   )}
                   aria-pressed={tutorMode === 'quiz'}
                 >
-                  Quiz Coach
+                  {translate('quizCoach')}
                 </button>
               </div>
             </div>
@@ -496,10 +498,10 @@ export default function AIChatBar() {
                   <MessageSquare className="w-6 h-6 text-blue-400" />
                 </div>
                 <h4 className="text-white dark:text-white light-theme:text-[#0f172a] font-medium mb-1">
-                  {activeLesson ? 'Your lesson teacher is ready' : 'Welcome to Ethio-Cosmos!'}
+                  {activeLesson ? translate('teacherReady') : translate('welcome')}
                 </h4>
                 <p className="text-sm text-slate-400 dark:text-slate-400 light-theme:text-slate-600">
-                  {activeLesson ? `Ask me about ${activeLesson.lessonTitle}.` : 'Ask me anything about astronomy or our community.'}
+                  {activeLesson ? `${translate('askAboutLesson')} ${activeLesson.lessonTitle}` : translate('askAnything')}
                 </p>
               </div>
             )}
@@ -537,7 +539,7 @@ export default function AIChatBar() {
           <form onSubmit={handleSubmit} className="shrink-0 p-3 sm:p-4 border-t border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] bg-white/5 dark:bg-white/5 light-theme:bg-slate-100">
             {(isRecording || isTranscribing || voiceError) && (
               <div className="mb-2 text-[11px] text-slate-300 dark:text-slate-300 light-theme:text-slate-600" role="status">
-                {isRecording ? 'Listening… tap the microphone to stop.' : isTranscribing ? 'Transcribing your question…' : voiceError}
+                {isRecording ? translate('listeningStatus') : isTranscribing ? translate('transcribingStatus') : voiceError}
               </div>
             )}
             <div className="flex gap-2">
@@ -546,7 +548,7 @@ export default function AIChatBar() {
                 size="icon"
                 onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
                 disabled={isLoading || isTranscribing}
-                aria-label={isRecording ? 'Stop voice recording' : 'Start voice recording'}
+                aria-label={isRecording ? translate('stopVoiceRecording') : translate('startVoiceRecording')}
                 className={cn(
                   'text-white shrink-0',
                   isRecording ? 'bg-red-600 hover:bg-red-500' : 'bg-violet-600 hover:bg-violet-500',
@@ -557,7 +559,7 @@ export default function AIChatBar() {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={activeLesson && tutorMode === 'quiz' ? 'Answer or ask for a hint...' : activeLesson ? 'Ask about this lesson...' : 'Ask your teacher...'}
+                placeholder={activeLesson && tutorMode === 'quiz' ? translate('answerOrHint') : activeLesson ? translate('askAboutLesson') : translate('askYourTeacher')}
                 className="bg-slate-800/50 dark:bg-slate-800/50 light-theme:bg-white border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] text-white dark:text-white light-theme:text-[#0f172a] placeholder:text-slate-500 light-theme:placeholder:text-slate-400 focus:ring-blue-500"
                 disabled={isLoading || isRecording || isTranscribing}
               />

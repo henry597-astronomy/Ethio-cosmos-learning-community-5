@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useAppLanguage } from '@/context/AppLanguageContext';
+import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } from '@/hooks/use-cms-data';
 import { Button } from '@/components/ui/button';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
@@ -19,6 +21,7 @@ declare global {
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { t } = useAppLanguage();
   const homepageHero = useHomepageHero();
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
@@ -161,7 +164,7 @@ export default function HomePage() {
         <div className="absolute inset-0 pointer-events-none opacity-100">
           <img 
             src="/images/hero-bg-new.png" 
-            alt="EthioCosmos Logo Emblem" 
+                        alt={t('logoEmblem')}
             className="w-full h-full object-fill"
           />
         </div>
@@ -219,10 +222,14 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="max-w-2xl">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                {homepageHero.hero?.heroTitle || 'Explore the Cosmos with Ethiopia'}
+                {homepageHero.hero?.heroTitle ? (
+                  <LocalizedOfficialText sourceType="homepage" sourceId="hero" field="title" sourceText={homepageHero.hero.heroTitle} />
+                ) : t('exploreCosmos')}
               </h1>
               <p className="text-xl text-gray-300 mb-8">
-                {homepageHero.hero?.heroSubtitle || 'Join the EthioCosmos Learning Community'}
+                {homepageHero.hero?.heroSubtitle ? (
+                  <LocalizedOfficialText sourceType="homepage" sourceId="hero" field="subtitle" sourceText={homepageHero.hero.heroSubtitle} />
+                ) : t('joinCommunity')}
               </p>
               <div className="flex flex-wrap gap-4">
                 {!user && (
@@ -231,7 +238,7 @@ export default function HomePage() {
                     className="bg-orange-500 hover:bg-orange-600 text-white px-8"
                     onClick={handleBeginJourney}
                   >
-                    Begin Your Journey
+                    {t('beginJourney')}
                   </Button>
                 )}
                 <Button 
@@ -240,7 +247,7 @@ export default function HomePage() {
                   className="border-white/30 text-white hover:bg-white/10 px-8"
                   onClick={scrollToFeatures}
                 >
-                  Learn More
+                  {t('learnMore')}
                 </Button>
               </div>
             </div>
@@ -259,7 +266,7 @@ export default function HomePage() {
                       width="100%"
                       height="100%"
                       src={`${getEmbedUrl(currentVideoUrl)}?autoplay=1&enablejsapi=1`}
-                      title="Hero Video"
+                      title={t('heroVideo')}
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
@@ -275,7 +282,7 @@ export default function HomePage() {
                       width="100%"
                       height="100%"
                       src={getEmbedUrl(currentVideoUrl) || ''}
-                      title="Hero Video"
+                      title={t('heroVideo')}
                       frameBorder="0"
                       allow="autoplay"
                       allowFullScreen
@@ -293,14 +300,14 @@ export default function HomePage() {
                     poster="/images/hero-bg-new.jpg"
                   >
                     <source src={currentVideoUrl} />
-                    Your browser does not support the video tag.
+                    {t('videoUnsupported')}
                   </video>
                 ) : (
                   // Invalid Video URL
                   <div className="w-full aspect-video bg-black flex items-center justify-center">
                     <div className="text-center text-gray-400">
                       <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Invalid video URL</p>
+                      <p className="text-sm">{t('invalidVideoUrl')}</p>
                     </div>
                   </div>
                 )}
@@ -336,9 +343,11 @@ export default function HomePage() {
                   <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">
                     {card.icon}
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-1">{card.title}</h3>
+                  <h3 className="text-xl font-bold text-white mb-1">
+                    <LocalizedOfficialText sourceType="homepage" sourceId={`feature-card-${i}`} field="title" sourceText={card.title} />
+                  </h3>
                   <p className="text-gray-400 leading-relaxed">
-                    {card.description}
+                    <LocalizedOfficialText sourceType="homepage" sourceId={`feature-card-${i}`} field="description" sourceText={card.description} />
                   </p>
                 </div>
               ))}
@@ -351,7 +360,7 @@ export default function HomePage() {
       <section className="py-8 bg-[#0a0e1a]">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
           <div className="text-center mb-8">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">Featured Topics</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">{t('featuredTopics')}</h2>
             <div className="w-24 h-1 bg-orange-500 mx-auto rounded-full" />
           </div>
 
@@ -374,9 +383,11 @@ export default function HomePage() {
                     className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                   <div className="p-3 flex-1 flex flex-col">
-                    <h3 className="text-lg font-bold text-white mb-2">{topic.title}</h3>
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      <LocalizedOfficialText sourceType="homepage" sourceId={`featured-topic-${topic.id}`} field="title" sourceText={topic.title} />
+                    </h3>
                     <p className="text-sm text-gray-300 leading-relaxed flex-1">
-                      {topic.description}
+                      <LocalizedOfficialText sourceType="homepage" sourceId={`featured-topic-${topic.id}`} field="description" sourceText={topic.description} />
                     </p>
                   </div>
                 </div>
@@ -389,7 +400,7 @@ export default function HomePage() {
               onClick={() => navigate('/learning')}
               className="bg-transparent border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8"
             >
-              View All Topics
+              {t('viewAllTopics')}
             </Button>
           </div>
         </div>

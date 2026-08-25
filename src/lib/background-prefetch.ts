@@ -2,16 +2,25 @@
  * Background Prefetch Utility
  * 
  * Intelligently discovers and caches all content when the app is online:
- * - All CMS data (topics, lessons, quizzes, materials)
- * - All images (topic images, gallery images, team avatars)
- * - All media (videos, PDFs)
+ * - Official CMS data only (topics, lessons, quizzes, materials, and about content)
+ * - Necessary official images (topic images, gallery images, and team assets)
+ * - Official media (videos and PDFs)
  * - All static assets
  * 
  * Runs in the background without blocking the UI.
  */
 
 import { supabase } from '@/supabase';
-import type { Topic, Lesson, GalleryImage, VideoItem, PdfItem, AboutContent } from '@/types';
+import type { Topic, Lesson, GalleryImage, VideoItem, PdfItem, AboutContent, Quiz, QuizQuestion } from '@/types';
+import { APP_LANGUAGE_STORAGE_KEY, type AppLanguage } from '@/context/AppLanguageContext';
+import {
+  OFFLINE_PACK_SCHEMA_VERSION,
+  OFFLINE_PACK_VERSION,
+  cacheOfflineData,
+  clearOfflineData,
+  getOfflineData,
+  saveOfflinePackManifest,
+} from '@/lib/offline-cache';
 
 export interface PrefetchProgress {
   total: number;
@@ -52,6 +61,24 @@ function updateProgress(update: Partial<PrefetchProgress>) {
 // Helper to safely increment completed count
 function incrementCompleted() {
   updateProgress({ completed: prefetchProgress.completed + 1 });
+}
+
+function stableDataHash(value: unknown): string {
+  const serialized = JSON.stringify(value ?? null);
+  let hash = 2166136261;
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash ^= serialized.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `fnv1a-${(hash >>> 0).toString(16)}`;
+}
+
+async function getCachedSourceVersions(keys: string[]): Promise<Record<string, string>> {
+  const entries = await Promise.all(keys.map(async (key) => {
+    const value = await getOfflineData(key);
+    return [key, stableDataHash(value)] as const;
+  }));
+  return Object.fromEntries(entries);
 }
 
 /**
@@ -114,7 +141,10 @@ async function prefetchTopics(): Promise<string[]> {
 
   if (error) throw error;
 
-  const imageUrls = (topics || []).flatMap((topic: Topic) => {
+  const finalTopics = topics || [];
+  await cacheOfflineData('topics', finalTopics);
+
+  const imageUrls = finalTopics.flatMap((topic: Topic) => {
     const urls = [];
     if (topic.image_url) urls.push(topic.image_url);
     return urls;
@@ -130,11 +160,17 @@ async function prefetchTopics(): Promise<string[]> {
 async function prefetchSubtopics(): Promise<void> {
   updateProgress({ currentItem: 'Fetching subtopics...' });
 
-  const { error } = await supabase
+  const { data: subtopics, error } = await supabase
     .from('subtopics')
     .select('*');
 
   if (error) throw error;
+
+  await cacheOfflineData('all_subtopics', subtopics || []);
+  const topicIds = [...new Set((subtopics || []).map((subtopic: any) => subtopic.topic_id).filter(Boolean))];
+  await Promise.all(topicIds.map((topicId) =>
+    cacheOfflineData(`subtopics_${topicId}`, (subtopics || []).filter((item: any) => item.topic_id === topicId))
+  ));
 
   incrementCompleted();
 }
@@ -152,6 +188,9 @@ async function prefetchLessons(): Promise<string[]> {
   if (error) throw error;
 
   const imageUrls: string[] = [];
+  await Promise.all((lessons || []).filter((lesson: Lesson) => Boolean(lesson.subtopic_id)).map((lesson: Lesson) =>
+    cacheOfflineData(`lesson_${lesson.subtopic_id}`, lesson)
+  ));
   (lessons || []).forEach((lesson: Lesson) => {
     if (lesson.content_blocks && Array.isArray(lesson.content_blocks)) {
       lesson.content_blocks.forEach((block: any) => {
@@ -178,12 +217,24 @@ async function prefetchQuizzes(): Promise<void> {
 
   if (quizzesError) throw quizzesError;
 
-  if (quizzes && quizzes.length > 0) {
-    const { error: questionsError } = await supabase
+  const finalQuizzes = (quizzes || []) as Quiz[];
+  await cacheOfflineData('quizzes', finalQuizzes);
+
+  if (finalQuizzes.length > 0) {
+    const { data: questions, error: questionsError } = await supabase
       .from('quiz_questions')
       .select('*');
 
     if (questionsError) throw questionsError;
+
+    const finalQuestions = (questions || []) as QuizQuestion[];
+    await cacheOfflineData('quiz_questions_all', finalQuestions);
+    await Promise.all(finalQuizzes.map((quiz) =>
+      cacheOfflineData(
+        `quiz_questions_${quiz.id}`,
+        finalQuestions.filter((question) => question.quiz_id === quiz.id),
+      )
+    ));
   }
 
   incrementCompleted();
@@ -202,6 +253,9 @@ async function prefetchSiteContent(): Promise<string[]> {
   if (error) throw error;
 
   const imageUrls: string[] = [];
+
+  await cacheOfflineData('site_content', content || []);
+  await Promise.all((content || []).map((item: any) => cacheOfflineData(item.key, item.value)));
 
   content?.forEach((item: any) => {
     const itemImages = extractImageUrls(item.value);
@@ -227,6 +281,7 @@ async function prefetchGalleryImages(): Promise<string[]> {
   if (error && error.code !== 'PGRST116') throw error;
 
   const imageUrls: string[] = [];
+  await cacheOfflineData('materials_gallery_images', content?.value || []);
   if (content?.value && Array.isArray(content.value)) {
     content.value.forEach((image: GalleryImage) => {
       if (image.url) imageUrls.push(image.url);
@@ -254,6 +309,7 @@ async function prefetchMaterials(): Promise<string[]> {
 
   if (videosError && videosError.code !== 'PGRST116') throw videosError;
 
+  await cacheOfflineData('materials_videos', videosContent?.value || []);
   if (videosContent?.value && Array.isArray(videosContent.value)) {
     videosContent.value.forEach((video: VideoItem) => {
       if (video.url) mediaUrls.push(video.url);
@@ -270,6 +326,7 @@ async function prefetchMaterials(): Promise<string[]> {
 
   if (pdfsError && pdfsError.code !== 'PGRST116') throw pdfsError;
 
+  await cacheOfflineData('materials_pdfs', pdfsContent?.value || []);
   if (pdfsContent?.value && Array.isArray(pdfsContent.value)) {
     pdfsContent.value.forEach((pdf: PdfItem) => {
       if (pdf.url) mediaUrls.push(pdf.url);
@@ -278,70 +335,6 @@ async function prefetchMaterials(): Promise<string[]> {
 
   incrementCompleted();
   return mediaUrls;
-}
-
-/**
- * Prefetch about page content (team images)
- */
-async function prefetchPublicCommunityContent(): Promise<{ imageUrls: string[]; mediaUrls: string[] }> {
-  updateProgress({ currentItem: 'Fetching community content...' });
-
-  const [postsResult, reactionsResult, commentsResult, commentReactionsResult, spaceNewsResult, liveSessionsResult, shortsResult] = await Promise.all([
-    supabase
-      .from('channel_posts')
-      .select('id, message_text, image_url, created_at, pinned_at, user_id, profiles ( username, bio, avatar_url, role )')
-      .order('created_at', { ascending: true }),
-    supabase.from('channel_reactions').select('*'),
-    supabase
-      .from('channel_comments')
-      .select('id, post_id, user_id, content, created_at, profiles ( username, bio, avatar_url, role )')
-      .order('created_at', { ascending: true }),
-    supabase.from('comment_reactions').select('*'),
-    supabase
-      .from('space_news')
-      .select('id, external_id, title, summary, full_explanation, fun_fact, image_url, source_name, source_url, category, published_date, ai_generated, status, created_at, updated_at')
-      .eq('status', 'published')
-      .order('published_date', { ascending: false })
-      .limit(12),
-    supabase.from('live_sessions').select('*').eq('is_active', true),
-    supabase.from('shorts').select('*').eq('is_active', true).order('created_at', { ascending: false }),
-  ]);
-
-  const firstError = [
-    postsResult.error,
-    reactionsResult.error,
-    commentsResult.error,
-    commentReactionsResult.error,
-    spaceNewsResult.error,
-    liveSessionsResult.error,
-    shortsResult.error,
-  ].find(Boolean);
-
-  if (firstError) {
-    console.warn('[Prefetch] Some community data could not be cached:', firstError.message);
-  }
-
-  const imageUrls: string[] = [];
-  const mediaUrls: string[] = [];
-  const collect = (value: any) => {
-    if (!value || typeof value !== 'string' || !/^https?:\/\//i.test(value)) return;
-    if (/\.(jpg|jpeg|png|gif|svg|webp|ico)(\?|$)/i.test(value)) imageUrls.push(value);
-    else if (/\.(mp4|webm|ogg|mp3|wav|pdf|m3u8)(\?|$)/i.test(value)) mediaUrls.push(value);
-  };
-
-  (postsResult.data || []).forEach((post: any) => {
-    collect(post.image_url);
-    collect(post.profiles?.avatar_url);
-  });
-  (commentsResult.data || []).forEach((comment: any) => collect(comment.profiles?.avatar_url));
-  (spaceNewsResult.data || []).forEach((item: any) => collect(item.image_url));
-  (shortsResult.data || []).forEach((short: any) => {
-    collect(short.thumbnail_url || short.thumbnail);
-    collect(short.video_url || short.url);
-  });
-
-  incrementCompleted();
-  return { imageUrls, mediaUrls };
 }
 
 async function prefetchUserContent(): Promise<void> {
@@ -374,6 +367,7 @@ async function prefetchAboutContent(): Promise<string[]> {
 
   if (error && error.code !== 'PGRST116') throw error;
 
+  await cacheOfflineData('about_content', content?.value || null);
   const imageUrls: string[] = [];
   if (content?.value) {
     const aboutData = content.value as AboutContent;
@@ -398,34 +392,60 @@ async function prefetchAboutContent(): Promise<string[]> {
 /**
  * Main prefetch function - downloads everything automatically
  */
-export async function prefetchAllContent(): Promise<void> {
-  console.log('[Prefetch] Starting comprehensive automatic content prefetch...');
+const OFFICIAL_PACK_CONTENT_KEYS = [
+  'topics',
+  'all_subtopics',
+  'site_content',
+  'materials_gallery_images',
+  'materials_videos',
+  'materials_pdfs',
+  'materials_groups',
+  'about_content',
+  'quizzes',
+  'quiz_questions_all',
+];
 
-  // Initialize progress
+export async function downloadOfficialLearningPack(
+  language: AppLanguage = 'en',
+  requestedUserId?: string,
+): Promise<void> {
+  const sessionUserId = requestedUserId || (await supabase.auth.getSession()).data.session?.user?.id;
+  if (!sessionUserId) throw new Error('Sign in to download official lessons for offline use.');
+
+  console.log('[OfflinePack] Starting official learning-pack download:', language);
   updateProgress({
     status: 'running',
     completed: 0,
-    total: 10, // Number of prefetch tasks
+    total: 10,
+    currentItem: 'Preparing official learning pack...',
     error: undefined,
   });
 
+  await saveOfflinePackManifest({
+    schemaVersion: OFFLINE_PACK_SCHEMA_VERSION,
+    version: OFFLINE_PACK_VERSION,
+    downloadedAt: Date.now(),
+    userId: sessionUserId,
+    language,
+    status: 'downloading',
+    contentKeys: OFFICIAL_PACK_CONTENT_KEYS,
+    sourceVersions: {},
+    mediaCount: 0,
+    translationCount: 0,
+  });
+
   try {
-    // Collect all URLs to cache
     const allImageUrls: Set<string> = new Set();
     const allMediaUrls: Set<string> = new Set();
-
-    // Prefetch all content types in parallel where possible
     const [
       topicImages,
-      _subtopics,
+      ,
       lessonImages,
-      _quizzes,
+      ,
       siteContentImages,
       galleryImages,
       materials,
       aboutImages,
-      communityContent,
-      _userContent
     ] = await Promise.all([
       prefetchTopics(),
       prefetchSubtopics(),
@@ -435,50 +455,70 @@ export async function prefetchAllContent(): Promise<void> {
       prefetchGalleryImages(),
       prefetchMaterials(),
       prefetchAboutContent(),
-      prefetchPublicCommunityContent(),
-      prefetchUserContent()
+      prefetchUserContent(),
     ]);
 
-    topicImages.forEach(url => allImageUrls.add(url));
-    lessonImages.forEach(url => allImageUrls.add(url));
-    siteContentImages.forEach(url => allImageUrls.add(url));
-    galleryImages.forEach(url => allImageUrls.add(url));
-    materials.forEach(url => allMediaUrls.add(url));
-    aboutImages.forEach(url => allImageUrls.add(url));
-    communityContent.imageUrls.forEach(url => allImageUrls.add(url));
-    communityContent.mediaUrls.forEach(url => allMediaUrls.add(url));
+    topicImages.forEach((url) => allImageUrls.add(url));
+    lessonImages.forEach((url) => allImageUrls.add(url));
+    siteContentImages.forEach((url) => allImageUrls.add(url));
+    galleryImages.forEach((url) => allImageUrls.add(url));
+    materials.forEach((url) => allMediaUrls.add(url));
+    aboutImages.forEach((url) => allImageUrls.add(url));
 
-    // Send all URLs to service worker for caching
     if (allImageUrls.size > 0) {
-      updateProgress({ currentItem: `Caching ${allImageUrls.size} images...` });
-      await sendToServiceWorker('CACHE_URLS', {
-        urls: Array.from(allImageUrls),
-      });
+      updateProgress({ currentItem: `Caching ${allImageUrls.size} official images...` });
+      await sendToServiceWorker('CACHE_URLS', { urls: Array.from(allImageUrls) });
     }
 
     if (allMediaUrls.size > 0) {
-      updateProgress({ currentItem: `Caching ${allMediaUrls.size} media files...` });
-      await sendToServiceWorker('CACHE_URLS', {
-        urls: Array.from(allMediaUrls),
-      });
+      updateProgress({ currentItem: `Caching ${allMediaUrls.size} official media files...` });
+      await sendToServiceWorker('CACHE_URLS', { urls: Array.from(allMediaUrls) });
     }
+
+    const sourceVersions = await getCachedSourceVersions(OFFICIAL_PACK_CONTENT_KEYS);
+    await saveOfflinePackManifest({
+      schemaVersion: OFFLINE_PACK_SCHEMA_VERSION,
+      version: OFFLINE_PACK_VERSION,
+      downloadedAt: Date.now(),
+      userId: sessionUserId,
+      language,
+      status: 'complete',
+      contentKeys: OFFICIAL_PACK_CONTENT_KEYS,
+      sourceVersions,
+      mediaCount: allImageUrls.size + allMediaUrls.size,
+      translationCount: 0,
+    });
 
     updateProgress({
       status: 'completed',
       completed: prefetchProgress.total,
-      currentItem: 'All content downloaded for offline use!',
+      currentItem: 'Official learning pack is ready for offline use.',
     });
-
-    console.log('[Prefetch] Completed successfully');
+    console.log('[OfflinePack] Completed successfully');
   } catch (error) {
-    console.error('[Prefetch] Error:', error);
-    updateProgress({
+    const message = error instanceof Error ? error.message : 'Unknown offline-pack error.';
+    console.error('[OfflinePack] Error:', error);
+    await saveOfflinePackManifest({
+      schemaVersion: OFFLINE_PACK_SCHEMA_VERSION,
+      version: OFFLINE_PACK_VERSION,
+      downloadedAt: Date.now(),
+      userId: sessionUserId,
+      language,
       status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+      contentKeys: OFFICIAL_PACK_CONTENT_KEYS,
+      sourceVersions: {},
+      mediaCount: 0,
+      translationCount: 0,
+      error: message,
+    }).catch((manifestError) => console.warn('[OfflinePack] Could not save error status:', manifestError));
+    updateProgress({ status: 'error', error: message });
     throw error;
   }
 }
+
+// Compatibility alias for existing update flows. It now downloads only the
+// signed-in official learning pack instead of broad community data.
+export const prefetchAllContent = downloadOfficialLearningPack;
 
 /**
  * Get current prefetch progress
@@ -506,7 +546,8 @@ export async function getCacheSize(): Promise<number> {
 export async function clearAllCaches(): Promise<void> {
   try {
     await sendToServiceWorker('CLEAR_CACHE');
-    console.log('[Prefetch] All caches cleared');
+    await clearOfflineData();
+    console.log('[OfflinePack] All official offline data cleared');
   } catch (error) {
     console.error('[Prefetch] Failed to clear caches:', error);
     throw error;
@@ -514,24 +555,25 @@ export async function clearAllCaches(): Promise<void> {
 }
 
 /**
- * Check if online and trigger prefetch automatically
+ * Refresh an offline pack only after a signed-in user explicitly opted in.
+ * This keeps guest sessions and community/user-generated data out of the
+ * automatic background path.
  */
-export function setupOnlineListener(): void {
-  // Listen for online events
-  window.addEventListener('online', () => {
-    console.log('[Prefetch] Connection restored, starting automatic prefetch...');
-    prefetchAllContent().catch((err) => {
-      console.error('[Prefetch] Background prefetch failed:', err);
-    });
-  });
+async function refreshOptedInPack(): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user?.id;
+  if (!userId || window.localStorage.getItem(`ethio-offline-pack-opt-in:${userId}`) !== '1') return;
+  const storedLanguage = window.localStorage.getItem(`${APP_LANGUAGE_STORAGE_KEY}:${userId}`);
+  await downloadOfficialLearningPack(storedLanguage === 'am' ? 'am' : 'en', userId);
+}
 
-  // Trigger prefetch on app startup if online
-  if (navigator.onLine) {
-    // Delay slightly to allow the app to initialize first
-    setTimeout(() => {
-      prefetchAllContent().catch((err) => {
-        console.error('[Prefetch] Initial prefetch failed:', err);
-      });
-    }, 5000);
-  }
+export function setupOnlineListener(): void {
+  const refresh = () => {
+    void refreshOptedInPack().catch((error) => {
+      console.warn('[OfflinePack] Opted-in refresh failed:', error);
+    });
+  };
+
+  window.addEventListener('online', refresh);
+  if (navigator.onLine) window.setTimeout(refresh, 5000);
 }

@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { useMaterialsGroups } from '@/hooks/use-cms-data';
 import { FallbackImage } from '@/components/MediaFallback';
 import { getEmbedUrl, getVideoType } from '@/lib/video-utils';
+import { useAppLanguage } from '@/context/AppLanguageContext';
+import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 import type { MaterialType } from '@/types';
 
 type ViewTab = 'all' | MaterialType;
@@ -22,6 +24,7 @@ interface GroupedSection {
 }
 
 export default function MaterialsPage() {
+  const { t } = useAppLanguage();
   const { grouped, loading } = useMaterialsGroups();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
@@ -38,7 +41,7 @@ export default function MaterialsPage() {
     const sectionMap = new Map<string, GroupedSection>();
     const uncategorized: GroupedSection = {
       id: 'uncategorized',
-      name: 'All Materials',
+      name: t('materialsLibrary'),
       type: 'gallery',
       galleryItems: [],
       videos: [],
@@ -95,7 +98,7 @@ export default function MaterialsPage() {
       ordered.push(uncategorized);
     }
     return ordered;
-  }, [grouped]);
+  }, [grouped, t]);
 
   // Which sections to render based on the active category, optional group, and search query.
   const visibleSections = useMemo(() => {
@@ -124,7 +127,7 @@ export default function MaterialsPage() {
   if (loading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#050810] text-gray-400">
-        Loading materials...
+        {t('loading')}
       </div>
     );
   }
@@ -142,10 +145,10 @@ export default function MaterialsPage() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Learning Materials
+            {t('materialsLibrary')}
           </h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Explore our collection of photos, videos, and downloadable resources
+            {t('exploreCollection')}
           </p>
 
             {/* Category filter tabs & Search */}
@@ -157,7 +160,7 @@ export default function MaterialsPage() {
                   onClick={() => { setViewTab('all'); setActiveGroup(null); }}
                   className={viewTab === 'all' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
                 >
-                  <FolderOpen className="w-4 h-4 mr-2" /> All
+                  <FolderOpen className="w-4 h-4 mr-2" /> {t('all')}
                 </Button>
                 <Button
                   variant={viewTab === 'gallery' ? 'default' : 'outline'}
@@ -165,7 +168,7 @@ export default function MaterialsPage() {
                   onClick={() => { setViewTab('gallery'); setActiveGroup(null); }}
                   className={viewTab === 'gallery' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
                 >
-                  Photo Gallery
+                  {t('photoGallery')}
                 </Button>
                 <Button
                   variant={viewTab === 'video' ? 'default' : 'outline'}
@@ -173,7 +176,7 @@ export default function MaterialsPage() {
                   onClick={() => { setViewTab('video'); setActiveGroup(null); }}
                   className={viewTab === 'video' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
                 >
-                  Videos
+                  {t('videos')}
                 </Button>
                 <Button
                   variant={viewTab === 'pdf' ? 'default' : 'outline'}
@@ -181,7 +184,7 @@ export default function MaterialsPage() {
                   onClick={() => { setViewTab('pdf'); setActiveGroup(null); }}
                   className={viewTab === 'pdf' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
                 >
-                  Downloads
+                  {t('downloads')}
                 </Button>
               </div>
 
@@ -189,7 +192,7 @@ export default function MaterialsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Search video groups or material categories..."
+                  placeholder={t('searchMaterialCategories')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 bg-slate-900/80 border-white/20 text-white placeholder:text-gray-400 rounded-full"
@@ -212,11 +215,11 @@ export default function MaterialsPage() {
         <section className="py-8">
           <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
             <h2 className="text-xl font-bold text-white mb-6">
-              {viewTab === 'all' ? 'Browse by Category' : `Categories (${viewTab === 'gallery' ? 'Photos' : viewTab === 'video' ? 'Videos' : 'Downloads'})`}
+              {viewTab === 'all' ? t('browseByCategory') : `${t('categories')} (${viewTab === 'gallery' ? t('photos') : viewTab === 'video' ? t('videos') : t('downloads')})`}
             </h2>
             {visibleSections.length === 0 ? (
               <p className="text-gray-400 text-sm">
-                No categories or materials found for this filter.
+                {t('noCategories')}
               </p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
@@ -224,8 +227,8 @@ export default function MaterialsPage() {
                   const total = section.galleryItems.length + section.videos.length + section.pdfs.length;
                   const preview = section.preview_image || section.galleryItems[0]?.url || section.videos[0]?.thumbnail;
                   const typeLabel =
-                    section.type === 'gallery' ? 'Photos' :
-                    section.type === 'video' ? 'Videos' : 'Downloads';
+                    section.type === 'gallery' ? t('photos') :
+                    section.type === 'video' ? t('videos') : t('downloads');
                   return (
                     <button
                       key={section.id}
@@ -243,10 +246,12 @@ export default function MaterialsPage() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-4">
                           <h3 className="text-white font-semibold group-hover:text-orange-500 transition-colors">
-                            {section.name}
+                            {section.id === 'uncategorized' ? section.name : (
+                              <LocalizedOfficialText sourceType="material" sourceId={section.id} field="name" sourceText={section.name} />
+                            )}
                           </h3>
                           <p className="text-gray-300 text-xs mt-1">
-                            {section.id === 'uncategorized' ? `General • ${total} ${total === 1 ? 'item' : 'items'}` : `${typeLabel} • ${total} ${total === 1 ? 'item' : 'items'}`}
+                            {section.id === 'uncategorized' ? `${t('materialsLibrary')} • ${total} ${total === 1 ? t('item') : t('items')}` : `${typeLabel} • ${total} ${total === 1 ? t('item') : t('items')}`}
                           </p>
                         </div>
                       </div>
@@ -267,15 +272,21 @@ export default function MaterialsPage() {
               onClick={() => setActiveGroup(null)}
               className="text-orange-500 hover:text-orange-400 text-sm mb-4 inline-flex items-center"
             >
-              ← Back to categories
+              ← {t('backToCategories')}
             </button>
             {visibleSections.map((section) => (
               <div key={section.id} className="mb-8">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                   <div>
-                    <h2 className="text-3xl font-bold text-white mb-2">{section.name}</h2>
+                    <h2 className="text-3xl font-bold text-white mb-2">
+                      {section.id === 'uncategorized' ? section.name : (
+                        <LocalizedOfficialText sourceType="material" sourceId={section.id} field="name" sourceText={section.name} />
+                      )}
+                    </h2>
                     {section.description && (
-                      <p className="text-gray-400">{section.description}</p>
+                      <p className="text-gray-400">
+                        <LocalizedOfficialText sourceType="material" sourceId={section.id} field="description" sourceText={section.description} />
+                      </p>
                     )}
                   </div>
                   {section.link && (
@@ -285,7 +296,7 @@ export default function MaterialsPage() {
                       className="border-orange-500/50 text-orange-500 hover:bg-orange-500 hover:text-white"
                     >
                       <a href={section.link} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-4 h-4 mr-2" /> Visit Source
+                        <ExternalLink className="w-4 h-4 mr-2" /> {t('visitSource')}
                       </a>
                     </Button>
                   )}
@@ -316,7 +327,7 @@ export default function MaterialsPage() {
           </button>
           <img
             src={selectedImage}
-            alt="Gallery image"
+            alt={t('galleryImage')}
             className="max-w-full max-h-[90vh] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
@@ -365,13 +376,13 @@ export default function MaterialsPage() {
               } else {
                 return (
                   <div className="w-full h-full flex flex-col items-center justify-center text-white p-8 text-center">
-                    <p className="mb-4">This video format cannot be played directly.</p>
+                    <p className="mb-4">{t('directVideoFormat')}</p>
                     <Button
                       onClick={() => window.open(selectedVideo.url, '_blank')}
                       className="bg-orange-500 hover:bg-orange-600"
                     >
                       <ExternalLink className="w-4 h-4 mr-2" />
-                      Open in New Tab
+                      {t('openNewTab')}
                     </Button>
                   </div>
                 );
@@ -397,12 +408,14 @@ function GroupContent({
   onOpenImage: (url: string) => void;
   onOpenVideo: (url: string, title: string) => void;
 }) {
+  const { t } = useAppLanguage();
+
   return (
     <div className="space-y-8">
       {/* Photo Gallery */}
       {(viewTab === 'all' || viewTab === 'gallery') && section.galleryItems.length > 0 && (
         <section className="py-2">
-          <h3 className="text-xl font-bold text-white mb-4">Photo Gallery</h3>
+          <h3 className="text-xl font-bold text-white mb-4">{t('photoGallery')}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {section.galleryItems.map((image) => (
               <button
@@ -416,7 +429,9 @@ function GroupContent({
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                  <span className="text-white text-sm">{image.title}</span>
+                  <span className="text-white text-sm">
+                    <LocalizedOfficialText sourceType="material" sourceId={image.id} field="title" sourceText={image.title} />
+                  </span>
                 </div>
               </button>
             ))}
@@ -427,7 +442,7 @@ function GroupContent({
       {/* Videos Section */}
       {(viewTab === 'all' || viewTab === 'video') && section.videos.length > 0 && (
         <section className="py-4 bg-slate-900/50 rounded-xl p-4 sm:p-6">
-          <h3 className="text-xl font-bold text-white mb-4">Videos</h3>
+          <h3 className="text-xl font-bold text-white mb-4">{t('videos')}</h3>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {section.videos.map((video) => (
               <button
@@ -449,7 +464,7 @@ function GroupContent({
                 </div>
                 <div className="p-4">
                   <h4 className="text-white font-semibold group-hover:text-orange-500 transition-colors">
-                    {video.title}
+                    <LocalizedOfficialText sourceType="material" sourceId={video.id} field="title" sourceText={video.title} />
                   </h4>
                 </div>
               </button>
@@ -461,7 +476,7 @@ function GroupContent({
       {/* PDF Downloads */}
       {(viewTab === 'all' || viewTab === 'pdf') && section.pdfs.length > 0 && (
         <section className="py-2">
-          <h3 className="text-xl font-bold text-white mb-4">Downloads</h3>
+          <h3 className="text-xl font-bold text-white mb-4">{t('downloads')}</h3>
           <div className="space-y-2 sm:space-y-3">
             {section.pdfs.map((pdf) => (
               <div
@@ -472,7 +487,9 @@ function GroupContent({
                   <span className="inline-block px-2 py-1 bg-orange-500/20 text-orange-500 text-xs rounded mb-2">
                     {pdf.label}
                   </span>
-                  <h4 className="text-white font-semibold">{pdf.title}</h4>
+                  <h4 className="text-white font-semibold">
+                    <LocalizedOfficialText sourceType="material" sourceId={pdf.id} field="title" sourceText={pdf.title} />
+                  </h4>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -482,7 +499,7 @@ function GroupContent({
                     className="border-white/20 text-white hover:bg-white/10"
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Open
+                    {t('open')}
                   </Button>
                   <Button
                     size="sm"
@@ -495,7 +512,7 @@ function GroupContent({
                     className="bg-orange-500 hover:bg-orange-600 text-white"
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download
+                    {t('download')}
                   </Button>
                 </div>
               </div>

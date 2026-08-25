@@ -1,7 +1,7 @@
 {
   "name": "my-app",
   "private": true,
-  "version": "1.10.3",
+  "version": "1.10.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,7 @@
     "postinstall": "node scripts/patch-android.cjs",
     "lint": "eslint .",
     "security:check": "node scripts/security-regression-check.mjs",
+    "localization:check": "node scripts/localization-offline-contract.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

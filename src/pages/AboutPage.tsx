@@ -1,7 +1,10 @@
 import { useAboutContent } from '@/hooks/use-cms-data';
 import type { AboutContent, TeamMember } from '@/types';
+import { useAppLanguage } from '@/context/AppLanguageContext';
+import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 
 export default function AboutPage() {
+  const { t } = useAppLanguage();
   const { aboutContent, loading, error } = useAboutContent();
 
   const about: AboutContent = aboutContent || {
@@ -21,7 +24,7 @@ export default function AboutPage() {
   if (loading) {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center bg-[#0a0e1a] text-white">
-        Loading...
+        {t('loading')}
       </div>
     );
   }
@@ -29,7 +32,7 @@ export default function AboutPage() {
   if (error) {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center bg-[#0a0e1a] text-red-400">
-        Error: {error}
+        {t('error')}: {error}
       </div>
     );
   }
@@ -46,10 +49,8 @@ export default function AboutPage() {
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">About Ethio-Cosmos</h1>
-          <p className="text-base text-gray-300 max-w-2xl mx-auto">
-            Inspiring the next generation of Ethiopian astronomers and space enthusiasts.
-          </p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">{t('about')}</h1>
+          <p className="text-base text-gray-300 max-w-2xl mx-auto">{t('aboutSubtitle')}</p>
         </div>
       </section>
 
@@ -58,17 +59,18 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-6 items-center">
             <div>
-              <h2 className="text-2xl font-bold text-white mb-4">Our Mission</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">{t('ourMission')}</h2>
               <p className="text-gray-300 text-sm sm:text-base leading-relaxed mb-4">
-                {about.missionText || 
-                  'Our mission is to democratize astronomy education in Ethiopia, making the wonders of the universe accessible to everyone through innovative digital learning and community engagement.'}
+                {about.missionText ? (
+                  <LocalizedOfficialText sourceType="about" sourceId="about_content" field="missionText" sourceText={about.missionText} />
+                ) : t('missionFallback')}
               </p>
             </div>
             <div className="relative">
               <div className="aspect-video rounded-xl overflow-hidden border border-white/10">
                 <img 
                   src={about.missionImage || '/images/mission.jpg'} 
-                  alt="Our Mission" 
+                  alt={t('missionAlt')}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -82,7 +84,7 @@ export default function AboutPage() {
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Who We Are</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">{t('whoWeAre')}</h2>
             <div className="w-16 h-1 bg-orange-500 mx-auto"></div>
           </div>
 
@@ -91,24 +93,26 @@ export default function AboutPage() {
               <div className="grid grid-cols-2 gap-3">
                 <img 
                   src={about.whoWeAreImage1 || '/images/who-we-are-1.jpg'} 
-                  alt="Team collaboration" 
+                  alt={t('teamCollaborationAlt')}
                   className="rounded-lg border border-white/10 shadow-lg"
                 />
                 <img 
                   src={about.whoWeAreImage2 || '/images/who-we-are-2.jpg'} 
-                  alt="Astronomical observation" 
+                  alt={t('astronomicalObservationAlt')}
                   className="rounded-lg border border-white/10 shadow-lg mt-6"
                 />
               </div>
             </div>
             <div className="order-1 md:order-2">
               <p className="text-gray-300 text-sm sm:text-base leading-relaxed mb-4">
-                {about.whoWeAreText1 ||
-                  'Ethio-Cosmos is a community-driven platform created by passionate astronomers, educators, and developers who want to share their love for the stars with the world.'}
+                {about.whoWeAreText1 ? (
+                  <LocalizedOfficialText sourceType="about" sourceId="about_content" field="whoWeAreText1" sourceText={about.whoWeAreText1} />
+                ) : t('whoWeAreFallback1')}
               </p>
               <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
-                {about.whoWeAreText2 ||
-                  'We combine modern educational techniques with Ethiopia\'s rich astronomical heritage to create a unique learning experience that honors both science and culture.'}
+                {about.whoWeAreText2 ? (
+                  <LocalizedOfficialText sourceType="about" sourceId="about_content" field="whoWeAreText2" sourceText={about.whoWeAreText2} />
+                ) : t('whoWeAreFallback2')}
               </p>
             </div>
           </div>
@@ -119,14 +123,14 @@ export default function AboutPage() {
       <section className="py-10 bg-slate-900/50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-white mb-2">Meet the Team</h2>
+            <h2 className="text-3xl font-bold text-white mb-2">{t('meetTeam')}</h2>
             <div className="w-20 h-1 bg-orange-500 mx-auto"></div>
           </div>
 
           {[
-            { id: 'platformCreators', title: 'Platform Creators', members: about.team?.platformCreators },
-            { id: 'educationalAdvisors', title: 'Educational Advisors', members: about.team?.educationalAdvisors },
-            { id: 'communityMembers', title: 'Community Members', members: about.team?.communityMembers }
+            { id: 'platformCreators', title: t('platformCreators'), members: about.team?.platformCreators },
+            { id: 'educationalAdvisors', title: t('educationalAdvisors'), members: about.team?.educationalAdvisors },
+            { id: 'communityMembers', title: t('communityMembers'), members: about.team?.communityMembers }
           ].map((section) => {
             const members = section.members || [];
             const hasMembers = members.length > 0;
@@ -195,7 +199,7 @@ export default function AboutPage() {
                   </div>
                 ) : (
                   <div className="py-8 text-center bg-white/5 rounded-xl border border-dashed border-white/10">
-                    <p className="text-gray-500 italic text-sm">No members added to this section yet.</p>
+                    <p className="text-gray-500 italic text-sm">{t('noMembersAdded')}</p>
                   </div>
                 )}
               </div>

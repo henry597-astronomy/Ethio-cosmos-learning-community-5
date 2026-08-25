@@ -8,6 +8,7 @@ import { LogOut, BookOpen, BarChart3, Settings, Download, CheckCircle, Users, Su
 import EditProfileDialog from '@/components/EditProfileDialog';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
+import { getOfflinePackManifest, type OfflinePackManifest } from '@/lib/offline-cache';
 import {
   Sheet,
   SheetContent,
@@ -17,17 +18,17 @@ import {
 } from '@/components/ui/sheet';
 
 const publicNavLinks = [
-  { path: '/', label: 'Home' },
-  { path: '/learning', label: 'Lesson' },
-  { path: '/materials', label: 'Materials' },
-  { path: '/chat', label: 'Channel' },
-  { path: '/tests', label: 'Quizzes' },
-  { path: '/about', label: 'About' },
+  { path: '/', key: 'home' as const },
+  { path: '/learning', key: 'lesson' as const },
+  { path: '/materials', key: 'materials' as const },
+  { path: '/chat', key: 'channel' as const },
+  { path: '/tests', key: 'quizzes' as const },
+  { path: '/about', key: 'about' as const },
 ];
 
 const privateNavLinks = [
-  { path: '/bookmarks', label: 'Bookmarks' },
-  { path: '/progress', label: 'Progress' },
+  { path: '/bookmarks', key: 'bookmarks' as const },
+  { path: '/progress', key: 'myProgress' as const },
 ];
 
 export default function Navbar() {
@@ -41,7 +42,7 @@ export default function Navbar() {
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-  const { language, setLanguage } = useAppLanguage();
+  const { language, setLanguage, t: translate } = useAppLanguage();
 
   // Taskbar Scroll State - Static for now as requested
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -54,6 +55,7 @@ export default function Navbar() {
     currentItem: '',
     status: 'idle',
   });
+  const [offlinePack, setOfflinePack] = useState<OfflinePackManifest | null>(null);
 
   useEffect(() => {
     // Initial cache size
@@ -64,7 +66,28 @@ export default function Navbar() {
       setPrefetchProgress(progress);
     });
 
-  }, []);
+    const refreshOfflinePack = async () => {
+      if (!user?.id) {
+        setOfflinePack(null);
+        return;
+      }
+      setOfflinePack(await getOfflinePackManifest(user.id, language));
+    };
+    void refreshOfflinePack();
+
+    const handleOfflinePackUpdated = (event: Event) => {
+      const manifest = (event as CustomEvent<OfflinePackManifest>).detail;
+      if (manifest?.userId === user?.id && manifest.language === language && manifest.status === 'complete') {
+        setOfflinePack(manifest);
+      }
+    };
+    window.addEventListener('ethio:offline-pack-updated', handleOfflinePackUpdated);
+
+    return () => {
+      window.removeEventListener('ethio:offline-pack-updated', handleOfflinePackUpdated);
+      setPrefetchProgressCallback(() => undefined);
+    };
+  }, [language, user?.id]);
 
   const handleLogout = async () => {
     await logout();
@@ -97,8 +120,9 @@ export default function Navbar() {
               <span className="font-bold text-white text-xs sm:text-sm tracking-tight whitespace-nowrap">
                 Ethio-cosmos-learning-community
               </span>
-              <span className="text-[9px] text-orange-400 font-medium uppercase tracking-wider">
+                              <span className="text-[9px] text-orange-400 font-medium uppercase tracking-wider">
                 Community
+
               </span>
             </div>
           </Link>
@@ -154,7 +178,7 @@ export default function Navbar() {
                           <span className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase border ${
                             isAdmin ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                           }`}>
-                            {isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'Member'}
+                            {isSuperAdmin ? translate('superAdmin') : isAdmin ? translate('adminPanel') : translate('member')}
                           </span>
                         </div>
                       </div>
@@ -189,7 +213,7 @@ export default function Navbar() {
                                 className="flex items-center gap-3 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
                                 onClick={() => setProfilePanelOpen(false)}
                               >
-                                <span>{link.label}</span>
+                                <span>{translate(link.key)}</span>
                               </Link>
                             ))}
                             {user && privateNavLinks.map((link) => (
@@ -199,7 +223,7 @@ export default function Navbar() {
                                 className="flex items-center gap-3 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
                                 onClick={() => setProfilePanelOpen(false)}
                               >
-                                <span>{link.label}</span>
+                                <span>{translate(link.key)}</span>
                               </Link>
                             ))}
                             {isAdmin && (
@@ -208,7 +232,7 @@ export default function Navbar() {
                                 className="flex items-center gap-3 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
                                 onClick={() => setProfilePanelOpen(false)}
                               >
-                                <span>{isSuperAdmin ? 'Admin Panel' : 'Manage Lessons'}</span>
+                                <span>{isSuperAdmin ? translate('adminPanel') : translate('manageLessons')}</span>
                               </Link>
                             )}
                           </div>
@@ -221,7 +245,7 @@ export default function Navbar() {
                         onClick={() => setProfilePanelOpen(false)}
                       >
                         <BarChart3 size={18} />
-                        <span>My Progress</span>
+                        <span>{translate('myProgress')}</span>
                       </Link>
                       <Link
                         to="/bookmarks"
@@ -229,7 +253,7 @@ export default function Navbar() {
                         onClick={() => setProfilePanelOpen(false)}
                       >
                         <BookOpen size={18} />
-                        <span>Bookmarks</span>
+                        <span>{translate('bookmarks')}</span>
                       </Link>
                       {isAdmin && (
                         <Link
@@ -238,7 +262,7 @@ export default function Navbar() {
                           onClick={() => setProfilePanelOpen(false)}
                         >
                           <Settings size={18} />
-                          <span>{isSuperAdmin ? 'Admin Panel' : 'Manage Lessons'}</span>
+                          <span>{isSuperAdmin ? translate('adminPanel') : translate('manageLessons')}</span>
                         </Link>
                       )}
                       
@@ -251,7 +275,7 @@ export default function Navbar() {
                         >
                           <div className="flex items-center gap-3">
                             <Languages size={18} className="text-cyan-400" />
-                            <span>Language</span>
+                            <span>{translate('language')}</span>
                           </div>
                           <span className="text-xs text-cyan-300 font-medium bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 flex items-center gap-1">
                             {language === 'am' ? 'አማርኛ' : 'English'} {languageDropdownOpen ? '▲' : '▼'}
@@ -283,7 +307,7 @@ export default function Navbar() {
                               </button>
                             ))}
                             <p className="px-2 pt-1 text-[10px] leading-relaxed text-gray-500">
-                              Changes teacher replies without changing the original lesson content.
+                              {translate('languageHelper')}
                             </p>
                           </div>
                         )}
@@ -297,7 +321,7 @@ export default function Navbar() {
                         >
                           <div className="flex items-center gap-3">
                             <Sun size={18} className="text-orange-400" />
-                            <span>Themes</span>
+                            <span>{translate('themes')}</span>
                           </div>
                           <span className="text-xs text-orange-400 font-medium bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20 flex items-center gap-1 text-right">
                             {themeDropdownOpen ? '▲' : '▼'}
@@ -307,10 +331,10 @@ export default function Navbar() {
                         {themeDropdownOpen && (
                           <div className="mt-2 max-h-52 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar animate-in fade-in duration-200 bg-slate-900/90 p-2.5 rounded-xl border border-white/10" style={{ WebkitOverflowScrolling: 'touch' }}>
                             {/* Base Themes */}
-                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 py-1">Base Themes</div>
+                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 py-1">{translate('baseThemes')}</div>
                             {[
-                              { id: 'dark', label: 'Dark Theme', icon: <Sun size={14} className="text-orange-400" /> },
-                              { id: 'light', label: 'Light Theme', icon: <Moon size={14} /> }
+                              { id: 'dark', label: translate('darkTheme'), icon: <Sun size={14} className="text-orange-400" /> },
+                              { id: 'light', label: translate('lightTheme'), icon: <Moon size={14} /> }
                             ].map((t) => (
                               <button
                                 key={t.id}
@@ -323,12 +347,12 @@ export default function Navbar() {
                                 }`}
                               >
                                 <span className="flex items-center gap-2">{t.icon} {t.label}</span>
-                                {theme === t.id && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                {theme === t.id && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">{translate('active')}</span>}
                               </button>
                             ))}
 
                             {/* Linear Gradients */}
-                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">Linear Gradients</div>
+                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">{translate('linearGradients')}</div>
                             {[
                               { id: 'gradient-cosmos', label: 'Cosmic Nebula', color: 'bg-gradient-to-r from-[#0f0c29] to-[#24243e]' },
                               { id: 'gradient-aurora', label: 'Aurora', color: 'bg-gradient-to-r from-[#052e16] to-[#0f172a]' },
@@ -357,7 +381,7 @@ export default function Navbar() {
                                 }`}
                               >
                                 <span className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${t.color} inline-block`}></span> {t.label}</span>
-                                {theme === t.id && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Active</span>}
+                                {theme === t.id && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">{translate('active')}</span>}
                               </button>
                             ))}
                           </div>
@@ -372,18 +396,18 @@ export default function Navbar() {
                     <div className="w-full px-4 py-2.5 border-b border-white/5 bg-slate-900/40 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Download size={14} className="text-orange-400 shrink-0" />
-                        <span className="text-xs font-semibold text-gray-300">Offline Storage</span>
+                        <span className="text-xs font-semibold text-gray-300">{translate('offlineStorage')}</span>
                         <span className="text-[10px] text-gray-400 bg-white/5 px-1.5 py-0.5 rounded">{(cacheSize / (1024 * 1024)).toFixed(1)} MB</span>
                       </div>
                       <div className="text-[10px]">
                         {prefetchProgress.status === 'running' ? (
                           <span className="text-orange-400 animate-pulse font-medium">{progressPercent}%</span>
-                        ) : prefetchProgress.status === 'completed' ? (
-                          <span className="text-green-400 font-medium flex items-center gap-1"><CheckCircle size={12} /> Ready</span>
+                        ) : offlinePack || prefetchProgress.status === 'completed' ? (
+                          <span className="text-green-400 font-medium flex items-center gap-1"><CheckCircle size={12} /> {translate('ready')}</span>
                         ) : prefetchProgress.status === 'error' ? (
-                          <span className="text-red-400 font-medium">Error</span>
+                          <span className="text-red-400 font-medium">{translate('error')}</span>
                         ) : (
-                          <span className="text-gray-400">Active</span>
+                          <span className="text-xs text-gray-400">{translate('notDownloaded')}</span>
                         )}
                       </div>
                     </div>
@@ -392,7 +416,7 @@ export default function Navbar() {
                     <div className="w-full flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30">
                         <Users size={12} />
-                        <span>{totalUsersCount} {totalUsersCount === 1 ? 'Member' : 'Members'}</span>
+                        <span>{totalUsersCount} {totalUsersCount === 1 ? translate('member') : translate('members')}</span>
                       </div>
                       {!isBlocked && (
                         <button
@@ -400,7 +424,7 @@ export default function Navbar() {
                           className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors rounded-md font-medium"
                         >
                           <LogOut size={15} />
-                          <span>Sign Out</span>
+                          <span>{translate('signOut')}</span>
                         </button>
                       )}
                     </div>
@@ -413,7 +437,7 @@ export default function Navbar() {
           ) : (
             <Link to="/login">
               <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-                Sign In
+                {translate('signIn')}
               </Button>
             </Link>
           )}
@@ -437,7 +461,7 @@ export default function Navbar() {
                     : 'text-gray-400 bg-white/5 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/20'
                 }`}
               >
-                {link.label}
+                {translate(link.key)}
               </Link>
             ))}
           </div>

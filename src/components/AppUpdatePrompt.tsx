@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, Download, RefreshCw, Wifi, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { useAppLanguage } from '@/context/AppLanguageContext';
 import {
   getPrefetchProgress,
-  prefetchAllContent,
+  downloadOfficialLearningPack,
   setPrefetchProgressCallback,
   type PrefetchProgress,
 } from '@/lib/background-prefetch';
@@ -22,6 +23,7 @@ const INITIAL_PROGRESS: PrefetchProgress = {
 
 export default function AppUpdatePrompt() {
   const { user } = useAuth();
+  const { language, t } = useAppLanguage();
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [modePromptVisible, setModePromptVisible] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<PrefetchProgress>(INITIAL_PROGRESS);
@@ -32,7 +34,7 @@ export default function AppUpdatePrompt() {
 
     setModePromptVisible(true);
     setDownloadError(null);
-    setDownloadProgress({ ...getPrefetchProgress(), status: 'running', currentItem: 'Preparing offline content...' });
+    setDownloadProgress({ ...getPrefetchProgress(), status: 'running', currentItem: t('preparingOffline') });
 
     setPrefetchProgressCallback((progress) => {
       setDownloadProgress(progress);
@@ -42,13 +44,12 @@ export default function AppUpdatePrompt() {
       if ('serviceWorker' in navigator) {
         await navigator.serviceWorker.ready.catch(() => undefined);
       }
-      await prefetchAllContent();
-      localStorage.setItem('ethio-offline-cache-ready', '1');
+      await downloadOfficialLearningPack(language, user.id);
     } catch (error) {
-      setDownloadError(error instanceof Error ? error.message : 'Offline download failed.');
+      setDownloadError(error instanceof Error ? error.message : t('offlineDownloadFailed'));
       setDownloadProgress((progress) => ({ ...progress, status: 'error' }));
     }
-  }, [user]);
+  }, [language, t, user]);
 
   useEffect(() => {
     const handleServiceWorkerUpdate = (event: Event) => {
@@ -99,6 +100,7 @@ export default function AppUpdatePrompt() {
     if (!user) return;
 
     sessionStorage.setItem('ethio-usage-mode-chosen', '1');
+    localStorage.setItem(`ethio-offline-pack-opt-in:${user.id}`, '1');
 
     if (updateRegistration) {
       sessionStorage.setItem('ethio-offline-download-pending', '1');
@@ -134,8 +136,8 @@ export default function AppUpdatePrompt() {
             type="button"
             onClick={handleDismiss}
             className="absolute right-2 top-2 rounded p-1 text-gray-500 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Close update and offline options"
-            title="Close"
+            aria-label={t('closeUpdateOptions')}
+            title={t('closeUpdateOptions')}
           >
             <X size={16} />
           </button>
@@ -147,12 +149,12 @@ export default function AppUpdatePrompt() {
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-white">
-              {isUpdate ? 'A new EthioCosmos update is ready' : 'Choose how to use EthioCosmos'}
+              {isUpdate ? t('updateReady') : t('chooseUseEthio')}
             </h3>
             <p className="mt-1 text-xs leading-5 text-gray-400">
               {isUpdate
-                ? 'Use the current update online, or load it and download the available content for offline use.'
-                : 'Use the current version online, or download the available content now for offline access.'}
+                ? t('updateOfflineDescription')
+                : t('onlineDescription')}
             </p>
           </div>
         </div>
@@ -160,7 +162,7 @@ export default function AppUpdatePrompt() {
         {isDownloading || isComplete || downloadError ? (
           <div className="mt-3">
             <div className="flex items-center justify-between text-xs text-gray-400">
-              <span className="truncate pr-2">{downloadError || downloadProgress.currentItem || 'Preparing...'}</span>
+              <span className="truncate pr-2">{downloadError || downloadProgress.currentItem || t('preparing')}</span>
               <span className="shrink-0">{progressPercent}%</span>
             </div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-800">
@@ -168,7 +170,7 @@ export default function AppUpdatePrompt() {
             </div>
             {isComplete && !downloadError && (
               <p className="mt-2 flex items-center gap-1 text-xs text-emerald-400">
-                <CheckCircle2 size={14} /> Offline content is ready on this device.
+                <CheckCircle2 size={14} /> {t('offlineReady')}
               </p>
             )}
             {downloadError && (
@@ -177,7 +179,7 @@ export default function AppUpdatePrompt() {
                 onClick={() => void beginOfflineDownload()}
                 className="mt-3 h-8 bg-orange-500 px-3 text-xs text-white hover:bg-orange-600"
               >
-                Try again
+                {t('tryAgain')}
               </Button>
             )}
           </div>
@@ -190,7 +192,7 @@ export default function AppUpdatePrompt() {
               className="h-9 border-white/15 bg-transparent px-3 text-xs text-white hover:bg-white/10"
             >
               <Wifi size={14} className="mr-1.5" />
-              {isUpdate ? 'Use update online' : 'Use online version'}
+              {isUpdate ? t('useUpdateOnline') : t('useOnlineVersion')}
             </Button>
             <Button
               type="button"
@@ -198,7 +200,7 @@ export default function AppUpdatePrompt() {
               className="h-9 bg-orange-500 px-3 text-xs text-white hover:bg-orange-600"
             >
               <Download size={14} className="mr-1.5" />
-              Download for offline
+              {t('downloadForOffline')}
             </Button>
           </div>
         )}

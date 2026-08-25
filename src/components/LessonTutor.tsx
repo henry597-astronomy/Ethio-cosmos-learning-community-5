@@ -3,7 +3,8 @@ import type { FormEvent } from 'react';
 import { BookOpen, Brain, Lightbulb, Loader2, RotateCcw, Send, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getGroqChatCompletion, type Message, type TutorLanguage, type TutorMode } from '@/services/groq';
+import { getGroqChatCompletion, type Message, type TutorMode } from '@/services/groq';
+import type { AppCopyKey } from '@/i18n/app-copy';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import { speakText, stopSpeech } from '@/services/speech';
 import { cn } from '@/lib/utils';
@@ -14,22 +15,14 @@ type LessonTutorProps = {
   lessonContent: string;
 };
 
-const STARTER_PROMPTS: Record<TutorMode, string[]> = {
-  tutor: [
-    'Explain this lesson simply',
-    'What are the key ideas?',
-    'Give me a real example',
-  ],
-  quiz: [
-    'Start a quiz',
-    'Give me a hint',
-    'Ask me a harder question',
-  ],
+const STARTER_PROMPTS: Record<TutorMode, AppCopyKey[]> = {
+  tutor: ['explainSimply', 'keyIdeas', 'realExample'],
+  quiz: ['startQuiz', 'giveHint', 'harderQuestion'],
 };
 
 export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: LessonTutorProps) {
   const [mode, setMode] = useState<TutorMode>('tutor');
-  const { language: appLanguage, setLanguage: setAppLanguage } = useAppLanguage();
+  const { language: appLanguage, languageName, t } = useAppLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,13 +56,6 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
     resetConversation();
   };
 
-  const changeLanguage = (nextLanguage: TutorLanguage) => {
-    const nextAppLanguage = nextLanguage === 'Amharic' ? 'am' : 'en';
-    if (nextAppLanguage === appLanguage) return;
-    setAppLanguage(nextAppLanguage);
-    resetConversation();
-  };
-
   const speakLatestResponse = async (text: string) => {
     if (!isSpeechEnabled) return;
     setSpeechError(null);
@@ -77,7 +63,7 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
       await speakText(text);
     } catch (error) {
       console.warn('Lesson tutor voice output unavailable:', error);
-      setSpeechError('Voice output is unavailable on this device. The text answer is still available.');
+      setSpeechError(t('voiceOutputUnavailable'));
     }
   };
 
@@ -105,10 +91,10 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
       setMessages([...nextMessages, { role: 'assistant', content: response }]);
     } catch (error) {
       console.error('Lesson tutor error:', error);
-      const detail = error instanceof Error ? error.message : 'Please try again.';
+      const detail = error instanceof Error ? error.message : t('tryAgain');
       setMessages([
         ...nextMessages,
-        { role: 'assistant', content: `The tutor could not respond right now. ${detail}` },
+        { role: 'assistant', content: `${t('tutorUnavailable')} ${detail}` },
       ]);
     } finally {
       setIsLoading(false);
@@ -130,8 +116,8 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
             <Brain className="h-5 w-5" />
           </div>
           <div>
-            <h2 id="lesson-tutor-title" className="text-lg font-bold text-white">AI Lesson Tutor</h2>
-            <p className="mt-1 text-xs text-slate-400">Grounded in “{lessonTitle}”</p>
+            <h2 id="lesson-tutor-title" className="text-lg font-bold text-white">{t('aiLessonTutor')}</h2>
+            <p className="mt-1 text-xs text-slate-400">{t('groundedIn')} “{lessonTitle}”</p>
           </div>
         </div>
         <Button
@@ -140,21 +126,21 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
           size="icon-sm"
           onClick={resetConversation}
           disabled={isLoading || messages.length === 0}
-          aria-label="Start a new tutor conversation"
+          aria-label={t('newTutorConversation')}
           className="text-slate-400 hover:bg-white/10 hover:text-white"
         >
           <RotateCcw className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Tutor mode">
+      <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label={t('tutorMode')}>
         <Button
           type="button"
           size="sm"
           onClick={() => changeMode('tutor')}
           className={cn(mode === 'tutor' ? 'bg-cyan-600 text-white hover:bg-cyan-500' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')}
         >
-          <BookOpen className="mr-2 h-4 w-4" /> Tutor
+          <BookOpen className="mr-2 h-4 w-4" /> {t('tutor')}
         </Button>
         <Button
           type="button"
@@ -162,44 +148,27 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
           onClick={() => changeMode('quiz')}
           className={cn(mode === 'quiz' ? 'bg-orange-500 text-white hover:bg-orange-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')}
         >
-          <Lightbulb className="mr-2 h-4 w-4" /> Quiz Coach
+          <Lightbulb className="mr-2 h-4 w-4" /> {t('quizCoach')}
         </Button>
-        <div className="ml-auto flex items-center gap-1 rounded-lg bg-slate-800 p-1" role="group" aria-label="Tutor language">
-          {(['English', 'Amharic'] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => changeLanguage(option)}
-              className={cn(
-                'rounded-md px-2 py-1 text-[11px] font-medium transition-colors',
-                (appLanguage === 'am' && option === 'Amharic') || (appLanguage === 'en' && option === 'English')
-                  ? 'bg-slate-600 text-white'
-                  : 'text-slate-400 hover:text-white',
-              )}
-              aria-pressed={(appLanguage === 'am' && option === 'Amharic') || (appLanguage === 'en' && option === 'English')}
-            >
-              {option}
-            </button>
-          ))}
+        <div className="ml-auto rounded-lg bg-slate-800 px-2 py-1 text-[11px] text-slate-300" role="status" aria-label={t('tutorLanguage')}>
+          {t('language')}: {languageName}
         </div>
       </div>
 
       {messages.length === 0 ? (
         <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/50 p-4">
           <p className="text-sm text-slate-300">
-            {mode === 'tutor'
-              ? 'Ask for a simple explanation, an example, or the key ideas from this lesson.'
-              : 'Ask me to start a quiz. I will give one question at a time and wait for your attempt.'}
+            {mode === 'tutor' ? t('tutorGuidance') : t('quizGuidance')}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {STARTER_PROMPTS[mode].map((prompt) => (
+            {STARTER_PROMPTS[mode].map((promptKey) => (
               <button
-                key={prompt}
+                key={promptKey}
                 type="button"
-                onClick={() => void submitMessage(prompt)}
+                onClick={() => void submitMessage(t(promptKey))}
                 className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-100 transition-colors hover:bg-cyan-400/20"
               >
-                {prompt}
+                {t(promptKey)}
               </button>
             ))}
           </div>
@@ -220,9 +189,9 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
                     type="button"
                     onClick={() => void speakLatestResponse(message.content)}
                     className="mt-2 flex items-center gap-1 text-xs text-cyan-300 hover:text-cyan-100"
-                    aria-label="Read the tutor response aloud"
+                    aria-label={t('readTutorAloud')}
                   >
-                    <Volume2 className="h-3.5 w-3.5" /> Read aloud
+                    <Volume2 className="h-3.5 w-3.5" /> {t('readAloud')}
                   </button>
                 )}
               </div>
@@ -231,7 +200,7 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
           {isLoading && (
             <div className="flex justify-start">
               <div className="rounded-2xl rounded-bl-sm border border-white/10 bg-slate-800 px-3 py-2 text-slate-300">
-                <Loader2 className="h-4 w-4 animate-spin" aria-label="Tutor is thinking" />
+                <Loader2 className="h-4 w-4 animate-spin" aria-label={t('tutorThinking')} />
               </div>
             </div>
           )}
@@ -241,7 +210,7 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
 
       {(speechError || latestAssistantMessage) && (
         <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-400">
-          <span role={speechError ? 'status' : undefined}>{speechError || 'Responses remain available as text even when voice is muted.'}</span>
+          <span role={speechError ? 'status' : undefined}>{speechError || t('textAnswerAvailable')}</span>
           <button
             type="button"
             onClick={() => {
@@ -250,10 +219,10 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
               setSpeechError(null);
             }}
             className="flex shrink-0 items-center gap-1 text-slate-300 hover:text-white"
-            aria-label={isSpeechEnabled ? 'Mute tutor voice' : 'Enable tutor voice'}
+            aria-label={isSpeechEnabled ? t('muteTutorVoice') : t('enableTutorVoice')}
           >
             {isSpeechEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            {isSpeechEnabled ? 'Voice on' : 'Voice off'}
+            {isSpeechEnabled ? t('voiceOn') : t('voiceOff')}
           </button>
         </div>
       )}
@@ -262,12 +231,12 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
         <Input
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder={mode === 'quiz' ? 'Answer or ask for a hint...' : 'Ask about this lesson...'}
+          placeholder={mode === 'quiz' ? t('answerOrHint') : t('askAboutLesson')}
           disabled={isLoading}
           className="border-white/10 bg-slate-800 text-white placeholder:text-slate-500"
-          aria-label={mode === 'quiz' ? 'Answer the quiz coach' : 'Ask the lesson tutor'}
+          aria-label={mode === 'quiz' ? t('answerOrHint') : t('askAboutLesson')}
         />
-        <Button type="submit" disabled={!input.trim() || isLoading} className="shrink-0 bg-cyan-600 text-white hover:bg-cyan-500" aria-label="Send tutor question">
+        <Button type="submit" disabled={!input.trim() || isLoading} className="shrink-0 bg-cyan-600 text-white hover:bg-cyan-500" aria-label={t('sendTutorQuestion')}>
           <Send className="h-4 w-4" />
         </Button>
       </form>

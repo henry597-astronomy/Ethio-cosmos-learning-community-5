@@ -4,8 +4,10 @@ import { useSubtopics, useLesson } from '@/hooks/use-cms-data';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/supabase';
 import { useLessonTutorContext } from '@/context/LessonTutorContext';
+import { useAppLanguage } from '@/context/AppLanguageContext';
 import { ArrowLeft, ArrowRight, BookmarkPlus, BookmarkCheck, CheckCircle } from 'lucide-react';
 import LessonTutor from '@/components/LessonTutor';
+import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SafeImage } from '@/components/SafeImage';
@@ -18,6 +20,7 @@ import {
 
 export default function LessonPage() {
   const { topicId, subtopicId } = useParams<{ topicId: string; subtopicId: string }>();
+  const { t } = useAppLanguage();
   const topicsHook = useTopics();
   const { user } = useAuth();
   const { setActiveLesson } = useLessonTutorContext();
@@ -87,7 +90,7 @@ export default function LessonPage() {
 
   const handleBookmark = async () => {
     if (!user) {
-      setError('Please log in to bookmark lessons.');
+      setError(t('pleaseLogInBookmark'));
       return;
     }
 
@@ -117,7 +120,7 @@ export default function LessonPage() {
       }
     } catch (err) {
       console.error('Error updating bookmark:', err);
-      setError('Failed to update bookmark. Please try again.');
+      setError(t('failedUpdateBookmark'));
     } finally {
       setActionLoading(false);
     }
@@ -134,7 +137,7 @@ export default function LessonPage() {
       setIsCompleted(true);
     } catch (err) {
       console.error('Error marking lesson complete:', err);
-      setError('Failed to mark lesson complete. Please try again.');
+      setError(t('failedMarkComplete'));
     } finally {
       setActionLoading(false);
     }
@@ -143,7 +146,7 @@ export default function LessonPage() {
   if (topicsLoading || subtopicsLoading || lessonLoading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] text-white">
-        Loading lesson...
+        {t('loadingLesson')}
       </div>
     );
   }
@@ -151,7 +154,7 @@ export default function LessonPage() {
   if (topicsError || subtopicsError || lessonError) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] text-red-400">
-        Error loading lesson: {topicsError || subtopicsError || lessonError}
+        {t('errorLoadingLesson')} {topicsError || subtopicsError || lessonError}
       </div>
     );
   }
@@ -160,11 +163,11 @@ export default function LessonPage() {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Lesson Not Found</h1>
+          <h1 className="text-2xl font-bold text-white mb-4">{t('lessonNotFound')}</h1>
           <Link to={`/learning/${topicId}`}>
             <Button className="bg-orange-500 hover:bg-orange-600 text-white">
               <ArrowLeft size={18} className="mr-2" />
-              Back to Topic
+              {t('backToTopic')}
             </Button>
           </Link>
         </div>
@@ -189,11 +192,15 @@ export default function LessonPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-          <Link to="/learning" className="hover:text-white">Learning</Link>
+          <Link to="/learning" className="hover:text-white">{t('learning')}</Link>
           <span>/</span>
-          <Link to={`/learning/${topicId}`} className="hover:text-white">{topic.title}</Link>
+          <Link to={`/learning/${topicId}`} className="hover:text-white">
+            <LocalizedOfficialText sourceType="topic" sourceId={topic.id} field="title" sourceText={topic.title} sourceUpdatedAt={topic.updated_at} />
+          </Link>
           <span>/</span>
-          <span className="text-orange-500">{currentSubtopic.title}</span>
+          <span className="text-orange-500">
+            <LocalizedOfficialText sourceType="subtopic" sourceId={currentSubtopic.id} field="title" sourceText={currentSubtopic.title} sourceUpdatedAt={currentSubtopic.updated_at} />
+          </span>
         </div>
 
         {/* Error Message */}
@@ -207,13 +214,15 @@ export default function LessonPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-4xl">{currentSubtopic.emoji}</span>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white">{currentSubtopic.title}</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white">
+              <LocalizedOfficialText sourceType="subtopic" sourceId={currentSubtopic.id} field="title" sourceText={currentSubtopic.title} sourceUpdatedAt={currentSubtopic.updated_at} />
+            </h1>
           </div>
           
           {/* Progress */}
           <div className="flex items-center gap-4 mb-6">
             <span className="text-sm text-gray-400">
-              Lesson {currentIndex + 1} of {subtopics.length}
+              {t('lesson')} {currentIndex + 1} {t('of')} {subtopics.length}
             </span>
             <div className="flex-1 max-w-xs">
               <Progress value={progress} className="h-2 bg-slate-700" />
@@ -234,12 +243,12 @@ export default function LessonPage() {
                 {isBookmarked ? (
                   <>
                     <BookmarkCheck size={18} className="mr-2" />
-                    Bookmarked
+                    {t('bookmarked')}
                   </>
                 ) : (
                   <>
                     <BookmarkPlus size={18} className="mr-2" />
-                    Bookmark
+                    {t('bookmark')}
                   </>
                 )}
               </Button>
@@ -250,7 +259,7 @@ export default function LessonPage() {
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <CheckCircle size={18} className="mr-2" />
-                  Mark Complete
+                  {t('markComplete')}
                 </Button>
               )}
               {isCompleted && (
@@ -259,7 +268,7 @@ export default function LessonPage() {
                   className="bg-green-600/50 text-white"
                 >
                   <CheckCircle size={18} className="mr-2" />
-                  Completed
+                  {t('completed')}
                 </Button>
               )}
             </div>
@@ -271,14 +280,22 @@ export default function LessonPage() {
           {blocks.map((block, index) => (
             <div key={index}>
               {block.type === 'text' ? (
-                <p className="text-gray-300 leading-relaxed text-lg">{block.content}</p>
+                <p className="text-gray-300 leading-relaxed text-lg">
+                  <LocalizedOfficialText
+                    sourceType="lesson"
+                    sourceId={lesson?.id || subtopicId || 'fallback'}
+                    field={`content_blocks.${index}`}
+                    sourceText={block.content}
+                    sourceUpdatedAt={lesson?.updated_at}
+                  />
+                </p>
               ) : (
                 <div className="my-8">
                   <SafeImage
                     src={block.content}
-                    alt="Lesson illustration"
+                    alt={t('lessonIllustration')}
                     className="w-full rounded-lg max-h-[50vh] object-cover"
-                    fallbackText="Lesson image not available"
+                    fallbackText={t('lessonImageUnavailable')}
                   />
                 </div>
               )}
@@ -298,7 +315,7 @@ export default function LessonPage() {
             <Link to={`/learning/${topicId}/${prevLesson.id}`}>
               <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
                 <ArrowLeft size={18} className="mr-2" />
-                Previous Lesson
+                {t('previousLesson')}
               </Button>
             </Link>
           ) : (
@@ -308,14 +325,14 @@ export default function LessonPage() {
           {nextLesson ? (
             <Link to={`/learning/${topicId}/${nextLesson.id}`}>
               <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                Next Lesson
+                {t('nextLesson')}
                 <ArrowRight size={18} className="ml-2" />
               </Button>
             </Link>
           ) : (
             <Link to={`/learning/${topicId}`}>
               <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                Complete Topic
+                {t('completeTopic')}
                 <ArrowRight size={18} className="ml-2" />
               </Button>
             </Link>

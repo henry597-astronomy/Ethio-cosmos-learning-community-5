@@ -4,8 +4,11 @@ import { ArrowRight, BookOpen, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAllSubtopics, useTopics } from '@/hooks/use-cms-data';
 import { FallbackImage } from '@/components/MediaFallback';
+import { useAppLanguage } from '@/context/AppLanguageContext';
+import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 
 export default function LearningPage() {
+  const { t } = useAppLanguage();
   const topicsHook = useTopics();
   const { topics, loading, error } = topicsHook;
   const { subtopics, loading: lessonsLoading } = useAllSubtopics();
@@ -35,8 +38,8 @@ export default function LearningPage() {
       <div className="min-h-screen bg-[#050810] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Loading topics...</p>
-          <p className="text-gray-500 text-sm mt-2">Please wait while we fetch the latest content.</p>
+          <p className="text-gray-400">{t('loadingTopics')}</p>
+          <p className="text-gray-500 text-sm mt-2">{t('pleaseRefresh')}</p>
         </div>
       </div>
     );
@@ -52,16 +55,16 @@ export default function LearningPage() {
             type="search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search topics and lessons..."
-            aria-label="Search topics and lessons"
+            placeholder={t('searchTopics')}
+            aria-label={t('searchTopics')}
             className="h-10 w-full rounded-lg border border-white/15 bg-slate-900 pl-9 pr-9 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-orange-500/70 focus:ring-1 focus:ring-orange-500/40"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
-              title="Clear search"
+              aria-label={t('clearSearch')}
+              title={t('clearSearch')}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
             >
               <X size={16} />
@@ -71,19 +74,19 @@ export default function LearningPage() {
           {hasSearch && (
             <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 max-h-[60vh] overflow-y-auto rounded-lg border border-white/10 bg-slate-950 p-2 shadow-2xl shadow-black/60" style={{ isolation: 'isolate' }}>
               {lessonsLoading && (
-                <p className="px-3 py-2 text-xs text-gray-500">Loading lesson search results...</p>
+                <p className="px-3 py-2 text-xs text-gray-500">{t('loadingLessonResults')}</p>
               )}
 
               {!lessonsLoading && !hasResults && (
                 <p className="px-3 py-4 text-center text-sm text-gray-400">
-                  No topics or lessons match “{searchQuery}”.
+                  {t('noResults')} “{searchQuery}”.
                 </p>
               )}
 
               {searchResults.topics.length > 0 && (
                 <div>
                   <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-orange-400">
-                    Topics
+                    {t('topics')}
                   </p>
                   {searchResults.topics.map((topic) => (
                     <Link
@@ -92,7 +95,9 @@ export default function LearningPage() {
                       className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-white/10"
                     >
                       <span className="text-lg">{topic.emoji}</span>
-                      <span className="min-w-0 flex-1 truncate text-sm text-white">{topic.title}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm text-white">
+                        <LocalizedOfficialText sourceType="topic" sourceId={topic.id} field="title" sourceText={topic.title} sourceUpdatedAt={topic.updated_at} />
+                      </span>
                       <ArrowRight size={15} className="shrink-0 text-gray-500" />
                     </Link>
                   ))}
@@ -102,11 +107,16 @@ export default function LearningPage() {
               {searchResults.lessons.length > 0 && (
                 <div className={searchResults.topics.length > 0 ? 'mt-2 border-t border-white/10 pt-2' : ''}>
                   <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-orange-400">
-                    Lessons
+                    {t('lessons')}
                   </p>
                   {searchResults.lessons.map((lesson) => {
                     const parentTopic = topics.find((topic) => topic.id === lesson.topic_id);
                     const difficulty = (lesson.difficulty || 'beginner').toLowerCase();
+                    const difficultyLabel = difficulty === 'advanced'
+                      ? t('advanced')
+                      : difficulty === 'intermediate'
+                      ? t('intermediate')
+                      : t('beginner');
                     const difficultyColor = difficulty === 'advanced'
                       ? 'text-purple-300'
                       : difficulty === 'intermediate'
@@ -121,9 +131,12 @@ export default function LearningPage() {
                       >
                         <BookOpen size={16} className="shrink-0 text-gray-500" />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm text-white">{lesson.title}</span>
+                                                      <span className="block truncate text-sm text-white">
+                              <LocalizedOfficialText sourceType="subtopic" sourceId={lesson.id} field="title" sourceText={lesson.title} sourceUpdatedAt={lesson.updated_at} />
+                            </span>
+
                           <span className="block truncate text-[11px] text-gray-500">
-                            {parentTopic?.title || 'Lesson'} · <span className={difficultyColor}>{difficulty}</span>
+                            {parentTopic ? <LocalizedOfficialText sourceType="topic" sourceId={parentTopic.id} field="title" sourceText={parentTopic.title} sourceUpdatedAt={parentTopic.updated_at} /> : t('lesson')} · <span className={difficultyColor}>{difficultyLabel}</span>
                           </span>
                         </span>
                         <ArrowRight size={15} className="shrink-0 text-gray-500" />
@@ -147,10 +160,10 @@ export default function LearningPage() {
       >
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <Badge className="mb-4 border-orange-500/30 bg-orange-500/20 text-orange-500">
-            Learning
+            {t('learning')}
           </Badge>
           <h1 className="mb-4 text-4xl font-bold text-white md:text-5xl">
-            Explore the Universe
+            {t('exploreCosmos')}
           </h1>
           <p className="mx-auto mb-6 max-w-2xl text-xl text-gray-300">
             From the basics of stargazing to the mysteries of black holes,
@@ -159,7 +172,7 @@ export default function LearningPage() {
           <div className="flex items-center justify-center text-sm text-gray-400">
             <span className="flex items-center gap-1">
               <BookOpen className="h-4 w-4" />
-              {topics.length} Topics
+              {topics.length} {t('topics')}
             </span>
           </div>
         </div>
@@ -170,13 +183,13 @@ export default function LearningPage() {
         <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6">
           {error ? (
             <div className="rounded-xl border border-red-500/20 bg-red-500/10 py-16 text-center">
-              <p className="mb-2 font-semibold text-red-400">Could not load topics</p>
+              <p className="mb-2 font-semibold text-red-400">{t('couldNotLoadTopics')}</p>
               <p className="mb-4 text-sm text-gray-400">{error}</p>
-              <p className="text-xs text-gray-500">Please try refreshing the page or contact support if the problem persists.</p>
+              <p className="text-xs text-gray-500">{t('pleaseRefresh')}</p>
             </div>
           ) : topics.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-gray-400">No topics available yet. Check back soon!</p>
+              <p className="text-gray-400">{t('noTopics')}</p>
             </div>
           ) : (
             <div className="grid gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -196,7 +209,7 @@ export default function LearningPage() {
                   >
                     <div className="absolute top-3 left-3 z-10">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider border shadow-md ${diffColor}`}>
-                        {diff}
+                        {diff === 'advanced' ? t('advanced') : diff === 'intermediate' ? t('intermediate') : t('beginner')}
                       </span>
                     </div>
                     <div className="h-40 overflow-hidden">
@@ -210,11 +223,13 @@ export default function LearningPage() {
                     <div className="mb-2 flex items-center gap-2">
                       <span className="text-2xl">{topic.emoji}</span>
                       <h3 className="text-xl font-bold text-white transition-colors group-hover:text-orange-500">
-                        {topic.title}
+                        <LocalizedOfficialText sourceType="topic" sourceId={topic.id} field="title" sourceText={topic.title} sourceUpdatedAt={topic.updated_at} />
                       </h3>
                     </div>
                     <p className="mb-2 line-clamp-2 text-sm text-gray-400">
-                      {topic.description || `Learn about ${topic.title.toLowerCase()} and explore the wonders of the cosmos.`}
+                      {topic.description ? (
+                        <LocalizedOfficialText sourceType="topic" sourceId={topic.id} field="description" sourceText={topic.description} sourceUpdatedAt={topic.updated_at} />
+                      ) : t('topicDescriptionFallback')}
                     </p>
                     <div className="flex items-center justify-end">
                       <ArrowRight className="h-5 w-5 translate-x-0 text-orange-500 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />

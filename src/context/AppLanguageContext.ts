@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { AppCopyKey } from '@/i18n/app-copy';
 
 export type AppLanguage = 'en' | 'am';
 
@@ -8,6 +9,7 @@ export type AppLanguageContextValue = {
   language: AppLanguage;
   setLanguage: (language: AppLanguage) => void;
   languageName: string;
+  t: (key: AppCopyKey) => string;
 };
 
 export const AppLanguageContext = createContext<AppLanguageContextValue | undefined>(undefined);

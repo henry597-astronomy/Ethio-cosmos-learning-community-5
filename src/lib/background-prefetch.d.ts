@@ -14,7 +14,8 @@ export function setPrefetchProgressCallback(
   callback: (progress: PrefetchProgress) => void
 ): void;
 
-export function prefetchAllContent(): Promise<void>;
+export function downloadOfficialLearningPack(language?: 'en' | 'am', requestedUserId?: string): Promise<void>;
+export function prefetchAllContent(language?: 'en' | 'am', requestedUserId?: string): Promise<void>;
 
 export function getPrefetchProgress(): PrefetchProgress;
 

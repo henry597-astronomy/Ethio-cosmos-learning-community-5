@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { getAppCopy } from '@/i18n/app-copy';
 import {
   APP_LANGUAGE_STORAGE_KEY,
   AppLanguageContext,
@@ -44,6 +45,7 @@ export function AppLanguageProvider({ children }: { children: ReactNode }) {
     language,
     setLanguage,
     languageName: language === 'am' ? 'አማርኛ' : 'English',
+    t: (key: Parameters<typeof getAppCopy>[1]) => getAppCopy(language, key),
   }), [language]);
 
   return (

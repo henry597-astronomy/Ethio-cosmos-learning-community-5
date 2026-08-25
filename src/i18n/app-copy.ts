@@ -238,7 +238,14 @@ export type AppCopyKey =
   | 'planetJupiter'
   | 'planetSaturn'
   | 'planetUranus'
-  | 'planetNeptune';
+  | 'planetNeptune'
+  | 'planetPluto'
+  | 'sourcePlanets'
+  | 'sourceBack'
+  | 'sourceControlsHint'
+  | 'sourceScale'
+  | 'sourceMoons'
+  | 'sourceLoading';
 
 const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
   en: {
@@ -480,6 +487,13 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     planetSaturn: 'Saturn',
     planetUranus: 'Uranus',
     planetNeptune: 'Neptune',
+    planetPluto: 'Pluto',
+    sourcePlanets: 'Planets',
+    sourceBack: 'Back to EthioCosmos',
+    sourceControlsHint: 'Drag to orbit · pinch or scroll to zoom · tap a planet to focus',
+    sourceScale: 'Scale modeled from astronomical data',
+    sourceMoons: 'Moons',
+    sourceLoading: 'Building the Solar System…',
   },
   am: {
     home: 'መነሻ',
@@ -720,6 +734,13 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     planetSaturn: 'ሳተርን',
     planetUranus: 'ዩራነስ',
     planetNeptune: 'ኔፕቱን',
+    planetPluto: 'ፕሉቶ',
+    sourcePlanets: 'ፕላኔቶች',
+    sourceBack: 'ወደ ኢትዮ-ኮስሞስ ተመለስ',
+    sourceControlsHint: 'ለማዞር ይጎትቱ · ለማጉላት ሁለት ጣቶችን ወይም ማሸብለያ ይጠቀሙ · ለማተኮር ፕላኔትን ይንኩ',
+    sourceScale: 'በእውነተኛ የሥነ ፈለክ መረጃ ላይ የተመሠረተ ልኬት',
+    sourceMoons: 'ጨረቃዎች',
+    sourceLoading: 'የፀሐይ ሥርዓቱ በመገንባት ላይ…',
   },
 };
 

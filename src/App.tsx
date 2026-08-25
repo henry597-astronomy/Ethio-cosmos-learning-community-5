@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { NotificationProvider } from '@/context/NotificationContext';
@@ -42,6 +42,7 @@ const GRADIENT_THEME_BACKGROUNDS: Record<string, string> = {
 
 function AppRoutes() {
   const { theme } = useTheme();
+  const isSolarSystemRoute = useLocation().pathname === '/solar-system';
   const gradientBackground = GRADIENT_THEME_BACKGROUNDS[theme];
 
   return (
@@ -49,10 +50,10 @@ function AppRoutes() {
       <div className={`h-screen w-full flex flex-col overflow-hidden transition-colors duration-300 ${
         theme === 'light' ? 'bg-[#f1f5f9] text-[#0f172a]' : 'bg-[#0a0e1a] text-white'
       }`} style={{ background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
-        <Navbar />
-        <InstallPrompt />
-        <AppUpdatePrompt />
-      <main className="flex-1 overflow-y-auto pt-24" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
+        {!isSolarSystemRoute && <Navbar />}
+        {!isSolarSystemRoute && <InstallPrompt />}
+        {!isSolarSystemRoute && <AppUpdatePrompt />}
+      <main className={isSolarSystemRoute ? 'flex-1 overflow-hidden' : 'flex-1 overflow-y-auto pt-24'} style={isSolarSystemRoute ? undefined : { WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
         <Routes>
           {/* Login is always accessible */}
           <Route path="/login" element={<LoginPage />} />
@@ -86,6 +87,19 @@ function AppRoutes() {
   );
 }
 
+function RoutedAppContent() {
+  const isSolarSystemRoute = useLocation().pathname === '/solar-system';
+
+  return (
+    <>
+      <AppRoutes />
+      <Toaster position="top-right" theme="dark" />
+      {!isSolarSystemRoute && <AIChatBar />}
+      {!isSolarSystemRoute && <BottomTaskBar />}
+    </>
+  );
+}
+
 function App() {
   useEffect(() => {
     void recordAndroidAppOpen();
@@ -100,10 +114,7 @@ function App() {
               <ThemeProvider>
                 <AppLanguageProvider>
                   <LessonTutorProvider>
-                    <AppRoutes />
-                    <Toaster position="top-right" theme="dark" />
-                    <AIChatBar />
-                    <BottomTaskBar />
+                    <RoutedAppContent />
                   </LessonTutorProvider>
                 </AppLanguageProvider>
               </ThemeProvider>

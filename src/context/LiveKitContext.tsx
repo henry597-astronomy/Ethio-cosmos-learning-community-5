@@ -9,7 +9,7 @@ import {
 import { supabase } from '@/supabase';
 import { useAuth } from './AuthContext';
 import { slugify } from '@/lib/utils';
-import { getApiUrl } from '@/lib/api-config';
+import { getApiUrl, PRODUCTION_URL } from '@/lib/api-config';
 
 interface LiveSession {
   id: string;
@@ -305,7 +305,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         throw new Error('Your session has expired. Please sign in again.');
       }
 
-      const apiUrl = getApiUrl('/api/livekit/token');
+      const apiUrl = `${PRODUCTION_URL}/api/livekit/token`;
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {

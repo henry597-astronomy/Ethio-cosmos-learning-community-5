@@ -4,8 +4,8 @@ import { getApiUrl } from '@/lib/api-config';
 
 const ANALYTICS_ID_KEY = 'ethio-anonymous-analytics-id';
 const FIRST_OPEN_VERSION_KEY = 'ethio-apk-first-open-version';
-const APP_VERSION_CODE = 35;
-const RELEASE_TAG = 'v1.10.6';
+const APP_VERSION_CODE = 36;
+const RELEASE_TAG = 'v1.10.7';
 
 let nativeOpenPromise: Promise<void> | null = null;
 

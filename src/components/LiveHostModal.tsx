@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { slugify } from '@/lib/utils';
-import { getApiUrl } from '@/lib/api-config';
+import { PRODUCTION_URL } from '@/lib/api-config';
 import { supabase } from '@/supabase';
 
 interface LiveHostModalProps {
@@ -53,7 +53,7 @@ export default function LiveHostModal({
       }
 
       const slugifiedRoomName = slugify(roomName.trim());
-      const apiUrl = getApiUrl('/api/livekit/token');
+      const apiUrl = `${PRODUCTION_URL}/api/livekit/token`;
       console.log('Fetching token from:', apiUrl);
       
       const response = await fetch(apiUrl, {

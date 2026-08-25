@@ -4,20 +4,13 @@ from PIL import Image, ImageChops, ImageOps
 SOURCE = Path('/home/ubuntu/upload/1000078381.jpg')
 RES = Path('/home/ubuntu/ethio-tutor-work/android/app/src/main/res')
 
-# Android legacy launcher densities and adaptive foreground canvas sizes.
+# Android legacy launcher densities used by the explicit manifest icon resources.
 DENSITIES = {
     'mdpi': 48,
     'hdpi': 72,
     'xhdpi': 96,
     'xxhdpi': 144,
     'xxxhdpi': 192,
-}
-FOREGROUND_SIZES = {
-    'mdpi': 108,
-    'hdpi': 162,
-    'xhdpi': 216,
-    'xxhdpi': 324,
-    'xxxhdpi': 432,
 }
 
 image = Image.open(SOURCE).convert('RGBA')
@@ -44,11 +37,5 @@ for density, size in DENSITIES.items():
         output = RES / f'mipmap-{density}' / filename
         output.parent.mkdir(parents=True, exist_ok=True)
         square.save(output, format='PNG', optimize=True)
-
-    foreground_size = FOREGROUND_SIZES[density]
-    foreground = ImageOps.contain(canvas, (foreground_size, foreground_size), method=Image.Resampling.LANCZOS)
-    foreground_canvas = Image.new('RGBA', (foreground_size, foreground_size), (5, 9, 24, 255))
-    foreground_canvas.alpha_composite(foreground, ((foreground_size - foreground.width) // 2, (foreground_size - foreground.height) // 2))
-    foreground_canvas.save(RES / f'mipmap-{density}' / 'ic_launcher_foreground.png', format='PNG', optimize=True)
 
 print(f'Prepared launcher icons from {SOURCE.name}; trimmed source bounds={bbox}; square={side}px')

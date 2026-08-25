@@ -213,7 +213,32 @@ export type AppCopyKey =
   | 'answerOrHint'
   | 'readAloud'
   | 'voiceOn'
-  | 'voiceOff';
+  | 'voiceOff'
+  | 'solarSystem'
+  | 'solarSystemShort'
+  | 'solarSystemIntro'
+  | 'orbitColorEffects'
+  | 'simulationControls'
+  | 'dragToRotate'
+  | 'pinchToZoom'
+  | 'tapPlanet'
+  | 'resetView'
+  | 'pauseSimulation'
+  | 'playSimulation'
+  | 'selectedPlanet'
+  | 'distanceFromSun'
+  | 'diameter'
+  | 'orbitalPeriod'
+  | 'noPlanetSelected'
+  | 'planetSun'
+  | 'planetMercury'
+  | 'planetVenus'
+  | 'planetEarth'
+  | 'planetMars'
+  | 'planetJupiter'
+  | 'planetSaturn'
+  | 'planetUranus'
+  | 'planetNeptune';
 
 const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
   en: {
@@ -430,6 +455,31 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     readAloud: 'Read aloud',
     voiceOn: 'Voice on',
     voiceOff: 'Voice off',
+    solarSystem: 'Solar System',
+    solarSystemShort: 'Explore the planets',
+    solarSystemIntro: 'Explore a lightweight interactive model of our solar system.',
+    orbitColorEffects: 'Orbit color effects',
+    simulationControls: 'Simulation controls',
+    dragToRotate: 'Drag to rotate',
+    pinchToZoom: 'Pinch to zoom',
+    tapPlanet: 'Tap a planet to learn more',
+    resetView: 'Reset view',
+    pauseSimulation: 'Pause simulation',
+    playSimulation: 'Play simulation',
+    selectedPlanet: 'Selected planet',
+    distanceFromSun: 'Distance from Sun',
+    diameter: 'Diameter',
+    orbitalPeriod: 'Orbital period',
+    noPlanetSelected: 'Tap a planet to see details.',
+    planetSun: 'Sun',
+    planetMercury: 'Mercury',
+    planetVenus: 'Venus',
+    planetEarth: 'Earth',
+    planetMars: 'Mars',
+    planetJupiter: 'Jupiter',
+    planetSaturn: 'Saturn',
+    planetUranus: 'Uranus',
+    planetNeptune: 'Neptune',
   },
   am: {
     home: 'መነሻ',
@@ -645,6 +695,31 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     readAloud: 'በድምፅ አንብብ',
     voiceOn: 'ድምፅ ክፍት',
     voiceOff: 'ድምፅ ዝግ',
+    solarSystem: 'የፀሐይ ሥርዓት',
+    solarSystemShort: 'ፕላኔቶችን ያስሱ',
+    solarSystemIntro: 'የፀሐይ ሥርዓታችንን በቀላል ተግባራዊ ሞዴል ያስሱ።',
+    orbitColorEffects: 'የምህዋር ቀለም ተፅዕኖዎች',
+    simulationControls: 'የማስመሰያ መቆጣጠሪያዎች',
+    dragToRotate: 'ለማዞር ይጎትቱ',
+    pinchToZoom: 'ለማጉላት ሁለት ጣቶችን ይጠቀሙ',
+    tapPlanet: 'መረጃ ለማየት ፕላኔትን ይንኩ',
+    resetView: 'እይታን መልስ',
+    pauseSimulation: 'ማስመሰያውን አቁም',
+    playSimulation: 'ማስመሰያውን አጫውት',
+    selectedPlanet: 'የተመረጠ ፕላኔት',
+    distanceFromSun: 'ከፀሐይ ያለ ርቀት',
+    diameter: 'ዲያሜትር',
+    orbitalPeriod: 'የምህዋር ዘመን',
+    noPlanetSelected: 'ዝርዝር ለማየት ፕላኔትን ይንኩ።',
+    planetSun: 'ፀሐይ',
+    planetMercury: 'ሜርኩሪ',
+    planetVenus: 'ቬኑስ',
+    planetEarth: 'ምድር',
+    planetMars: 'ማርስ',
+    planetJupiter: 'ጁፒተር',
+    planetSaturn: 'ሳተርን',
+    planetUranus: 'ዩራነስ',
+    planetNeptune: 'ኔፕቱን',
   },
 };
 

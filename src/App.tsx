@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { CmsProvider } from '@/context/CmsContext';
@@ -29,6 +29,7 @@ import AdminPage from '@/pages/AdminPage';
 import TestsPage from '@/pages/TestsPage';
 import BookmarksPage from '@/pages/BookmarksPage';
 import ProgressPage from '@/pages/ProgressPage';
+const SolarSystemPage = lazy(() => import('@/pages/SolarSystemPage'));
 
 const GRADIENT_THEME_BACKGROUNDS: Record<string, string> = {
   'gradient-sakura': 'linear-gradient(135deg, #4a1942 0%, #c06c84 52%, #f8b195 100%)',
@@ -71,6 +72,7 @@ function AppRoutes() {
           <Route path="/tests" element={<ProtectedRoute><TestsPage /></ProtectedRoute>} />
           <Route path="/bookmarks" element={<ProtectedRoute><BookmarksPage /></ProtectedRoute>} />
           <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+          <Route path="/solar-system" element={<ProtectedRoute><Suspense fallback={<div className="flex min-h-full items-center justify-center bg-[#050816] px-4 text-sm text-slate-300">Loading solar system…</div>}><SolarSystemPage /></Suspense></ProtectedRoute>} />
 
           {/* Admin Route */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPage /></ProtectedRoute>} />

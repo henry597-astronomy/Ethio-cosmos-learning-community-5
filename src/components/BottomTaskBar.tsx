@@ -1,14 +1,18 @@
 import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useLiveKit } from '@/context/LiveKitContext';
+import { useAppLanguage } from '@/context/AppLanguageContext';
 import { Button } from '@/components/ui/button';
-import { Radio, Zap } from 'lucide-react';
+import { Orbit, Radio, Zap } from 'lucide-react';
 import LiveHostModal from './LiveHostModal';
 import TikTokLiveStream from './TikTokLiveStream';
 import ShortsFeed from './ShortsFeed';
 
 export default function BottomTaskBar() {
   const { user } = useAuth();
+  const location = useLocation();
+  const { t } = useAppLanguage();
   const [isShortsOpen, setIsShortsOpen] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const {
@@ -47,7 +51,17 @@ export default function BottomTaskBar() {
       >
         {/* Center Host Live / Join Live Button */}
         {user && (
-          <div className="flex items-center justify-center gap-12 w-full">
+          <div className="flex items-center justify-center gap-3 sm:gap-8 md:gap-12 w-full">
+            {/* Internal Solar System screen */}
+            <Link
+              to="/solar-system"
+              aria-label={t('solarSystem')}
+              className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-all duration-300 active:scale-[0.98] ${location.pathname.startsWith('/solar-system') ? 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/50' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+            >
+              <Orbit size={18} />
+              <span className="hidden sm:inline">{t('solarSystem')}</span>
+            </Link>
+
             {/* Shorts Button - Left Side with Enhanced Design */}
             <Button
               onClick={() => setIsShortsOpen(true)}

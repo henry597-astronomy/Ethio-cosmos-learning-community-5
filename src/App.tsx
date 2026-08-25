@@ -14,6 +14,8 @@ import AppVersionCheck from '@/components/AppVersionCheck';
 import AIChatBar from '@/components/AIChatBar';
 import BottomTaskBar from '@/components/BottomTaskBar';
 import { recordAndroidAppOpen } from '@/services/app-analytics';
+import { LessonTutorProvider } from '@/context/LessonTutorProvider';
+import { AppLanguageProvider } from '@/context/AppLanguageProvider';
 
 import HomePage from '@/pages/HomePage';
 import LearningPage from '@/pages/LearningPage';
@@ -94,11 +96,15 @@ function App() {
           <NotificationProvider>
             <LiveKitProvider>
               <ThemeProvider>
-                <AppRoutes />
-                <Toaster position="top-right" theme="dark" />
+                <AppLanguageProvider>
+                  <LessonTutorProvider>
+                    <AppRoutes />
+                    <Toaster position="top-right" theme="dark" />
+                    <AIChatBar />
+                    <BottomTaskBar />
+                  </LessonTutorProvider>
+                </AppLanguageProvider>
               </ThemeProvider>
-              <AIChatBar />
-              <BottomTaskBar />
             </LiveKitProvider>
           </NotificationProvider>
         </Router>

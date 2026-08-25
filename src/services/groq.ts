@@ -23,8 +23,9 @@ const READ_TIMEOUT_MS = 60_000;
 
 type ChatResponse = { content?: unknown; error?: unknown };
 
-type ChatOptions = {
+export type ChatOptions = {
   tutorContext?: TutorContext;
+  language?: TutorLanguage;
 };
 
 function getServerError(data: ChatResponse | null, status: number): Error {
@@ -48,6 +49,7 @@ async function requestChat(url: string, messages: Message[], options?: ChatOptio
   const requestData = {
     messages,
     ...(options?.tutorContext ? { tutorContext: options.tutorContext } : {}),
+    ...(options?.language ? { language: options.language } : {}),
   };
 
   if (Capacitor.isNativePlatform()) {

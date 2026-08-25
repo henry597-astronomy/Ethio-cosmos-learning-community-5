@@ -4,6 +4,7 @@ import { BookOpen, Brain, Lightbulb, Loader2, RotateCcw, Send, Volume2, VolumeX 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getGroqChatCompletion, type Message, type TutorLanguage, type TutorMode } from '@/services/groq';
+import { useAppLanguage } from '@/context/AppLanguageContext';
 import { speakText, stopSpeech } from '@/services/speech';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +29,7 @@ const STARTER_PROMPTS: Record<TutorMode, string[]> = {
 
 export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: LessonTutorProps) {
   const [mode, setMode] = useState<TutorMode>('tutor');
-  const [language, setLanguage] = useState<TutorLanguage>('English');
+  const { language: appLanguage, setLanguage: setAppLanguage } = useAppLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,8 +64,9 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
   };
 
   const changeLanguage = (nextLanguage: TutorLanguage) => {
-    if (nextLanguage === language) return;
-    setLanguage(nextLanguage);
+    const nextAppLanguage = nextLanguage === 'Amharic' ? 'am' : 'en';
+    if (nextAppLanguage === appLanguage) return;
+    setAppLanguage(nextAppLanguage);
     resetConversation();
   };
 
@@ -97,7 +99,7 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
           lessonTitle,
           lessonContent: safeLessonContent,
           mode,
-          language,
+          language: appLanguage === 'am' ? 'Amharic' : 'English',
         },
       });
       setMessages([...nextMessages, { role: 'assistant', content: response }]);
@@ -170,9 +172,11 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
               onClick={() => changeLanguage(option)}
               className={cn(
                 'rounded-md px-2 py-1 text-[11px] font-medium transition-colors',
-                language === option ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white',
+                (appLanguage === 'am' && option === 'Amharic') || (appLanguage === 'en' && option === 'English')
+                  ? 'bg-slate-600 text-white'
+                  : 'text-slate-400 hover:text-white',
               )}
-              aria-pressed={language === option}
+              aria-pressed={(appLanguage === 'am' && option === 'Amharic') || (appLanguage === 'en' && option === 'English')}
             >
               {option}
             </button>

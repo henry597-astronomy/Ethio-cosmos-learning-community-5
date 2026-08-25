@@ -3,6 +3,7 @@ import { useTopics } from '@/hooks/use-cms-data';
 import { useSubtopics, useLesson } from '@/hooks/use-cms-data';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/supabase';
+import { useLessonTutorContext } from '@/context/LessonTutorContext';
 import { ArrowLeft, ArrowRight, BookmarkPlus, BookmarkCheck, CheckCircle } from 'lucide-react';
 import LessonTutor from '@/components/LessonTutor';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ export default function LessonPage() {
   const { topicId, subtopicId } = useParams<{ topicId: string; subtopicId: string }>();
   const topicsHook = useTopics();
   const { user } = useAuth();
+  const { setActiveLesson } = useLessonTutorContext();
 
   const { topics, loading: topicsLoading, error: topicsError } = topicsHook;
   // Parameterized hooks are called directly so they stay valid React hooks.
@@ -39,6 +41,31 @@ export default function LessonPage() {
   const prevLesson = currentIndex > 0 ? subtopics[currentIndex - 1] : null;
   const nextLesson = currentIndex < subtopics.length - 1 ? subtopics[currentIndex + 1] : null;
   const progress = subtopics.length > 0 ? ((currentIndex + 1) / subtopics.length) * 100 : 0;
+
+  useEffect(() => {
+    if (!topic || !currentSubtopic) {
+      setActiveLesson(null);
+      return;
+    }
+
+    const referenceBlocks = lesson?.content_blocks || [
+      { type: 'text' as const, content: `${currentSubtopic.title} is an important topic in astronomy. In this lesson, we will explore the key concepts and understand why it matters in our study of the cosmos.` },
+      { type: 'text' as const, content: currentSubtopic.description },
+      { type: 'text' as const, content: 'As you continue your journey through astronomy, remember that each discovery builds upon previous knowledge. Take time to observe the night sky and apply what you learn.' },
+    ];
+    const lessonContent = referenceBlocks
+      .map((block) => block.type === 'text' ? block.content : '[Lesson illustration]')
+      .join('\n\n')
+      .slice(0, 12000);
+
+    setActiveLesson({
+      topicTitle: topic.title,
+      lessonTitle: currentSubtopic.title,
+      lessonContent,
+    });
+
+    return () => setActiveLesson(null);
+  }, [currentSubtopic, lesson, setActiveLesson, topic]);
 
   // Check bookmark and progress status on mount
   useEffect(() => {

@@ -4,8 +4,9 @@ import { useAuth } from '@/context/AuthContext';
 
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, BookOpen, BarChart3, Settings, Download, CheckCircle, Users, Sun, Moon, Menu, Pencil } from 'lucide-react';
+import { LogOut, BookOpen, BarChart3, Settings, Download, CheckCircle, Users, Sun, Moon, Menu, Pencil, Languages } from 'lucide-react';
 import EditProfileDialog from '@/components/EditProfileDialog';
+import { useAppLanguage } from '@/context/AppLanguageContext';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import {
   Sheet,
@@ -37,8 +38,10 @@ export default function Navbar() {
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { language, setLanguage } = useAppLanguage();
 
   // Taskbar Scroll State - Static for now as requested
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -239,6 +242,53 @@ export default function Navbar() {
                         </Link>
                       )}
                       
+                      {/* Language Preference */}
+                      <div className="px-6 py-3 border-t border-white/5">
+                        <button
+                          onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
+                          className="w-full flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors py-1"
+                          aria-expanded={languageDropdownOpen}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Languages size={18} className="text-cyan-400" />
+                            <span>Language</span>
+                          </div>
+                          <span className="text-xs text-cyan-300 font-medium bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 flex items-center gap-1">
+                            {language === 'am' ? 'አማርኛ' : 'English'} {languageDropdownOpen ? '▲' : '▼'}
+                          </span>
+                        </button>
+
+                        {languageDropdownOpen && (
+                          <div className="mt-2 space-y-1 rounded-xl border border-white/10 bg-slate-900/90 p-2.5 animate-in fade-in duration-200">
+                            {[
+                              { id: 'en' as const, label: 'English', helper: 'English' },
+                              { id: 'am' as const, label: 'አማርኛ', helper: 'Amharic' },
+                            ].map((option) => (
+                              <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => {
+                                  setLanguage(option.id);
+                                  setLanguageDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
+                                  language === option.id
+                                    ? 'bg-cyan-500/20 text-cyan-200 font-bold border border-cyan-500/30'
+                                    : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                }`}
+                                aria-pressed={language === option.id}
+                              >
+                                <span>{option.label}</span>
+                                <span className="text-[10px] text-gray-500">{option.helper}</span>
+                              </button>
+                            ))}
+                            <p className="px-2 pt-1 text-[10px] leading-relaxed text-gray-500">
+                              Changes teacher replies without changing the original lesson content.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Themes Collapsible Section */}
                       <div className="px-6 py-3 border-t border-white/5">
                         <button
@@ -265,7 +315,7 @@ export default function Navbar() {
                               <button
                                 key={t.id}
                                 onClick={() => {
-                                  setTheme(t.id as any);
+                                  setTheme(t.id as Parameters<typeof setTheme>[0]);
                                   setThemeDropdownOpen(false);
                                 }}
                                 className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors ${
@@ -299,7 +349,7 @@ export default function Navbar() {
                               <button
                                 key={t.id}
                                 onClick={() => {
-                                  setTheme(t.id as any);
+                                  setTheme(t.id as Parameters<typeof setTheme>[0]);
                                   setThemeDropdownOpen(false);
                                 }}
                                 className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors ${

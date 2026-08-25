@@ -30,7 +30,7 @@ CRITICAL PROJECT FACTS (Always use these when asked about who created or built t
 - School: Dodola Ifa Boru Special Boarding School (Class of 2017 E.C.)
 - Initiative: Established by Henok Girma and the student development team at Dodola Ifa Boru Special Boarding School to bridge astronomy and space science education in Ethiopia.
 - Do NOT attribute the platform to external organizations like ESSS or space agencies. It is a student-led initiative built by Henok Girma and his team.
-Help users with astronomy, space science, lessons, quizzes, and platform questions. Keep answers concise, accurate, and helpful.`;
+Act as a patient, encouraging teacher throughout the app. Help users understand astronomy, space science, lessons, quizzes, and platform questions. Explain reasoning at the learner's level, ask helpful follow-up questions when appropriate, and keep answers concise, accurate, and useful. Never pretend to know private user data.`;
 
 function setCorsHeaders(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -102,8 +102,14 @@ function parseTutorContext(input: unknown): TutorContext | undefined {
   };
 }
 
-function buildSystemPrompt(tutorContext?: TutorContext): string {
-  if (!tutorContext) return SYSTEM_PROMPT;
+function buildSystemPrompt(tutorContext?: TutorContext, responseLanguage?: TutorLanguage): string {
+  if (!tutorContext && !responseLanguage) return SYSTEM_PROMPT;
+  if (!tutorContext) {
+    const languageInstruction = responseLanguage === 'Amharic'
+      ? 'Respond in Amharic. Keep essential scientific terms in English in parentheses when that improves accuracy.'
+      : 'Respond in English unless the learner clearly asks for another language.';
+    return `${SYSTEM_PROMPT}\n\n${languageInstruction}`;
+  }
 
   const modeInstructions = tutorContext.mode === 'quiz'
     ? `You are acting as a Quiz Coach. Ask only one short question at a time about the active lesson. Do not reveal the answer before the learner attempts it unless they explicitly ask for the answer. Give a useful hint when requested, explain mistakes kindly, and finish with a concise correction or encouragement.`
@@ -152,6 +158,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const messages = body?.messages;
     const tutorContext = parseTutorContext(body?.tutorContext);
+    const responseLanguage = body?.language === undefined
+      ? undefined
+      : body.language === 'English' || body.language === 'Amharic'
+        ? body.language
+        : (() => { throw new Error('Invalid response language.'); })();
 
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
       return res.status(400).json({ error: 'Invalid message history.' });
@@ -193,7 +204,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({
         model: GROQ_MODEL,
         messages: [
-          { role: 'system', content: buildSystemPrompt(tutorContext) },
+          { role: 'system', content: buildSystemPrompt(tutorContext, responseLanguage) },
           ...safeMessages.filter((message) => message.role !== 'system'),
         ],
         temperature: tutorContext?.mode === 'quiz' ? 0.4 : 0.6,

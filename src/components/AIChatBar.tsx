@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Send, Sparkles, X, MessageSquare, Loader2, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
-import { getGroqChatCompletion, type Message } from '@/services/groq';
+import { getGroqChatCompletion, type Message, type TutorLanguage, type TutorMode } from '@/services/groq';
+import { useLessonTutorContext } from '@/context/LessonTutorContext';
+import { useAppLanguage } from '@/context/AppLanguageContext';
 import { transcribeVoiceRecording } from '@/services/voice';
 import { speakText, stopSpeech } from '@/services/speech';
 import { cn } from '@/lib/utils';
@@ -16,6 +18,10 @@ export default function AIChatBar() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [tutorMode, setTutorMode] = useState<TutorMode>('tutor');
+  const { activeLesson } = useLessonTutorContext();
+  const { language, languageName } = useAppLanguage();
+  const previousLanguageRef = useRef(language);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -96,6 +102,29 @@ export default function AIChatBar() {
       scrollToBottom();
     }
   }, [messages, isOpen]);
+
+  // Entering another lesson starts a fresh teacher context so answers cannot
+  // accidentally mix the previous lesson with the new one.
+  useEffect(() => {
+    const resetTimer = window.setTimeout(() => {
+      setTutorMode('tutor');
+      setMessages([]);
+      setInput('');
+      void stopSpeech();
+    }, 0);
+    return () => window.clearTimeout(resetTimer);
+  }, [activeLesson?.lessonTitle]);
+
+  // A language change starts a clean conversation so the teacher does not mix
+  // two response languages in the same learning session.
+  useEffect(() => {
+    if (previousLanguageRef.current === language) return;
+    previousLanguageRef.current = language;
+    setMessages([]);
+    setInput('');
+    setVoiceError(null);
+    void stopSpeech();
+  }, [language]);
 
   // Keep the chat window inside the visible viewport when the mobile keyboard opens.
   useEffect(() => {
@@ -200,6 +229,15 @@ export default function AIChatBar() {
     }
   };
 
+  const changeTutorMode = (nextMode: TutorMode) => {
+    if (nextMode === tutorMode) return;
+    setTutorMode(nextMode);
+    setMessages([]);
+    setInput('');
+    setVoiceError(null);
+    void stopSpeech();
+  };
+
   const submitMessage = async (messageText: string) => {
     const trimmedMessage = messageText.trim();
     if (!trimmedMessage || isLoading || isTranscribing) return;
@@ -213,7 +251,21 @@ export default function AIChatBar() {
     setIsLoading(true);
 
     try {
-      const response = await getGroqChatCompletion(newMessages);
+      const responseLanguage: TutorLanguage = language === 'am' ? 'Amharic' : 'English';
+      const response = await getGroqChatCompletion(
+        newMessages,
+        activeLesson
+          ? {
+              tutorContext: {
+                topicTitle: activeLesson.topicTitle,
+                lessonTitle: activeLesson.lessonTitle,
+                lessonContent: activeLesson.lessonContent,
+                mode: tutorMode,
+                language: responseLanguage,
+              },
+            }
+          : { language: responseLanguage },
+      );
       setMessages([...newMessages, { role: 'assistant', content: response }]);
       void speakResponse(response);
     } catch (error) {
@@ -369,10 +421,14 @@ export default function AIChatBar() {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white dark:text-white light-theme:text-[#0f172a]">Ethio-Cosmos AI</h3>
+                <h3 className="text-sm font-bold text-white dark:text-white light-theme:text-[#0f172a]">
+                  {activeLesson ? 'Ethio-Cosmos Tutor' : 'Ethio-Cosmos Teacher'}
+                </h3>
                 <div className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-400 light-theme:text-slate-600 uppercase tracking-wider font-medium">Online</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-400 light-theme:text-slate-600 uppercase tracking-wider font-medium">
+                    {activeLesson ? `${languageName} · ${tutorMode === 'quiz' ? 'Quiz Coach' : 'Lesson Tutor'}` : `${languageName} · Teacher`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -400,6 +456,38 @@ export default function AIChatBar() {
             </div>
           </div>
 
+          {activeLesson && (
+            <div className="shrink-0 border-b border-white/10 bg-cyan-500/10 px-4 py-2 dark:border-white/10 light-theme:border-[#cbd5e1] light-theme:bg-cyan-50">
+              <div className="mb-2 truncate text-[11px] text-cyan-100 light-theme:text-cyan-900" title={activeLesson.lessonTitle}>
+                Current lesson: <span className="font-semibold">{activeLesson.lessonTitle}</span>
+              </div>
+              <div className="flex gap-2" role="group" aria-label="Teacher mode">
+                <button
+                  type="button"
+                  onClick={() => changeTutorMode('tutor')}
+                  className={cn(
+                    'rounded-full px-3 py-1 text-[11px] font-medium transition-colors',
+                    tutorMode === 'tutor' ? 'bg-cyan-600 text-white' : 'bg-white/10 text-cyan-100 hover:bg-white/20 light-theme:bg-white light-theme:text-cyan-800',
+                  )}
+                  aria-pressed={tutorMode === 'tutor'}
+                >
+                  Tutor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeTutorMode('quiz')}
+                  className={cn(
+                    'rounded-full px-3 py-1 text-[11px] font-medium transition-colors',
+                    tutorMode === 'quiz' ? 'bg-orange-500 text-white' : 'bg-white/10 text-cyan-100 hover:bg-white/20 light-theme:bg-white light-theme:text-orange-800',
+                  )}
+                  aria-pressed={tutorMode === 'quiz'}
+                >
+                  Quiz Coach
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Messages */}
           <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             {messages.length === 0 && (
@@ -407,8 +495,12 @@ export default function AIChatBar() {
                 <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
                   <MessageSquare className="w-6 h-6 text-blue-400" />
                 </div>
-                <h4 className="text-white dark:text-white light-theme:text-[#0f172a] font-medium mb-1">Welcome to Ethio-Cosmos!</h4>
-                <p className="text-sm text-slate-400 dark:text-slate-400 light-theme:text-slate-600">Ask me anything about astronomy or our community.</p>
+                <h4 className="text-white dark:text-white light-theme:text-[#0f172a] font-medium mb-1">
+                  {activeLesson ? 'Your lesson teacher is ready' : 'Welcome to Ethio-Cosmos!'}
+                </h4>
+                <p className="text-sm text-slate-400 dark:text-slate-400 light-theme:text-slate-600">
+                  {activeLesson ? `Ask me about ${activeLesson.lessonTitle}.` : 'Ask me anything about astronomy or our community.'}
+                </p>
               </div>
             )}
             {messages.map((msg, i) => (
@@ -465,7 +557,7 @@ export default function AIChatBar() {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask a question..."
+                placeholder={activeLesson && tutorMode === 'quiz' ? 'Answer or ask for a hint...' : activeLesson ? 'Ask about this lesson...' : 'Ask your teacher...'}
                 className="bg-slate-800/50 dark:bg-slate-800/50 light-theme:bg-white border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] text-white dark:text-white light-theme:text-[#0f172a] placeholder:text-slate-500 light-theme:placeholder:text-slate-400 focus:ring-blue-500"
                 disabled={isLoading || isRecording || isTranscribing}
               />

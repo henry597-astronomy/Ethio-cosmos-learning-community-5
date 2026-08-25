@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, BookOpen, BarChart3, Settings, Wifi, WifiOff, Download, CheckCircle, Users, Sun, Moon, Menu, Pencil } from 'lucide-react';
+import { LogOut, BookOpen, BarChart3, Settings, Download, CheckCircle, Users, Sun, Moon, Menu, Pencil } from 'lucide-react';
 import EditProfileDialog from '@/components/EditProfileDialog';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import {
@@ -44,7 +44,6 @@ export default function Navbar() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Offline and Prefetch State
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [cacheSize, setCacheSize] = useState<number>(0);
   const [prefetchProgress, setPrefetchProgress] = useState<PrefetchProgress>({
     total: 0,
@@ -54,12 +53,6 @@ export default function Navbar() {
   });
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
     // Initial cache size
     getCacheSize().then(setCacheSize);
 
@@ -68,10 +61,6 @@ export default function Navbar() {
       setPrefetchProgress(progress);
     });
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
   }, []);
 
   const handleLogout = async () => {
@@ -113,16 +102,6 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Online/Offline Status Indicator */}
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border transition-all ${
-            isOnline 
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-              : 'bg-red-500/10 text-red-400 border-red-500/20'
-          }`}>
-            {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
-            <span className="hidden xs:inline">{isOnline ? 'Online' : 'Offline'}</span>
-          </div>
-
           {user ? (
             <div className="flex items-center gap-2">
               <Sheet open={profilePanelOpen} onOpenChange={setProfilePanelOpen}>

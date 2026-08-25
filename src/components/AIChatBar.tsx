@@ -4,6 +4,7 @@ import { Input } from './ui/input';
 import { Send, Sparkles, X, MessageSquare, Loader2, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { getGroqChatCompletion, type Message } from '@/services/groq';
 import { transcribeVoiceRecording } from '@/services/voice';
+import { speakText, stopSpeech } from '@/services/speech';
 import { cn } from '@/lib/utils';
 
 export default function AIChatBar() {
@@ -187,45 +188,15 @@ export default function AIChatBar() {
     };
   }, [isDragging]);
 
-  const speakResponse = (text: string) => {
+  const speakResponse = async (text: string) => {
     if (!isSpeechEnabled) return;
 
-    // Check if the text contains Ethiopic/Amharic characters
-    const isAmharic = /[\u1200-\u137F]/.test(text);
-    const targetLang = isAmharic ? 'am-ET' : (navigator.language || 'en-US');
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = targetLang;
-      utterance.rate = 0.90; // Slower rate for clearer Amharic articulation
-      utterance.pitch = 1;
-
-      // Try to find a native Amharic voice if available
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        const matchingVoice = voices.find(v => v.lang.startsWith(isAmharic ? 'am' : targetLang.slice(0, 2)));
-        if (matchingVoice) {
-          utterance.voice = matchingVoice;
-        }
-      }
-
-      // If synthesis finishes or errors, we're good
-      window.speechSynthesis.speak(utterance);
-    }
-
-    // If it's Amharic and device TTS might fail, also trigger a clean client-side audio stream fallback for perfect pronunciation
-    if (isAmharic) {
-      try {
-        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text.slice(0, 200))}&tl=am&client=tw-ob`;
-        const audio = new Audio(ttsUrl);
-        audio.volume = 0.9;
-        audio.play().catch(() => {
-          // Fallback to browser synthesis if network audio is blocked
-        });
-      } catch {
-        // Ignore audio playback errors on restricted mobile webviews
-      }
+    try {
+      await speakText(text);
+    } catch (error) {
+      // Speech failure must never turn a successful AI response into a chat
+      // failure. Keep the response visible and log the device-side cause.
+      console.warn('AI voice output unavailable:', error);
     }
   };
 
@@ -244,7 +215,7 @@ export default function AIChatBar() {
     try {
       const response = await getGroqChatCompletion(newMessages);
       setMessages([...newMessages, { role: 'assistant', content: response }]);
-      speakResponse(response);
+      void speakResponse(response);
     } catch (error) {
       console.error('Chat error:', error);
       setMessages([...newMessages, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
@@ -350,8 +321,8 @@ export default function AIChatBar() {
   };
 
   const toggleSpeech = () => {
-    if (isSpeechEnabled && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    if (isSpeechEnabled) {
+      void stopSpeech();
     }
     setIsSpeechEnabled((enabled) => !enabled);
   };
@@ -418,7 +389,10 @@ export default function AIChatBar() {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  void stopSpeech();
+                  setIsOpen(false);
+                }}
                 className="text-slate-400 hover:text-white hover:bg-white/10"
               >
                 <X className="w-4 h-4" />

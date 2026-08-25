@@ -1,7 +1,7 @@
 {
   "name": "my-app",
   "private": true,
-  "version": "1.10.0",
+  "version": "1.10.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor-community/text-to-speech": "^5.1.0",
     "@capacitor/app": "^6.0.3",
     "@capacitor/browser": "^6.0.6",
     "@capacitor/preferences": "^6.0.4",

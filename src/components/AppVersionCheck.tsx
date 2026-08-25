@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/supabase';
 
 // Current app version matching the latest build
-const CURRENT_APP_VERSION = 29; // v1.10.0 latest APK
+const CURRENT_APP_VERSION = 30; // v1.10.1 latest APK
 
 export default function AppVersionCheck({ children }: { children: React.ReactNode }) {
   const [updateRequired, setUpdateRequired] = useState(false);

@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Paperclip, Send, Trash2, MessageCircle, X, Smile, ExternalLink, Pin } from 'lucide-react';
+import { ArrowLeft, ChevronDown, MoreVertical, Paperclip, Send, Trash2, MessageCircle, X, Smile, ExternalLink, Pin } from 'lucide-react';
 import type { ChannelPost, ChannelReaction, ChannelComment, CommentReaction } from '@/types';
 import { extractYouTubeVideoId, getVideoType } from '@/lib/video-utils';
 
@@ -37,6 +37,44 @@ const nameColors = [
 function getNameColor(userId: string): string {
   const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return nameColors[hash % nameColors.length];
+}
+
+function getDayKey(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function formatDayLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: new Date(iso).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+  });
+}
+
+type SenderAvatarProps = {
+  userId: string;
+  senderName: string;
+  senderAvatar?: string;
+  size?: 'sm' | 'md';
+};
+
+function SenderAvatar({ userId, senderName, senderAvatar, size = 'md' }: SenderAvatarProps) {
+  const sizeClass = size === 'sm' ? 'h-9 w-9 text-xs' : 'h-11 w-11 text-sm';
+  return senderAvatar ? (
+    <img
+      src={senderAvatar}
+      alt={senderName}
+      className={`${sizeClass} rounded-full border border-white/20 object-cover shadow-md`}
+    />
+  ) : (
+    <div
+      className={`${sizeClass} flex items-center justify-center rounded-full font-bold text-white shadow-md`}
+      style={{ backgroundColor: getNameColor(userId) }}
+    >
+      {(senderName || 'U').charAt(0).toUpperCase()}
+    </div>
+  );
 }
 
 function LinkifiedText({ text }: { text: string }) {
@@ -465,11 +503,27 @@ export default function ChatPage() {
       <div className="absolute inset-0 bg-black/75"></div>
 
       <div className="relative z-10 flex flex-col h-full">
-        {/* Clean Channel Header */}
-        <div className="bg-slate-900/90 backdrop-blur-md border-b border-white/10 px-4 py-1.5 flex-shrink-0 shadow-lg">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-sm font-bold leading-tight text-white">Ethio-Cosmos Channel</h1>
-            <p className="text-[10px] leading-tight text-gray-400">Community Announcements</p>
+        {/* Reference-inspired messaging header */}
+        <div className="bg-[#202124]/95 backdrop-blur-md border-b border-white/10 px-3 py-2 flex-shrink-0 shadow-lg">
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              aria-label="Back to previous page"
+              className="h-10 w-10 shrink-0 rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 flex items-center justify-center"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="h-10 w-10 shrink-0 rounded-full bg-orange-500/20 border border-orange-400/40 flex items-center justify-center">
+              <MessageCircle className="h-5 w-5 text-orange-300" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-base font-bold leading-tight text-white">Ethio-Cosmos Channel</h1>
+              <p className="text-[11px] leading-tight text-gray-400">{posts.length} messages</p>
+            </div>
+            <div aria-label="Channel options" className="h-10 w-10 shrink-0 rounded-full bg-white/10 text-white flex items-center justify-center">
+              <MoreVertical className="h-5 w-5" />
+            </div>
           </div>
         </div>
 
@@ -551,7 +605,7 @@ export default function ChatPage() {
                 </p>
               </div>
             ) : (
-              posts.map((post) => {
+              posts.map((post, index) => {
                 const isAdminPost = post.sender_role === 'admin';
                 // Ownership check by user id — never expose the super admin email.
                 // Deletable-by-owner applies when the signed-in admin owns the post
@@ -559,32 +613,36 @@ export default function ChatPage() {
                 const isActualOwner =
                   (adminUserId !== null && post.user_id === adminUserId) || isSuperAdminSignedIn;
 
+                const previousPost = posts[index - 1];
+                const showDateSeparator = !previousPost || getDayKey(previousPost.created_at) !== getDayKey(post.created_at);
+
                 return (
-                  <div
-                    id={`channel-post-${post.id}`}
-                    key={post.id}
-                    className={`bg-slate-900/85 backdrop-blur-md rounded-xl shadow-xl overflow-hidden scroll-mt-2 ${post.pinned_at ? 'border border-blue-400/50 shadow-blue-950/40' : 'border border-white/10'}`}
-                  >
+                  <Fragment key={post.id}>
+                    {showDateSeparator && (
+                      <div className="flex justify-center py-2">
+                        <span className="rounded-full bg-black/55 px-3 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
+                          {formatDayLabel(post.created_at)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-end gap-2 sm:gap-3">
+                      <div className="w-10 shrink-0 sm:w-11">
+                        <SenderAvatar
+                          userId={post.user_id}
+                          senderName={post.sender_name}
+                          senderAvatar={post.sender_avatar}
+                        />
+                      </div>
+                      <div
+                        id={`channel-post-${post.id}`}
+                        className={`min-w-0 flex-1 overflow-hidden rounded-2xl bg-[#202124]/95 shadow-xl scroll-mt-2 ${post.pinned_at ? 'border border-blue-400/50 shadow-blue-950/40' : 'border border-white/10'}`}
+                      >
                     {/* Post Header */}
                     <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
-                      <div className="flex items-center gap-3">
-                        {post.sender_avatar ? (
-                          <img 
-                            src={post.sender_avatar} 
-                            alt={post.sender_name} 
-                            className="w-10 h-10 rounded-full border border-white/20 object-cover"
-                          />
-                        ) : (
-                          <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
-                            style={{ backgroundColor: getNameColor(post.user_id) }}
-                          >
-                            {post.sender_name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-white">
+                            <span className="text-sm font-bold" style={{ color: getNameColor(post.user_id) }}>
                               {post.sender_name}
                             </span>
                             {isAdminPost && (
@@ -594,9 +652,6 @@ export default function ChatPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] text-gray-400">
-                              {formatTime(post.created_at)}
-                            </span>
                             {post.pinned_at && (
                               <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/30 bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-300">
                                 <Pin className="h-3 w-3 rotate-45" /> Pinned
@@ -660,22 +715,38 @@ export default function ChatPage() {
                         })}
                       </div>
 
-                      {/* Telegram-style Comment Button */}
-                      <button
-                        onClick={() => setActivePostForComments(post)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-full text-xs font-semibold transition-all shadow-sm"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        <span>Comments {post.comments.length > 0 && `(${post.comments.length})`}</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* Telegram-style Comment Button */}
+                        <button
+                          onClick={() => setActivePostForComments(post)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-full text-xs font-semibold transition-all shadow-sm"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>Comments {post.comments.length > 0 && `(${post.comments.length})`}</span>
+                        </button>
+                        <span className="self-end whitespace-nowrap text-[11px] text-gray-400">
+                          {formatTime(post.created_at)}
+                        </span>
+                      </div>
+                      </div>
                     </div>
-                  </div>
+                    </div>
+                  </Fragment>
                 );
               })
             )}
             <div ref={postsEndRef} />
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => postsEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })}
+          aria-label="Jump to latest messages"
+          className="absolute bottom-4 right-4 z-20 h-12 w-12 rounded-full bg-black/60 text-white shadow-xl backdrop-blur-sm transition-colors hover:bg-black/80 flex items-center justify-center"
+        >
+          <ChevronDown className="h-6 w-6" />
+        </button>
 
         {/* Telegram-Style Comment Thread Modal / Drawer */}
         {activePostForComments && (

@@ -7,7 +7,22 @@
 export const PRODUCTION_URL = 'https://ethio-cosmos-learning-community-5.vercel.app';
 
 function normalizeApiBaseUrl(value: string): string {
-  return value.trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  try {
+    const parsed = new URL(trimmed, 'http://localhost');
+    const apiPathIndex = parsed.pathname.toLowerCase().indexOf('/api');
+    if (apiPathIndex >= 0) {
+      parsed.pathname = parsed.pathname.slice(0, apiPathIndex) || '/';
+      parsed.search = '';
+      parsed.hash = '';
+    }
+    const normalized = parsed.toString().replace(/\/+$/, '');
+    return normalized === 'http://localhost' ? '' : normalized;
+  } catch {
+    return trimmed.replace(/\/api(?:\/.*)?$/i, '').replace(/\/+$/, '');
+  }
 }
 
 const configuredWebBaseUrl = typeof import.meta.env.VITE_API_BASE_URL === 'string'

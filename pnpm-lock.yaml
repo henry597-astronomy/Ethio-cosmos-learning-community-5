@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@capacitor-community/text-to-speech':
+        specifier: ^5.1.0
+        version: 5.1.0(@capacitor/core@6.2.1)
       '@capacitor/app':
         specifier: ^6.0.3
         version: 6.0.3(@capacitor/core@6.2.1)
@@ -342,6 +345,11 @@ packages:
 
   '@bytecodealliance/preview2-shim@0.17.6':
     resolution: {integrity: sha512-n3cM88gTen5980UOBAD6xDcNNL3ocTK8keab21bpx1ONdA+ARj7uD1qoFxOWCyKlkpSi195FH+GeAut7Oc6zZw==}
+
+  '@capacitor-community/text-to-speech@5.1.0':
+    resolution: {integrity: sha512-Pe8i2M6bSlTPR83UeP7H7SouCdvQ6cAMq+nMatCuXKAd9rdRmyzdkurNj7EsM0FyjfAmGInhv9yhmVd3jNWzQQ==}
+    peerDependencies:
+      '@capacitor/core': ^6.0.0
 
   '@capacitor/android@6.2.1':
     resolution: {integrity: sha512-8gd4CIiQO5LAIlPIfd5mCuodBRxMMdZZEdj8qG8m+dQ1sQ2xyemVpzHmRK8qSCHorsBUCg3D62j2cp6bEBAkdw==}
@@ -2376,6 +2384,7 @@ packages:
   eslint@9.39.4:
     resolution: {integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -3772,6 +3781,10 @@ snapshots:
   '@bufbuild/protobuf@1.10.1': {}
 
   '@bytecodealliance/preview2-shim@0.17.6': {}
+
+  '@capacitor-community/text-to-speech@5.1.0(@capacitor/core@6.2.1)':
+    dependencies:
+      '@capacitor/core': 6.2.1
 
   '@capacitor/android@6.2.1(@capacitor/core@6.2.1)':
     dependencies:

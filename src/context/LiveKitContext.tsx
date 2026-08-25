@@ -309,6 +309,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
+          Accept: 'application/json',
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
@@ -318,17 +319,23 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         }),
       });
 
+      const responseText = await response.text();
+      let responseData: { token?: string; identity?: string; metadata?: unknown; error?: string };
+      try {
+        responseData = JSON.parse(responseText) as typeof responseData;
+      } catch {
+        throw new Error(`Live stream service returned an unexpected response (HTTP ${response.status}). Please try again.`);
+      }
+
       if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
-        }
-        throw new Error(errorData.error || 'Failed to get token');
+        throw new Error(responseData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const { token, identity, metadata } = await response.json();
+      const token = responseData.token;
+      if (!token) {
+        throw new Error('No token received from server');
+      }
+      const { identity, metadata } = responseData;
       setLiveRoomName(slugifiedRoomName);
       setLiveHostUserId(session?.host_id || null);
       setLiveToken(token);

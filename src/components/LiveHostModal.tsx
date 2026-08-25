@@ -59,6 +59,7 @@ export default function LiveHostModal({
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
+          Accept: 'application/json',
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
@@ -68,17 +69,19 @@ export default function LiveHostModal({
         }),
       });
 
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
-        }
-        throw new Error(errorData.error || 'Failed to generate token');
+      const responseText = await response.text();
+      let responseData: { token?: string; identity?: string; metadata?: unknown; error?: string };
+      try {
+        responseData = JSON.parse(responseText) as typeof responseData;
+      } catch {
+        throw new Error(`Live stream service returned an unexpected response (HTTP ${response.status}). Please try again.`);
       }
 
-      const { token, identity, metadata } = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const { token, identity, metadata } = responseData;
       
       if (!token) {
         throw new Error('No token received from server');

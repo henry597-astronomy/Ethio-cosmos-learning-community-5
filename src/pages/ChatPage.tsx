@@ -4,7 +4,7 @@ import { useNotifications } from '@/context/NotificationContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ChevronDown, MoreVertical, Paperclip, Send, Trash2, MessageCircle, X, Smile, ExternalLink, Pin } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Paperclip, Send, Trash2, MessageCircle, X, Smile, ExternalLink, Pin } from 'lucide-react';
 import type { ChannelPost, ChannelReaction, ChannelComment, CommentReaction } from '@/types';
 import { extractYouTubeVideoId, getVideoType } from '@/lib/video-utils';
 
@@ -514,15 +514,8 @@ export default function ChatPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="h-10 w-10 shrink-0 rounded-full bg-orange-500/20 border border-orange-400/40 flex items-center justify-center">
-              <MessageCircle className="h-5 w-5 text-orange-300" />
-            </div>
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base font-bold leading-tight text-white">Ethio-Cosmos Channel</h1>
-              <p className="text-[11px] leading-tight text-gray-400">{posts.length} messages</p>
-            </div>
-            <div aria-label="Channel options" className="h-10 w-10 shrink-0 rounded-full bg-white/10 text-white flex items-center justify-center">
-              <MoreVertical className="h-5 w-5" />
             </div>
           </div>
         </div>

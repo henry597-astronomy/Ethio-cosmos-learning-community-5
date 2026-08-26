@@ -35,6 +35,7 @@ CREATE POLICY "Published upcoming classrooms are readable"
   USING (
     published = true
     AND status = 'scheduled'
+    AND scheduled_start_at >= timezone('utc'::text, now())
     AND (scheduled_end_at IS NULL OR scheduled_end_at > timezone('utc'::text, now()))
   );
 

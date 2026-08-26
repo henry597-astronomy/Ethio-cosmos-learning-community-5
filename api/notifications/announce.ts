@@ -42,7 +42,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const auth = await authenticateSupabaseRequest(req);
   if (!auth.user) {
-    res.status(auth.reason === 'configuration' ? 500 : 401).json({ error: 'Authentication required' });
+    const authReason = 'reason' in auth ? auth.reason : 'invalid';
+    res.status(authReason === 'configuration' ? 500 : 401).json({ error: 'Authentication required' });
     return;
   }
 

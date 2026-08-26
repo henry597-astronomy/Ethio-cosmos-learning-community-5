@@ -19,6 +19,7 @@ const files = Object.fromEntries(
     ['premiumMigration', 'supabase/premium_mode.sql'],
     ['premiumSecurityMigration', 'supabase/premium_security.sql'],
     ['premiumLessonMigration', 'supabase/premium_lessons.sql'],
+    ['premiumContentMigration', 'supabase/premium_content_and_profile_repair.sql'],
     ['premiumAiClient', 'src/components/AIChatBar.tsx'],
     ['premiumSolarPage', 'src/pages/SolarSystemPage.tsx'],
   ].map(async ([key, path]) => [key, await readFile(path, 'utf8')]))
@@ -41,6 +42,8 @@ const checks = [
   ['Premium server guard uses the ownership-safe RPC', /user_has_premium_feature/.test(files.premiumHelper) && /requested_feature/.test(files.premiumHelper) && !/requested_user/.test(files.premiumHelper)],
   ['AI client sends the signed-in bearer token', /Authorization: `Bearer \$\{accessToken\}`/.test(files.groqClient)],
   ['Premium lesson flags are Admin-write-only and protect lesson rows', /premium_lessons/.test(files.premiumLessonMigration) && /Admins manage premium lesson flags/.test(files.premiumLessonMigration) && /user_has_premium_lesson/.test(files.premiumLessonMigration) && /DROP POLICY IF EXISTS "Public read access for lessons"/.test(files.premiumLessonMigration)],
+  ['Premium content hierarchy is categorized and Admin-write-only', /CREATE TABLE IF NOT EXISTS public\.premium_topics/.test(files.premiumContentMigration) && /CREATE TABLE IF NOT EXISTS public\.premium_subtopics/.test(files.premiumContentMigration) && /Admins manage premium topic flags/.test(files.premiumContentMigration) && /Admins manage premium subtopic flags/.test(files.premiumContentMigration) && /user_can_access_learning/.test(files.premiumContentMigration)],
+  ['Profile repair is current-user-only and preserves role safeguards', /CREATE OR REPLACE FUNCTION public\.ensure_current_profile/.test(files.premiumContentMigration) && /GRANT EXECUTE ON FUNCTION public\.ensure_current_profile\(\) TO authenticated/.test(files.premiumContentMigration) && /unique_profile_username/.test(files.premiumContentMigration)],
   ['Premium UI uses the exact seeded feature keys', /canUse\('ai_tutor'\)/.test(files.premiumAiClient) && /canUse\('observatory_simulation'\)/.test(files.premiumSolarPage)],
   ['Premium access API authenticates and rate-limits requests', /authenticateSupabaseRequest/.test(files.premiumAccessApi) && /enforceRateLimit/.test(files.premiumAccessApi)],
   ['Premium checkout fails closed while provider is not ready', /PAYMENT_PROVIDER_NOT_CONNECTED/.test(files.premiumCheckoutApi) && /readyForCheckout/.test(files.premiumCheckoutApi)],

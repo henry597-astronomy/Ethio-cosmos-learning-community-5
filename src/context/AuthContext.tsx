@@ -67,11 +67,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     setProfileLoading(true);
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('profiles')
         .select('id, username, bio, email, avatar_url, role, created_at, updated_at, is_blocked')
         .eq('id', userId)
         .maybeSingle();
+
+      // Some older OAuth accounts predate the profile trigger. Repair only the
+      // current authenticated account through a SECURITY DEFINER RPC, then
+      // reload it. This never accepts a client-supplied profile ID or role.
+      if (!error && !data) {
+        const { error: repairError } = await supabase.rpc('ensure_current_profile');
+        if (repairError) {
+          console.warn('Profile repair warning:', repairError.message);
+        } else {
+          const repaired = await supabase
+            .from('profiles')
+            .select('id, username, bio, email, avatar_url, role, created_at, updated_at, is_blocked')
+            .eq('id', userId)
+            .maybeSingle();
+          data = repaired.data;
+          error = repaired.error;
+        }
+      }
 
       if (!mountedRef.current) return;
 

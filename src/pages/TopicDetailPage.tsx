@@ -1,13 +1,17 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTopics } from '@/hooks/use-cms-data';
 import { useSubtopics } from '@/hooks/use-cms-data';
+import { usePremium } from '@/context/usePremium';
+import { PremiumRequiredScreen } from '@/components/PremiumRequiredMessage';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function TopicDetailPage() {
   const { topicId } = useParams<{ topicId: string }>();
+  const navigate = useNavigate();
   const topicsHook = useTopics();
   const { topics, loading: topicsLoading, error: topicsError } = topicsHook;
+  const { loading: premiumLoading, canUseTopic } = usePremium();
 
   // useSubtopics is intentionally called directly here (rather than going
   // through the context) so it stays a normal, parameterized React hook.
@@ -19,7 +23,7 @@ export default function TopicDetailPage() {
 
   const topic = topics.find((t) => t.id === topicId);
 
-  if (topicsLoading || subtopicsLoading) {
+  if (topicsLoading || subtopicsLoading || premiumLoading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] text-white">
         Loading topic details...
@@ -49,6 +53,10 @@ export default function TopicDetailPage() {
         </div>
       </div>
     );
+  }
+
+  if (!canUseTopic(topic.id)) {
+    return <PremiumRequiredScreen featureName={topic.title} onBack={() => navigate('/learning')} />;
   }
 
   return (
@@ -89,36 +97,36 @@ export default function TopicDetailPage() {
           ) : (
             <div className="space-y-3">
               {subtopics.map((subtopic, index) => {
-                  const diff = (subtopic.difficulty || 'beginner').toLowerCase();
-                  const diffColor = diff === 'advanced'
-                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-                    : diff === 'intermediate'
+                const diff = (subtopic.difficulty || 'beginner').toLowerCase();
+                const diffColor = diff === 'advanced'
+                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                  : diff === 'intermediate'
                     ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                     : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
-                  
-                  return (
-                    <Link
-                      key={subtopic.id}
-                      to={`/learning/${topic.id}/${subtopic.id}`}
-                      className="relative flex items-center gap-4 p-4 pt-6 bg-slate-900/50 border border-white/10 rounded-lg hover:border-orange-500/50 hover:bg-slate-800/50 transition-all group"
-                    >
-                      <span className={`absolute -top-2.5 left-4 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider border ${diffColor}`}>
-                        {diff}
-                      </span>
-                  <span className="text-lg font-mono text-orange-500 w-12">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span className="text-2xl">{subtopic.emoji}</span>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white group-hover:text-orange-400 transition-colors">
-                      {subtopic.title}
-                    </h3>
-                    <p className="text-sm text-gray-400">{subtopic.description}</p>
-                  </div>
-                  <ArrowRight size={18} className="text-gray-500 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
-                    </Link>
-                  );
-                })}
+
+                return (
+                  <Link
+                    key={subtopic.id}
+                    to={`/learning/${topic.id}/${subtopic.id}`}
+                    className="relative flex items-center gap-4 p-4 pt-6 bg-slate-900/50 border border-white/10 rounded-lg hover:border-orange-500/50 hover:bg-slate-800/50 transition-all group"
+                  >
+                    <span className={`absolute -top-2.5 left-4 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider border ${diffColor}`}>
+                      {diff}
+                    </span>
+                    <span className="text-lg font-mono text-orange-500 w-12">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className="text-2xl">{subtopic.emoji}</span>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-white group-hover:text-orange-400 transition-colors">
+                        {subtopic.title}
+                      </h3>
+                      <p className="text-sm text-gray-400">{subtopic.description}</p>
+                    </div>
+                    <ArrowRight size={18} className="text-gray-500 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

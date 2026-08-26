@@ -50,7 +50,7 @@ export default function LessonPage() {
   const progress = subtopics.length > 0 ? ((currentIndex + 1) / subtopics.length) * 100 : 0;
 
   useEffect(() => {
-    if (premiumLoading || !topic || !currentSubtopic || !subtopicId || !canUseLesson(subtopicId)) {
+    if (premiumLoading || !topic || !currentSubtopic || !topicId || !subtopicId || !canUseLesson(topicId, subtopicId)) {
       setActiveLesson(null);
       return;
     }
@@ -155,7 +155,9 @@ export default function LessonPage() {
     );
   }
 
-  if (topicsError || subtopicsError || lessonError) {
+  const lessonAccessAllowed = Boolean(topicId && subtopicId && canUseLesson(topicId, subtopicId));
+
+  if (topicsError || subtopicsError || (lessonError && lessonAccessAllowed)) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] text-red-400">
         {t('errorLoadingLesson')} {topicsError || subtopicsError || lessonError}
@@ -179,7 +181,7 @@ export default function LessonPage() {
     );
   }
 
-  if (!subtopicId || !canUseLesson(subtopicId)) {
+  if (!topicId || !subtopicId || !lessonAccessAllowed) {
     return <PremiumRequiredScreen featureName={currentSubtopic.title} onBack={() => navigate(`/learning/${topicId}`)} />;
   }
 

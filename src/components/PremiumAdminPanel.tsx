@@ -58,8 +58,24 @@ type PremiumAudit = {
   created_at: string;
 };
 
+type PremiumTopicControl = {
+  topic_id: string;
+  title: string;
+  is_premium: boolean;
+};
+
+type PremiumSubtopicControl = {
+  subtopic_id: string;
+  topic_id: string;
+  topic_title: string;
+  title: string;
+  is_premium: boolean;
+};
+
 type PremiumLessonControl = {
   subtopic_id: string;
+  topic_id: string;
+  topic_title: string;
   title: string;
   is_premium: boolean;
 };
@@ -90,9 +106,13 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
   const [users, setUsers] = useState<PremiumUser[]>([]);
   const [entitlements, setEntitlements] = useState<PremiumEntitlement[]>([]);
   const [auditLog, setAuditLog] = useState<PremiumAudit[]>([]);
+  const [topicControls, setTopicControls] = useState<PremiumTopicControl[]>([]);
+  const [subtopicControls, setSubtopicControls] = useState<PremiumSubtopicControl[]>([]);
   const [lessonControls, setLessonControls] = useState<PremiumLessonControl[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [userSearch, setUserSearch] = useState('');
+  const [topicSearch, setTopicSearch] = useState('');
+  const [subtopicSearch, setSubtopicSearch] = useState('');
   const [lessonSearch, setLessonSearch] = useState('');
   const [grantDays, setGrantDays] = useState('30');
   const [grantExpiry, setGrantExpiry] = useState('');
@@ -106,18 +126,22 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const [settingsResult, featuresResult, plansResult, usersResult, entitlementsResult, auditResult, lessonsResult, lessonFlagsResult] = await Promise.all([
+      const [settingsResult, featuresResult, plansResult, usersResult, entitlementsResult, auditResult, topicsResult, subtopicsResult, lessonsResult, topicFlagsResult, subtopicFlagsResult, lessonFlagsResult] = await Promise.all([
         supabase.from('premium_settings').select('id, is_enabled, updated_at').eq('id', 'global').maybeSingle(),
         supabase.from('premium_features').select('key, name, description, is_premium').order('name'),
         supabase.from('premium_plans').select('key, name, description, price_birr, duration_days, is_active').order('name'),
         supabase.from('profiles').select('id, email, username, role, is_blocked').order('created_at', { ascending: false }).limit(500),
         supabase.from('premium_entitlements').select('id, user_id, status, source, starts_at, expires_at, note, created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('premium_audit_log').select('id, entity_type, entity_id, action, target_user_id, before_data, after_data, created_at').order('created_at', { ascending: false }).limit(40),
-        supabase.from('lessons').select('subtopic_id, title').order('title').limit(500),
-        supabase.from('premium_lessons').select('subtopic_id, is_premium').limit(500),
+        supabase.from('topics').select('id, title').order('title').limit(500),
+        supabase.from('subtopics').select('id, topic_id, title').order('title').limit(1000),
+        supabase.from('lessons').select('subtopic_id, title').order('title').limit(1000),
+        supabase.from('premium_topics').select('topic_id, is_premium').limit(500),
+        supabase.from('premium_subtopics').select('subtopic_id, is_premium').limit(1000),
+        supabase.from('premium_lessons').select('subtopic_id, is_premium').limit(1000),
       ]);
 
-      const firstError = [settingsResult, featuresResult, plansResult, usersResult, entitlementsResult, auditResult, lessonsResult, lessonFlagsResult]
+      const firstError = [settingsResult, featuresResult, plansResult, usersResult, entitlementsResult, auditResult, topicsResult, subtopicsResult, lessonsResult, topicFlagsResult, subtopicFlagsResult, lessonFlagsResult]
         .find((result) => result.error)?.error;
       if (firstError) throw firstError;
 
@@ -127,12 +151,34 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
       setUsers((usersResult.data || []) as PremiumUser[]);
       setEntitlements((entitlementsResult.data || []) as PremiumEntitlement[]);
       setAuditLog((auditResult.data || []) as PremiumAudit[]);
+      const topicFlagMap = new Map((topicFlagsResult.data || []).map((flag: { topic_id: string; is_premium: boolean }) => [flag.topic_id, flag.is_premium]));
+      const subtopicFlagMap = new Map((subtopicFlagsResult.data || []).map((flag: { subtopic_id: string; is_premium: boolean }) => [flag.subtopic_id, flag.is_premium]));
       const lessonFlagMap = new Map((lessonFlagsResult.data || []).map((flag: { subtopic_id: string; is_premium: boolean }) => [flag.subtopic_id, flag.is_premium]));
-      setLessonControls((lessonsResult.data || []).map((lesson: { subtopic_id: string; title: string | null }) => ({
-        subtopic_id: lesson.subtopic_id,
-        title: lesson.title || 'Untitled lesson',
-        is_premium: Boolean(lessonFlagMap.get(lesson.subtopic_id)),
+      const topicTitleMap = new Map((topicsResult.data || []).map((topic: { id: string; title: string }) => [topic.id, topic.title]));
+      const subtopicMap = new Map((subtopicsResult.data || []).map((subtopic: { id: string; topic_id: string; title: string }) => [subtopic.id, subtopic]));
+
+      setTopicControls((topicsResult.data || []).map((topic: { id: string; title: string }) => ({
+        topic_id: topic.id,
+        title: topic.title || 'Untitled topic',
+        is_premium: Boolean(topicFlagMap.get(topic.id)),
       })));
+      setSubtopicControls((subtopicsResult.data || []).map((subtopic: { id: string; topic_id: string; title: string }) => ({
+        subtopic_id: subtopic.id,
+        topic_id: subtopic.topic_id,
+        topic_title: topicTitleMap.get(subtopic.topic_id) || 'Uncategorized topic',
+        title: subtopic.title || 'Untitled subtopic',
+        is_premium: Boolean(subtopicFlagMap.get(subtopic.id)),
+      })));
+      setLessonControls((lessonsResult.data || []).map((lesson: { subtopic_id: string; title: string | null }) => {
+        const subtopic = subtopicMap.get(lesson.subtopic_id);
+        return {
+          subtopic_id: lesson.subtopic_id,
+          topic_id: subtopic?.topic_id || '',
+          topic_title: subtopic ? topicTitleMap.get(subtopic.topic_id) || 'Uncategorized topic' : 'Uncategorized topic',
+          title: lesson.title || 'Untitled lesson',
+          is_premium: Boolean(lessonFlagMap.get(lesson.subtopic_id)),
+        };
+      }));
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : 'Unable to load Premium controls.';
       setError(message);
@@ -155,10 +201,22 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
     ));
   }, [userSearch, users]);
 
+  const filteredTopics = useMemo(() => {
+    const query = topicSearch.trim().toLowerCase();
+    if (!query) return topicControls;
+    return topicControls.filter((topic) => topic.title.toLowerCase().includes(query));
+  }, [topicControls, topicSearch]);
+
+  const filteredSubtopics = useMemo(() => {
+    const query = subtopicSearch.trim().toLowerCase();
+    if (!query) return subtopicControls;
+    return subtopicControls.filter((subtopic) => `${subtopic.title} ${subtopic.topic_title}`.toLowerCase().includes(query));
+  }, [subtopicControls, subtopicSearch]);
+
   const filteredLessons = useMemo(() => {
     const query = lessonSearch.trim().toLowerCase();
     if (!query) return lessonControls;
-    return lessonControls.filter((lesson) => lesson.title.toLowerCase().includes(query));
+    return lessonControls.filter((lesson) => `${lesson.title} ${lesson.topic_title}`.toLowerCase().includes(query));
   }, [lessonControls, lessonSearch]);
 
   const selectedUser = users.find((candidate) => candidate.id === selectedUserId) || null;
@@ -197,6 +255,46 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
     }
     setFeatures((current) => current.map((item) => item.key === feature.key ? { ...item, is_premium: isPremium } : item));
     toast.success(`${feature.name} is now ${isPremium ? 'Premium-only' : 'free for everyone'}.`);
+    await loadPremiumData();
+  };
+
+  const updateTopicPremium = async (topic: PremiumTopicControl, isPremium: boolean) => {
+    setSaving(`topic:${topic.topic_id}`);
+    const { error: updateError } = await supabase
+      .from('premium_topics')
+      .upsert({
+        topic_id: topic.topic_id,
+        is_premium: isPremium,
+        created_by: adminId,
+        updated_by: adminId,
+      }, { onConflict: 'topic_id' });
+    setSaving(null);
+    if (updateError) {
+      toast.error(`Could not update ${topic.title}: ${updateError.message}`);
+      return;
+    }
+    setTopicControls((current) => current.map((item) => item.topic_id === topic.topic_id ? { ...item, is_premium: isPremium } : item));
+    toast.success(`${topic.title} is now ${isPremium ? 'Premium-only' : 'free for everyone'}.`);
+    await loadPremiumData();
+  };
+
+  const updateSubtopicPremium = async (subtopic: PremiumSubtopicControl, isPremium: boolean) => {
+    setSaving(`subtopic:${subtopic.subtopic_id}`);
+    const { error: updateError } = await supabase
+      .from('premium_subtopics')
+      .upsert({
+        subtopic_id: subtopic.subtopic_id,
+        is_premium: isPremium,
+        created_by: adminId,
+        updated_by: adminId,
+      }, { onConflict: 'subtopic_id' });
+    setSaving(null);
+    if (updateError) {
+      toast.error(`Could not update ${subtopic.title}: ${updateError.message}`);
+      return;
+    }
+    setSubtopicControls((current) => current.map((item) => item.subtopic_id === subtopic.subtopic_id ? { ...item, is_premium: isPremium } : item));
+    toast.success(`${subtopic.title} is now ${isPremium ? 'Premium-only' : 'free for everyone'}.`);
     await loadPremiumData();
   };
 
@@ -337,8 +435,8 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-orange-400/30 bg-gradient-to-br from-orange-500/10 via-slate-900/70 to-slate-950/80 p-4 sm:p-6">
+    <div className="space-y-2">
+      <div className="rounded-xl border border-orange-400/30 bg-gradient-to-br from-orange-500/10 via-slate-900/70 to-slate-950/80 p-3 sm:p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-orange-500/15 p-3 text-orange-300"><Crown size={24} /></div>
@@ -353,7 +451,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
             <RefreshCw size={15} className="mr-2" /> Refresh
           </Button>
         </div>
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/10 bg-slate-950/50 p-4">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/10 bg-slate-950/50 p-4">
           <div>
             <p className="font-semibold text-white">Premium mode</p>
             <p className="text-sm text-gray-400">{settings?.is_enabled ? 'Feature switches are active.' : 'All Premium-only features are currently shut down globally.'}</p>
@@ -377,14 +475,14 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         )}
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-4 sm:p-6">
-        <div className="mb-4">
+      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
+        <div className="mb-3">
           <h3 className="text-lg font-bold text-white">Feature-by-feature switches</h3>
           <p className="mt-1 text-sm text-gray-400">New features start free. Turn a feature on as Premium-only only after its user experience and server-side cost protection are ready.</p>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {features.map((feature) => (
-            <div key={feature.key} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-800/70 p-4">
+            <div key={feature.key} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-800/70 p-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-semibold text-white">{feature.name}</p>
@@ -407,42 +505,100 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-4 sm:p-6">
-        <div className="mb-4 flex items-start gap-3">
-          <div className="rounded-lg bg-cyan-500/15 p-2 text-cyan-300"><BookOpen size={20} /></div>
+      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
+        <div className="mb-3 flex items-start gap-3">
+          <div className="rounded-lg bg-cyan-500/15 p-2 text-cyan-300"><BookOpen size={19} /></div>
           <div>
-            <h3 className="text-lg font-bold text-white">Individual lesson access</h3>
-            <p className="mt-1 text-sm text-gray-400">Mark selected lessons Premium without changing their content. Users without an active grant will see the Premium message when they try to open a marked lesson.</p>
+            <h3 className="text-lg font-bold text-white">Learning content access</h3>
+            <p className="mt-1 text-sm text-gray-400">Manage each content level separately. A Premium topic protects its descendants; a Premium subtopic protects its lesson; a Premium lesson protects only that lesson.</p>
           </div>
         </div>
-        <div className="relative mb-3">
-          <Input value={lessonSearch} onChange={(event) => setLessonSearch(event.target.value)} placeholder="Search lessons by title" className="border-white/10 bg-slate-950 pr-8 text-white placeholder:text-gray-500" />
-          {lessonSearch && <button type="button" onClick={() => setLessonSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-white" aria-label="Clear lesson search"><X size={14} /></button>}
-        </div>
-        <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
-          {filteredLessons.map((lesson) => (
-            <div key={lesson.subtopic_id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-800/70 p-3">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">{lesson.title}</p>
-                <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${lesson.is_premium ? 'bg-orange-500/20 text-orange-300' : 'bg-emerald-500/15 text-emerald-300'}`}>
-                  {lesson.is_premium ? 'PREMIUM' : 'FREE'}
-                </span>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          <div className="rounded-lg border border-white/10 bg-slate-800/50 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div>
+                <h4 className="font-semibold text-white">Topics</h4>
+                <p className="text-xs text-gray-500">Protect a complete topic path</p>
               </div>
-              <Switch
-                checked={lesson.is_premium}
-                onCheckedChange={(checked) => void updateLessonPremium(lesson, checked)}
-                disabled={saving === `lesson:${lesson.subtopic_id}`}
-                aria-label={`Make ${lesson.title} Premium-only`}
-                className="data-[state=checked]:bg-orange-500"
-              />
+              <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[11px] text-gray-300">{topicControls.length}</span>
             </div>
-          ))}
-          {filteredLessons.length === 0 && <p className="py-5 text-center text-sm text-gray-500">No matching lessons.</p>}
+            <div className="relative mb-2">
+              <Input value={topicSearch} onChange={(event) => setTopicSearch(event.target.value)} placeholder="Search topics" className="h-9 border-white/10 bg-slate-950 pr-8 text-sm text-white placeholder:text-gray-500" />
+              {topicSearch && <button type="button" onClick={() => setTopicSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-white" aria-label="Clear topic search"><X size={14} /></button>}
+            </div>
+            <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+              {filteredTopics.map((topic) => (
+                <div key={topic.topic_id} className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-900/60 px-2.5 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-white">{topic.title}</p>
+                    <span className={`text-[10px] font-semibold ${topic.is_premium ? 'text-orange-300' : 'text-emerald-300'}`}>{topic.is_premium ? 'PREMIUM' : 'FREE'}</span>
+                  </div>
+                  <Switch checked={topic.is_premium} onCheckedChange={(checked) => void updateTopicPremium(topic, checked)} disabled={saving === `topic:${topic.topic_id}`} aria-label={`Make ${topic.title} Premium-only`} className="data-[state=checked]:bg-orange-500" />
+                </div>
+              ))}
+              {filteredTopics.length === 0 && <p className="py-4 text-center text-xs text-gray-500">No matching topics.</p>}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-white/10 bg-slate-800/50 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div>
+                <h4 className="font-semibold text-white">Subtopics</h4>
+                <p className="text-xs text-gray-500">Protect one subtopic path</p>
+              </div>
+              <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[11px] text-gray-300">{subtopicControls.length}</span>
+            </div>
+            <div className="relative mb-2">
+              <Input value={subtopicSearch} onChange={(event) => setSubtopicSearch(event.target.value)} placeholder="Search subtopics or topics" className="h-9 border-white/10 bg-slate-950 pr-8 text-sm text-white placeholder:text-gray-500" />
+              {subtopicSearch && <button type="button" onClick={() => setSubtopicSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-white" aria-label="Clear subtopic search"><X size={14} /></button>}
+            </div>
+            <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+              {filteredSubtopics.map((subtopic) => (
+                <div key={subtopic.subtopic_id} className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-900/60 px-2.5 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-white">{subtopic.title}</p>
+                    <p className="truncate text-[10px] text-gray-500">{subtopic.topic_title}</p>
+                    <span className={`text-[10px] font-semibold ${subtopic.is_premium ? 'text-orange-300' : 'text-emerald-300'}`}>{subtopic.is_premium ? 'PREMIUM' : 'FREE'}</span>
+                  </div>
+                  <Switch checked={subtopic.is_premium} onCheckedChange={(checked) => void updateSubtopicPremium(subtopic, checked)} disabled={saving === `subtopic:${subtopic.subtopic_id}`} aria-label={`Make ${subtopic.title} Premium-only`} className="data-[state=checked]:bg-orange-500" />
+                </div>
+              ))}
+              {filteredSubtopics.length === 0 && <p className="py-4 text-center text-xs text-gray-500">No matching subtopics.</p>}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-white/10 bg-slate-800/50 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div>
+                <h4 className="font-semibold text-white">Lessons</h4>
+                <p className="text-xs text-gray-500">Protect one lesson</p>
+              </div>
+              <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[11px] text-gray-300">{lessonControls.length}</span>
+            </div>
+            <div className="relative mb-2">
+              <Input value={lessonSearch} onChange={(event) => setLessonSearch(event.target.value)} placeholder="Search lessons or topics" className="h-9 border-white/10 bg-slate-950 pr-8 text-sm text-white placeholder:text-gray-500" />
+              {lessonSearch && <button type="button" onClick={() => setLessonSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-white" aria-label="Clear lesson search"><X size={14} /></button>}
+            </div>
+            <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+              {filteredLessons.map((lesson) => (
+                <div key={lesson.subtopic_id} className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-900/60 px-2.5 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-white">{lesson.title}</p>
+                    <p className="truncate text-[10px] text-gray-500">{lesson.topic_title}</p>
+                    <span className={`text-[10px] font-semibold ${lesson.is_premium ? 'text-orange-300' : 'text-emerald-300'}`}>{lesson.is_premium ? 'PREMIUM' : 'FREE'}</span>
+                  </div>
+                  <Switch checked={lesson.is_premium} onCheckedChange={(checked) => void updateLessonPremium(lesson, checked)} disabled={saving === `lesson:${lesson.subtopic_id}`} aria-label={`Make ${lesson.title} Premium-only`} className="data-[state=checked]:bg-orange-500" />
+                </div>
+              ))}
+              {filteredLessons.length === 0 && <p className="py-4 text-center text-xs text-gray-500">No matching lessons.</p>}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-4 sm:p-6">
-        <div className="mb-4 flex items-start gap-3">
+      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
+        <div className="mb-3 flex items-start gap-3">
           <div className="rounded-lg bg-sky-500/15 p-2 text-sky-300"><Clock3 size={20} /></div>
           <div>
             <h3 className="text-lg font-bold text-white">Payment-ready plan draft</h3>
@@ -452,7 +608,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           {plans.map((plan) => (
-            <div key={plan.key} className="rounded-lg border border-white/10 bg-slate-800/70 p-4">
+            <div key={plan.key} className="rounded-lg border border-white/10 bg-slate-800/70 p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold text-white">{plan.name}</p>
                 <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[11px] font-semibold text-gray-300">DRAFT</span>
@@ -490,8 +646,8 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-4 sm:p-6">
-        <div className="mb-4 flex items-start gap-3">
+      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
+        <div className="mb-3 flex items-start gap-3">
           <div className="rounded-lg bg-violet-500/15 p-2 text-violet-300"><UserPlus size={20} /></div>
           <div>
             <h3 className="text-lg font-bold text-white">Manual user access</h3>
@@ -499,7 +655,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
           </div>
         </div>
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-          <div className="rounded-lg border border-white/10 bg-slate-800/70 p-4">
+          <div className="rounded-lg border border-white/10 bg-slate-800/70 p-3">
             <label className="text-sm font-semibold text-white">Find a user</label>
             <div className="relative mt-2">
               <Input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="Search by username or email" className="border-white/10 bg-slate-950 pr-8 text-white placeholder:text-gray-500" />
@@ -527,7 +683,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-slate-800/70 p-4">
+          <div className="rounded-lg border border-white/10 bg-slate-800/70 p-3">
             {!selectedUser ? (
               <div className="flex min-h-48 items-center justify-center text-center text-sm text-gray-500">Select a user to manage Premium access.</div>
             ) : (
@@ -560,7 +716,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
                   <UserCheck size={16} className="mr-2" /> {saving === 'grant' ? 'Granting…' : 'Grant Premium manually'}
                 </Button>
 
-                <div className="mt-5 space-y-2">
+                <div className="mt-3 space-y-2">
                   <p className="text-sm font-semibold text-white">Entitlement history</p>
                   {selectedEntitlements.length === 0 && <p className="text-sm text-gray-500">No entitlement records for this user.</p>}
                   {selectedEntitlements.map((entitlement) => (
@@ -598,7 +754,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-4 sm:p-6">
+      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
         <h3 className="text-lg font-bold text-white">Recent Premium audit activity</h3>
         <p className="mt-1 text-sm text-gray-400">This is an append-only record of setting, feature, plan, entitlement, and payment-ledger mutations.</p>
         <div className="mt-4 space-y-2">

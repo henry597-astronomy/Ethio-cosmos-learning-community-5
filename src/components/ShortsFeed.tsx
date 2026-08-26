@@ -181,15 +181,32 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
     }
   }, [showMenu]);
 
+  const ensureInteractionUser = async (): Promise<string> => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      throw new Error('Please sign in again before interacting with a Short.');
+    }
+
+    // Repairs only the current auth account. The RPC never accepts a client
+    // supplied profile ID or role and is safe for older OAuth accounts.
+    const { error: profileError } = await supabase.rpc('ensure_current_profile');
+    if (profileError) throw profileError;
+    return data.user.id;
+  };
+
   const handleLike = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
 
-    if (!user) {
+    if (isLikeSaving) return;
+
+    let interactionUserId: string;
+    try {
+      interactionUserId = await ensureInteractionUser();
+    } catch (error) {
+      console.error('Could not verify Shorts interaction user:', error);
       toast.info('Sign in to like Shorts.');
       return;
     }
-
-    if (isLikeSaving) return;
 
     const nextLiked = !isLiked;
     setIsLiked(nextLiked);
@@ -198,12 +215,12 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
 
     try {
       const result = nextLiked
-        ? await supabase.from('short_likes').insert({ short_id: short.id, user_id: user.id })
+        ? await supabase.from('short_likes').insert({ short_id: short.id, user_id: interactionUserId })
         : await supabase
             .from('short_likes')
             .delete()
             .eq('short_id', short.id)
-            .eq('user_id', user.id);
+            .eq('user_id', interactionUserId);
 
       if (result.error) throw result.error;
     } catch (error) {
@@ -246,11 +263,6 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
   const handleSubmitComment = async (event?: React.FormEvent) => {
     event?.preventDefault();
 
-    if (!user) {
-      toast.info('Sign in to comment on Shorts.');
-      return;
-    }
-
     const content = commentText.trim();
     if (!content) return;
     if (content.length > 500) {
@@ -260,9 +272,10 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
 
     setIsSubmittingComment(true);
     try {
+      const interactionUserId = await ensureInteractionUser();
       const { error } = await supabase.from('short_comments').insert({
         short_id: short.id,
-        user_id: user.id,
+        user_id: interactionUserId,
         content,
       });
 

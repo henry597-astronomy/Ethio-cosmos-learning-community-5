@@ -21,10 +21,18 @@ The first operational mode is **manual/test mode**. A manual grant is written wi
 | `premium_plans` | Draft plan name, duration, and ETB price | Public read of active plans; Admin can read all | Active Admin only |
 | `premium_entitlements` | User access grants, status, source, dates, grant actor, and note | The owner of a row and Active Admins | Active Admin only |
 | `premium_payments` | Future provider transaction ledger, including provider reference and verified state | Active Admin only | Active Admin only until a server-side webhook adapter is enabled |
+| `premium_topics` | Per-topic Premium flags | Public read of the non-sensitive flag; only Active Admins can write | Active Admin only |
+| `premium_subtopics` | Per-subtopic Premium flags | Public read of the non-sensitive flag; only Active Admins can write | Active Admin only |
 | `premium_lessons` | Per-lesson Premium flags keyed to the stable lesson/subtopic route identifier | Public read of the non-sensitive flag; only Active Admins can write | Active Admin only |
 | `premium_audit_log` | Append-only before/after records for Premium mutations | Active Admin only | Database trigger only |
 
 The database uses row-level security and the existing `is_active_admin()` security-definer function. A user’s direct Supabase session can read only their own entitlement rows; it cannot insert, update, or delete entitlements. The access function accepts only a feature key and always evaluates `auth.uid()` internally, preventing a client from asking whether another user has Premium. Lesson-level flags are separately Admin-write-only, and the public lessons read policy filters full lesson rows through an ownership-safe current-user entitlement check whenever a lesson is marked Premium.
+
+## Categorized learning-content access
+
+Learning content is managed in three independent Admin categories: **Topics**, **Subtopics**, and **Lessons**. A Premium topic protects its descendants, a Premium subtopic protects its lesson path, and a Premium lesson protects only that lesson. A content item with no Premium flag remains free, and the existing feature-level switches remain unchanged. The global Premium switch and the current active entitlement still apply to every flagged item.
+
+The Admin control center presents separate searchable sections for Features, Topics, Subtopics, and Lessons. This prevents a feature switch such as `premium_courses` from being confused with a single topic-level decision.
 
 ## Effective access algorithm
 
@@ -40,6 +48,10 @@ The effective decision for a feature is evaluated in this order:
 The current catalogue is mapped to real boundaries. `ai_tutor` protects the floating AI bubble, embedded lesson tutor, chat requests, voice transcription, and the server-side Groq calls. `observatory_simulation` protects the Solar System route before the Three.js scene initializes. `offline_learning_packs` protects the explicit offline-pack download action. `advanced_learning_analytics` protects the Progress page. `premium_courses` protects the Learning catalogue entry point when the Admin explicitly turns that feature on. Individual lessons are controlled separately from the feature switches in the Admin lesson section.
 
 The browser context is useful for rendering status and hiding or showing UI, but it is not a security boundary. Any endpoint that consumes a paid or expensive capability must call the server-side Premium guard before doing work. The reusable Vercel helper calls the ownership-safe database function and fails closed if the lookup errors. The AI chat and voice endpoints authenticate the Supabase bearer token and reject the request before contacting Groq when `ai_tutor` is Premium-only. Offline content already downloaded to a device cannot be remotely recalled while the device is fully offline; once the device reconnects, the protected database read and future download checks apply. This is an unavoidable property of locally stored offline data and is kept explicit rather than hidden.
+
+## Shorts interaction profile repair
+
+Shorts likes and comments reference `profiles(id)`, which is intentionally the same UUID as `auth.users(id)`. Production logs showed the failing authenticated account had an auth record but no historical profile row, so writes failed with the foreign-key constraint before the interaction RLS policy could complete. The production migration backfills missing profiles, makes the signup trigger collision-safe for unique usernames, and adds `ensure_current_profile()` as a current-user-only `SECURITY DEFINER` repair RPC. The Android/web client calls this repair before a like or comment write and still uses the live Supabase auth UUID; it never accepts a client-supplied role or arbitrary profile ID.
 
 ## Payment readiness and safety boundary
 
@@ -67,7 +79,7 @@ When the owner is ready, the next information must be supplied through the deplo
 
 ## Implementation files
 
-The database migrations are `supabase/premium_mode.sql`, `supabase/premium_audit.sql`, `supabase/premium_security.sql`, and `supabase/premium_lessons.sql`. The Admin interface is `src/components/PremiumAdminPanel.tsx` and is available as the `premium` tab inside `src/pages/AdminPage.tsx`, including individual lesson switches. The user-facing entitlement context is `src/context/PremiumContext.tsx`, with the shared access message in `src/components/PremiumRequiredMessage.tsx`. The mapped feature boundaries are in `src/components/AIChatBar.tsx`, `src/components/LessonTutor.tsx`, `src/components/AppUpdatePrompt.tsx`, `src/pages/LearningPage.tsx`, `src/pages/ProgressPage.tsx`, `src/pages/LessonPage.tsx`, and `src/pages/SolarSystemPage.tsx`. Server-side enforcement and disabled checkout preflight are in `api/_lib/premium.ts`, `api/groq/chat.ts`, `api/voice/transcribe.ts`, `api/premium/access.ts`, and `api/premium/checkout.ts`.
+The database migrations are `supabase/premium_mode.sql`, `supabase/premium_audit.sql`, `supabase/premium_security.sql`, `supabase/premium_lessons.sql`, and `supabase/premium_content_and_profile_repair.sql`. The Admin interface is `src/components/PremiumAdminPanel.tsx` and is available as the `premium` tab inside `src/pages/AdminPage.tsx`, including categorized topic, subtopic, and lesson switches. The user-facing entitlement context is `src/context/PremiumContext.tsx`, with the shared access message in `src/components/PremiumRequiredMessage.tsx`. The mapped feature boundaries are in `src/components/AIChatBar.tsx`, `src/components/LessonTutor.tsx`, `src/components/AppUpdatePrompt.tsx`, `src/pages/LearningPage.tsx`, `src/pages/ProgressPage.tsx`, `src/pages/LessonPage.tsx`, and `src/pages/SolarSystemPage.tsx`. Server-side enforcement and disabled checkout preflight are in `api/_lib/premium.ts`, `api/groq/chat.ts`, `api/voice/transcribe.ts`, `api/premium/access.ts`, and `api/premium/checkout.ts`.
 
 ## References
 

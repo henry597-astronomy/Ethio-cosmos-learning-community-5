@@ -8,6 +8,8 @@ import { useAppLanguage } from '@/context/AppLanguageContext';
 import { transcribeVoiceRecording } from '@/services/voice';
 import { speakText, stopSpeech } from '@/services/speech';
 import { cn } from '@/lib/utils';
+import { usePremium } from '@/context/usePremium';
+import { PremiumRequiredDialog } from '@/components/PremiumRequiredMessage';
 
 export default function AIChatBar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,10 +19,12 @@ export default function AIChatBar() {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [premiumPromptOpen, setPremiumPromptOpen] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [tutorMode, setTutorMode] = useState<TutorMode>('tutor');
   const { activeLesson } = useLessonTutorContext();
   const { language, languageName, t: translate } = useAppLanguage();
+  const { loading: premiumLoading, canUse } = usePremium();
   const previousLanguageRef = useRef(language);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -238,7 +242,21 @@ export default function AIChatBar() {
     void stopSpeech();
   };
 
+  const requestPremiumAccess = () => {
+    if (premiumLoading) return false;
+    if (!canUse('ai_tutor')) {
+      setPremiumPromptOpen(true);
+      return false;
+    }
+    return true;
+  };
+
+  const openAIChat = () => {
+    if (requestPremiumAccess()) setIsOpen(true);
+  };
+
   const submitMessage = async (messageText: string) => {
+    if (!requestPremiumAccess()) return;
     const trimmedMessage = messageText.trim();
     if (!trimmedMessage || isLoading || isTranscribing) return;
 
@@ -297,6 +315,7 @@ export default function AIChatBar() {
 
   const startVoiceRecording = async () => {
     if (isLoading || isTranscribing || isRecording) return;
+    if (!requestPremiumAccess()) return;
 
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
               setVoiceError(translate('voiceRecordingUnsupported'));
@@ -584,7 +603,7 @@ export default function AIChatBar() {
           onTouchStart={handleMouseDown}
           onClick={() => {
             if (!didDragRef.current && !isDragging) {
-              setIsOpen(true);
+              openAIChat();
             }
             didDragRef.current = false;
           }}
@@ -654,6 +673,11 @@ export default function AIChatBar() {
           />
         </div>
       )}
+      <PremiumRequiredDialog
+        open={premiumPromptOpen}
+        onOpenChange={setPremiumPromptOpen}
+        featureName={translate('aiLessonTutor')}
+      />
     </div>
   );
 }

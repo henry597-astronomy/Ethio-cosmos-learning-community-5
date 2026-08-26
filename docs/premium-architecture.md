@@ -21,9 +21,10 @@ The first operational mode is **manual/test mode**. A manual grant is written wi
 | `premium_plans` | Draft plan name, duration, and ETB price | Public read of active plans; Admin can read all | Active Admin only |
 | `premium_entitlements` | User access grants, status, source, dates, grant actor, and note | The owner of a row and Active Admins | Active Admin only |
 | `premium_payments` | Future provider transaction ledger, including provider reference and verified state | Active Admin only | Active Admin only until a server-side webhook adapter is enabled |
+| `premium_lessons` | Per-lesson Premium flags keyed to the stable lesson/subtopic route identifier | Public read of the non-sensitive flag; only Active Admins can write | Active Admin only |
 | `premium_audit_log` | Append-only before/after records for Premium mutations | Active Admin only | Database trigger only |
 
-The database uses row-level security and the existing `is_active_admin()` security-definer function. A user’s direct Supabase session can read only their own entitlement rows; it cannot insert, update, or delete entitlements. The access function accepts only a feature key and always evaluates `auth.uid()` internally, preventing a client from asking whether another user has Premium.
+The database uses row-level security and the existing `is_active_admin()` security-definer function. A user’s direct Supabase session can read only their own entitlement rows; it cannot insert, update, or delete entitlements. The access function accepts only a feature key and always evaluates `auth.uid()` internally, preventing a client from asking whether another user has Premium. Lesson-level flags are separately Admin-write-only, and the public lessons read policy filters full lesson rows through an ownership-safe current-user entitlement check whenever a lesson is marked Premium.
 
 ## Effective access algorithm
 
@@ -34,8 +35,11 @@ The effective decision for a feature is evaluated in this order:
 3. If the feature is Premium-only and the global switch is off, deny it.
 4. If the feature is Premium-only and the global switch is on, require at least one entitlement for the current authenticated user with `status = 'active'`, `starts_at <= now()`, and either no expiry or `expires_at > now()`.
 5. A revoked or expired entitlement never grants access. An administrator does not implicitly bypass Premium rules; an explicit entitlement is required if an Admin account is used for testing.
+6. A lesson is free when it has no Premium flag or its flag is explicitly false. A marked lesson requires global Premium mode and an active entitlement. The lesson’s full database row is also protected by RLS, not only by a React conditional.
 
-The browser context is useful for rendering status and hiding or showing UI, but it is not a security boundary. Any endpoint that consumes a paid or expensive capability must call the server-side Premium guard before doing work. The reusable Vercel helper calls the ownership-safe database function and fails closed if the lookup errors.
+The current catalogue is mapped to real boundaries. `ai_tutor` protects the floating AI bubble, embedded lesson tutor, chat requests, voice transcription, and the server-side Groq calls. `observatory_simulation` protects the Solar System route before the Three.js scene initializes. `offline_learning_packs` protects the explicit offline-pack download action. `advanced_learning_analytics` protects the Progress page. `premium_courses` protects the Learning catalogue entry point when the Admin explicitly turns that feature on. Individual lessons are controlled separately from the feature switches in the Admin lesson section.
+
+The browser context is useful for rendering status and hiding or showing UI, but it is not a security boundary. Any endpoint that consumes a paid or expensive capability must call the server-side Premium guard before doing work. The reusable Vercel helper calls the ownership-safe database function and fails closed if the lookup errors. The AI chat and voice endpoints authenticate the Supabase bearer token and reject the request before contacting Groq when `ai_tutor` is Premium-only. Offline content already downloaded to a device cannot be remotely recalled while the device is fully offline; once the device reconnects, the protected database read and future download checks apply. This is an unavoidable property of locally stored offline data and is kept explicit rather than hidden.
 
 ## Payment readiness and safety boundary
 
@@ -63,7 +67,7 @@ When the owner is ready, the next information must be supplied through the deplo
 
 ## Implementation files
 
-The database migrations are `supabase/premium_mode.sql`, `supabase/premium_audit.sql`, and `supabase/premium_security.sql`. The Admin interface is `src/components/PremiumAdminPanel.tsx` and is available as the `premium` tab inside `src/pages/AdminPage.tsx`. The user-facing entitlement context is `src/context/PremiumContext.tsx`. Server-side enforcement and disabled checkout preflight are in `api/_lib/premium.ts`, `api/premium/access.ts`, and `api/premium/checkout.ts`.
+The database migrations are `supabase/premium_mode.sql`, `supabase/premium_audit.sql`, `supabase/premium_security.sql`, and `supabase/premium_lessons.sql`. The Admin interface is `src/components/PremiumAdminPanel.tsx` and is available as the `premium` tab inside `src/pages/AdminPage.tsx`, including individual lesson switches. The user-facing entitlement context is `src/context/PremiumContext.tsx`, with the shared access message in `src/components/PremiumRequiredMessage.tsx`. The mapped feature boundaries are in `src/components/AIChatBar.tsx`, `src/components/LessonTutor.tsx`, `src/components/AppUpdatePrompt.tsx`, `src/pages/LearningPage.tsx`, `src/pages/ProgressPage.tsx`, `src/pages/LessonPage.tsx`, and `src/pages/SolarSystemPage.tsx`. Server-side enforcement and disabled checkout preflight are in `api/_lib/premium.ts`, `api/groq/chat.ts`, `api/voice/transcribe.ts`, `api/premium/access.ts`, and `api/premium/checkout.ts`.
 
 ## References
 

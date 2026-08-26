@@ -7,6 +7,8 @@ import { ScreenOrientation } from '@capacitor/screen-orientation';
 import { useNavigate } from 'react-router-dom';
 import type { AppCopyKey } from '@/i18n/app-copy';
 import { useAppLanguage } from '@/context/AppLanguageContext';
+import { usePremium } from '@/context/usePremium';
+import { PremiumRequiredScreen } from '@/components/PremiumRequiredMessage';
 
 type TextureSet = {
   base?: string;
@@ -217,7 +219,7 @@ function createParticleBelt(
   return points;
 }
 
-export default function SolarSystemPage() {
+function SolarSystemPageContent() {
   const navigate = useNavigate();
   const { t } = useAppLanguage();
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -713,3 +715,21 @@ export default function SolarSystemPage() {
     </div>
   );
 }
+
+function SolarSystemPage() {
+  const navigate = useNavigate();
+  const { t } = useAppLanguage();
+  const { loading, canUse } = usePremium();
+
+  if (loading) {
+    return <div className="fixed inset-0 z-10 flex items-center justify-center bg-black text-sm text-white">{t('sourceLoading')}</div>;
+  }
+
+  if (!canUse('observatory_simulation')) {
+    return <PremiumRequiredScreen featureName={t('solarSystem')} onBack={() => navigate(-1)} />;
+  }
+
+  return <SolarSystemPageContent />;
+}
+
+export default SolarSystemPage;

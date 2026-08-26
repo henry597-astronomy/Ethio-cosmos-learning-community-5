@@ -5,9 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { useAllSubtopics, useTopics } from '@/hooks/use-cms-data';
 import { FallbackImage } from '@/components/MediaFallback';
 import { useAppLanguage } from '@/context/AppLanguageContext';
+import { usePremium } from '@/context/usePremium';
+import { PremiumRequiredScreen } from '@/components/PremiumRequiredMessage';
 import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 
-export default function LearningPage() {
+function LearningPageContent() {
   const { t } = useAppLanguage();
   const topicsHook = useTopics();
   const { topics, loading, error } = topicsHook;
@@ -245,3 +247,20 @@ export default function LearningPage() {
     </div>
   );
 }
+
+function LearningPage() {
+  const { t } = useAppLanguage();
+  const { loading, canUse } = usePremium();
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#050810] flex items-center justify-center text-sm text-white">{t('loadingTopics')}</div>;
+  }
+
+  if (!canUse('premium_courses')) {
+    return <PremiumRequiredScreen featureName={t('learning')} />;
+  }
+
+  return <LearningPageContent />;
+}
+
+export default LearningPage;

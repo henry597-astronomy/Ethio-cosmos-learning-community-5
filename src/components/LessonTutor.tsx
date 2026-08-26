@@ -8,6 +8,8 @@ import type { AppCopyKey } from '@/i18n/app-copy';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import { speakText, stopSpeech } from '@/services/speech';
 import { cn } from '@/lib/utils';
+import { usePremium } from '@/context/usePremium';
+import { PremiumRequiredDialog } from '@/components/PremiumRequiredMessage';
 
 type LessonTutorProps = {
   topicTitle: string;
@@ -23,11 +25,13 @@ const STARTER_PROMPTS: Record<TutorMode, AppCopyKey[]> = {
 export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: LessonTutorProps) {
   const [mode, setMode] = useState<TutorMode>('tutor');
   const { language: appLanguage, languageName, t } = useAppLanguage();
+  const { loading: premiumLoading, canUse } = usePremium();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [premiumPromptOpen, setPremiumPromptOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const safeLessonContent = useMemo(
@@ -67,7 +71,17 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
     }
   };
 
+  const requestPremiumAccess = () => {
+    if (premiumLoading) return false;
+    if (!canUse('ai_tutor')) {
+      setPremiumPromptOpen(true);
+      return false;
+    }
+    return true;
+  };
+
   const submitMessage = async (messageText: string) => {
+    if (!requestPremiumAccess()) return;
     const trimmed = messageText.trim();
     if (!trimmed || isLoading) return;
 
@@ -240,6 +254,11 @@ export default function LessonTutor({ topicTitle, lessonTitle, lessonContent }: 
           <Send className="h-4 w-4" />
         </Button>
       </form>
+      <PremiumRequiredDialog
+        open={premiumPromptOpen}
+        onOpenChange={setPremiumPromptOpen}
+        featureName={t('aiLessonTutor')}
+      />
     </section>
   );
 }

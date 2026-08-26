@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS public.premium_audit_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  entity_type text NOT NULL CHECK (entity_type IN ('settings', 'feature', 'plan', 'entitlement', 'payment')),
+  entity_type text NOT NULL CHECK (entity_type IN ('settings', 'feature', 'plan', 'entitlement', 'payment', 'lesson')),
   entity_id text NOT NULL,
   action text NOT NULL CHECK (action IN ('insert', 'update', 'delete')),
   actor_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -36,6 +36,7 @@ BEGIN
     WHEN 'premium_plans' THEN 'plan'
     WHEN 'premium_entitlements' THEN 'entitlement'
     WHEN 'premium_payments' THEN 'payment'
+    WHEN 'premium_lessons' THEN 'lesson'
     ELSE TG_TABLE_NAME
   END;
 
@@ -91,6 +92,7 @@ DROP TRIGGER IF EXISTS premium_payments_audit ON public.premium_payments;
 CREATE TRIGGER premium_payments_audit
   AFTER INSERT OR UPDATE OR DELETE ON public.premium_payments
   FOR EACH ROW EXECUTE FUNCTION public.log_premium_change();
+
 
 ALTER TABLE public.premium_audit_log ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins read premium audit log" ON public.premium_audit_log;

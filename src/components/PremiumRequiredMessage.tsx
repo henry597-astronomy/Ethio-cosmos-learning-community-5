@@ -1,0 +1,83 @@
+import { Crown, ShieldCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useAppLanguage } from '@/context/AppLanguageContext';
+
+type PremiumRequiredMessageProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  featureName?: string;
+};
+
+type PremiumRequiredScreenProps = {
+  featureName?: string;
+  onBack?: () => void;
+};
+
+export function PremiumRequiredDialog({ open, onOpenChange, featureName }: PremiumRequiredMessageProps) {
+  const { t } = useAppLanguage();
+  const namedDescription = featureName
+    ? `${featureName} — ${t('premiumRequiredBody')}`
+    : t('premiumRequiredBody');
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="border-orange-400/30 bg-slate-950 text-white sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-white">
+            <Crown className="h-5 w-5 text-orange-300" />
+            {t('premiumRequiredTitle')}
+          </DialogTitle>
+          <DialogDescription className="text-slate-300">
+            {namedDescription}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-start gap-3 rounded-xl border border-sky-400/20 bg-sky-500/10 p-3 text-sm text-sky-100">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
+          <p>{t('premiumManualMode')}</p>
+        </div>
+        <DialogFooter>
+          <Button type="button" onClick={() => onOpenChange(false)} className="bg-orange-500 text-white hover:bg-orange-600">
+            {t('close')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function PremiumRequiredScreen({ featureName, onBack }: PremiumRequiredScreenProps) {
+  const { t } = useAppLanguage();
+  const namedDescription = featureName
+    ? `${featureName} — ${t('premiumRequiredBody')}`
+    : t('premiumRequiredBody');
+
+  return (
+    <div className="min-h-screen bg-[#0a0e1a] px-5 py-24 text-white">
+      <div className="mx-auto flex min-h-[55vh] max-w-md items-center justify-center">
+        <div className="w-full rounded-2xl border border-orange-400/30 bg-slate-950/90 p-6 text-center shadow-2xl">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/15 text-orange-300">
+            <Crown className="h-7 w-7" />
+          </div>
+          <h1 className="mt-4 text-2xl font-bold">{t('premiumRequiredTitle')}</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-300">{namedDescription}</p>
+          <p className="mt-4 rounded-xl border border-sky-400/20 bg-sky-500/10 p-3 text-sm leading-6 text-sky-100">
+            {t('premiumManualMode')}
+          </p>
+          {onBack && (
+            <Button type="button" onClick={onBack} className="mt-5 bg-orange-500 text-white hover:bg-orange-600">
+              {t('backToLearning')}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

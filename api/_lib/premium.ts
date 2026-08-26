@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export type PremiumProvider = 'manual' | 'chapa' | 'arifpay';
 
@@ -7,6 +7,30 @@ export type PremiumProviderConfig = {
   readyForCheckout: boolean;
   reason: string;
 };
+
+export async function getPublicFeatureStatus(
+  featureKey: string,
+): Promise<{ isPremium: boolean; error: string | null }> {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return { isPremium: true, error: 'Supabase Premium configuration is unavailable' };
+  }
+
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data, error } = await client
+    .from('premium_features')
+    .select('is_premium')
+    .eq('key', featureKey)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { isPremium: true, error: error?.message || 'Premium feature is not configured' };
+  }
+  return { isPremium: data.is_premium === true, error: null };
+}
 
 export async function hasPremiumFeature(
   client: SupabaseClient,

@@ -10,6 +10,11 @@ export type PremiumFeature = {
   is_premium: boolean;
 };
 
+export type PremiumLessonFlag = {
+  subtopic_id: string;
+  is_premium: boolean;
+};
+
 export type PremiumEntitlement = {
   id: string;
   status: 'active' | 'revoked';
@@ -26,6 +31,8 @@ export type PremiumContextValue = {
   hasActiveGrant: boolean;
   isPremiumFeature: (featureKey: string) => boolean;
   canUse: (featureKey: string) => boolean;
+  isPremiumLesson: (subtopicId: string) => boolean;
+  canUseLesson: (subtopicId: string) => boolean;
   refresh: () => Promise<void>;
 };
 

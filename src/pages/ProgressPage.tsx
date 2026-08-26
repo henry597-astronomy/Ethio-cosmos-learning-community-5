@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, BookOpen, Target, Star, Loader } from 'lucide-react';
 import { useAppLanguage } from '@/context/AppLanguageContext';
+import { usePremium } from '@/context/usePremium';
+import { PremiumRequiredScreen } from '@/components/PremiumRequiredMessage';
 import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 
 interface TopicProgress {
@@ -32,7 +34,7 @@ interface SubtopicRow {
   topic_id: string;
 }
 
-export default function ProgressPage() {
+function ProgressPageContent() {
   const { user, loading: authLoading } = useAuth();
   const { t } = useAppLanguage();
 
@@ -252,3 +254,20 @@ export default function ProgressPage() {
     </div>
   );
 }
+
+function ProgressPage() {
+  const { t } = useAppLanguage();
+  const { loading, canUse } = usePremium();
+
+  if (loading) {
+    return <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] text-sm text-white">{t('loadingProgress')}</div>;
+  }
+
+  if (!canUse('advanced_learning_analytics')) {
+    return <PremiumRequiredScreen featureName={t('yourProgress')} />;
+  }
+
+  return <ProgressPageContent />;
+}
+
+export default ProgressPage;

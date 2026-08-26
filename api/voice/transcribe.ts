@@ -8,6 +8,7 @@ import {
   getClientAddress,
   handleOptions,
 } from '../_lib/security.js';
+import { requirePremiumFeature } from '../_lib/premium.js';
 
 const MAX_AUDIO_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSCRIPT_CHARS = 4000;
@@ -52,11 +53,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const auth = await authenticateSupabaseRequest(req);
   if (!auth.user) {
-    return res.status((auth as any).reason === 'configuration' ? 503 : 401).json({
-      error: (auth as any).reason === 'configuration'
+    const authReason = 'reason' in auth ? auth.reason : 'invalid';
+    return res.status(authReason === 'configuration' ? 503 : 401).json({
+      error: authReason === 'configuration'
         ? 'Voice service is temporarily unavailable.'
         : 'Sign in to use voice input.',
     });
+  }
+
+  const premiumAccess = await requirePremiumFeature(auth.client, 'ai_tutor');
+  if (!premiumAccess.allowed) {
+    return res.status(premiumAccess.status).json({ error: premiumAccess.message });
   }
 
   const rateLimitKey = `voice:${auth.user.id}:${getClientAddress(req)}`;

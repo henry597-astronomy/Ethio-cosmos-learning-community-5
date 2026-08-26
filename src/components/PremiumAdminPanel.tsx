@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Clock3, Crown, RefreshCw, ShieldAlert, UserCheck, UserPlus, X } from 'lucide-react';
+import { BookOpen, Clock3, Crown, RefreshCw, ShieldAlert, UserCheck, UserPlus, X } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,6 +58,12 @@ type PremiumAudit = {
   created_at: string;
 };
 
+type PremiumLessonControl = {
+  subtopic_id: string;
+  title: string;
+  is_premium: boolean;
+};
+
 const formatDate = (value: string | null) => {
   if (!value) return 'No expiry';
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
@@ -84,8 +90,10 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
   const [users, setUsers] = useState<PremiumUser[]>([]);
   const [entitlements, setEntitlements] = useState<PremiumEntitlement[]>([]);
   const [auditLog, setAuditLog] = useState<PremiumAudit[]>([]);
+  const [lessonControls, setLessonControls] = useState<PremiumLessonControl[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [userSearch, setUserSearch] = useState('');
+  const [lessonSearch, setLessonSearch] = useState('');
   const [grantDays, setGrantDays] = useState('30');
   const [grantExpiry, setGrantExpiry] = useState('');
   const [grantWithoutExpiry, setGrantWithoutExpiry] = useState(false);
@@ -98,16 +106,18 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const [settingsResult, featuresResult, plansResult, usersResult, entitlementsResult, auditResult] = await Promise.all([
+      const [settingsResult, featuresResult, plansResult, usersResult, entitlementsResult, auditResult, lessonsResult, lessonFlagsResult] = await Promise.all([
         supabase.from('premium_settings').select('id, is_enabled, updated_at').eq('id', 'global').maybeSingle(),
         supabase.from('premium_features').select('key, name, description, is_premium').order('name'),
         supabase.from('premium_plans').select('key, name, description, price_birr, duration_days, is_active').order('name'),
         supabase.from('profiles').select('id, email, username, role, is_blocked').order('created_at', { ascending: false }).limit(500),
         supabase.from('premium_entitlements').select('id, user_id, status, source, starts_at, expires_at, note, created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('premium_audit_log').select('id, entity_type, entity_id, action, target_user_id, before_data, after_data, created_at').order('created_at', { ascending: false }).limit(40),
+        supabase.from('lessons').select('subtopic_id, title').order('title').limit(500),
+        supabase.from('premium_lessons').select('subtopic_id, is_premium').limit(500),
       ]);
 
-      const firstError = [settingsResult, featuresResult, plansResult, usersResult, entitlementsResult, auditResult]
+      const firstError = [settingsResult, featuresResult, plansResult, usersResult, entitlementsResult, auditResult, lessonsResult, lessonFlagsResult]
         .find((result) => result.error)?.error;
       if (firstError) throw firstError;
 
@@ -117,6 +127,12 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
       setUsers((usersResult.data || []) as PremiumUser[]);
       setEntitlements((entitlementsResult.data || []) as PremiumEntitlement[]);
       setAuditLog((auditResult.data || []) as PremiumAudit[]);
+      const lessonFlagMap = new Map((lessonFlagsResult.data || []).map((flag: { subtopic_id: string; is_premium: boolean }) => [flag.subtopic_id, flag.is_premium]));
+      setLessonControls((lessonsResult.data || []).map((lesson: { subtopic_id: string; title: string | null }) => ({
+        subtopic_id: lesson.subtopic_id,
+        title: lesson.title || 'Untitled lesson',
+        is_premium: Boolean(lessonFlagMap.get(lesson.subtopic_id)),
+      })));
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : 'Unable to load Premium controls.';
       setError(message);
@@ -138,6 +154,12 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
       || candidate.email.toLowerCase().includes(query)
     ));
   }, [userSearch, users]);
+
+  const filteredLessons = useMemo(() => {
+    const query = lessonSearch.trim().toLowerCase();
+    if (!query) return lessonControls;
+    return lessonControls.filter((lesson) => lesson.title.toLowerCase().includes(query));
+  }, [lessonControls, lessonSearch]);
 
   const selectedUser = users.find((candidate) => candidate.id === selectedUserId) || null;
   const selectedEntitlements = useMemo(
@@ -175,6 +197,26 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
     }
     setFeatures((current) => current.map((item) => item.key === feature.key ? { ...item, is_premium: isPremium } : item));
     toast.success(`${feature.name} is now ${isPremium ? 'Premium-only' : 'free for everyone'}.`);
+    await loadPremiumData();
+  };
+
+  const updateLessonPremium = async (lesson: PremiumLessonControl, isPremium: boolean) => {
+    setSaving(`lesson:${lesson.subtopic_id}`);
+    const { error: updateError } = await supabase
+      .from('premium_lessons')
+      .upsert({
+        subtopic_id: lesson.subtopic_id,
+        is_premium: isPremium,
+        created_by: adminId,
+        updated_by: adminId,
+      }, { onConflict: 'subtopic_id' });
+    setSaving(null);
+    if (updateError) {
+      toast.error(`Could not update ${lesson.title}: ${updateError.message}`);
+      return;
+    }
+    setLessonControls((current) => current.map((item) => item.subtopic_id === lesson.subtopic_id ? { ...item, is_premium: isPremium } : item));
+    toast.success(`${lesson.title} is now ${isPremium ? 'Premium-only' : 'free for everyone'}.`);
     await loadPremiumData();
   };
 
@@ -362,6 +404,40 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
               />
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-4 sm:p-6">
+        <div className="mb-4 flex items-start gap-3">
+          <div className="rounded-lg bg-cyan-500/15 p-2 text-cyan-300"><BookOpen size={20} /></div>
+          <div>
+            <h3 className="text-lg font-bold text-white">Individual lesson access</h3>
+            <p className="mt-1 text-sm text-gray-400">Mark selected lessons Premium without changing their content. Users without an active grant will see the Premium message when they try to open a marked lesson.</p>
+          </div>
+        </div>
+        <div className="relative mb-3">
+          <Input value={lessonSearch} onChange={(event) => setLessonSearch(event.target.value)} placeholder="Search lessons by title" className="border-white/10 bg-slate-950 pr-8 text-white placeholder:text-gray-500" />
+          {lessonSearch && <button type="button" onClick={() => setLessonSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:bg-white/10 hover:text-white" aria-label="Clear lesson search"><X size={14} /></button>}
+        </div>
+        <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+          {filteredLessons.map((lesson) => (
+            <div key={lesson.subtopic_id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-800/70 p-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-white">{lesson.title}</p>
+                <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${lesson.is_premium ? 'bg-orange-500/20 text-orange-300' : 'bg-emerald-500/15 text-emerald-300'}`}>
+                  {lesson.is_premium ? 'PREMIUM' : 'FREE'}
+                </span>
+              </div>
+              <Switch
+                checked={lesson.is_premium}
+                onCheckedChange={(checked) => void updateLessonPremium(lesson, checked)}
+                disabled={saving === `lesson:${lesson.subtopic_id}`}
+                aria-label={`Make ${lesson.title} Premium-only`}
+                className="data-[state=checked]:bg-orange-500"
+              />
+            </div>
+          ))}
+          {filteredLessons.length === 0 && <p className="py-5 text-center text-sm text-gray-500">No matching lessons.</p>}
         </div>
       </div>
 

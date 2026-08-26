@@ -3,6 +3,8 @@ import { CheckCircle2, Download, RefreshCw, Wifi, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useAppLanguage } from '@/context/AppLanguageContext';
+import { usePremium } from '@/context/usePremium';
+import { PremiumRequiredDialog } from '@/components/PremiumRequiredMessage';
 import {
   getPrefetchProgress,
   downloadOfficialLearningPack,
@@ -24,13 +26,24 @@ const INITIAL_PROGRESS: PrefetchProgress = {
 export default function AppUpdatePrompt() {
   const { user } = useAuth();
   const { language, t } = useAppLanguage();
+  const { loading: premiumLoading, canUse } = usePremium();
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [modePromptVisible, setModePromptVisible] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<PrefetchProgress>(INITIAL_PROGRESS);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [premiumPromptOpen, setPremiumPromptOpen] = useState(false);
+
+  const requestOfflineAccess = useCallback(() => {
+    if (premiumLoading) return false;
+    if (!canUse('offline_learning_packs')) {
+      setPremiumPromptOpen(true);
+      return false;
+    }
+    return true;
+  }, [canUse, premiumLoading]);
 
   const beginOfflineDownload = useCallback(async () => {
-    if (!user) return;
+    if (!user || !requestOfflineAccess()) return;
 
     setModePromptVisible(true);
     setDownloadError(null);
@@ -49,7 +62,7 @@ export default function AppUpdatePrompt() {
       setDownloadError(error instanceof Error ? error.message : t('offlineDownloadFailed'));
       setDownloadProgress((progress) => ({ ...progress, status: 'error' }));
     }
-  }, [language, t, user]);
+  }, [language, requestOfflineAccess, t, user]);
 
   useEffect(() => {
     const handleServiceWorkerUpdate = (event: Event) => {
@@ -97,7 +110,7 @@ export default function AppUpdatePrompt() {
   };
 
   const handleDownloadOffline = () => {
-    if (!user) return;
+    if (!user || !requestOfflineAccess()) return;
 
     sessionStorage.setItem('ethio-usage-mode-chosen', '1');
     localStorage.setItem(`ethio-offline-pack-opt-in:${user.id}`, '1');
@@ -205,6 +218,11 @@ export default function AppUpdatePrompt() {
           </div>
         )}
       </div>
+      <PremiumRequiredDialog
+        open={premiumPromptOpen}
+        onOpenChange={setPremiumPromptOpen}
+        featureName={t('offlineStorage')}
+      />
     </div>
   );
 }

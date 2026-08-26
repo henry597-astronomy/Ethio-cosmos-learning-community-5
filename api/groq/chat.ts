@@ -1,4 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { authenticateSupabaseRequest, enforceRateLimit, getClientAddress, handleOptions, applyApiSecurityHeaders } from '../_lib/security.js';
+import { getPublicFeatureStatus, requirePremiumFeature } from '../_lib/premium.js';
 
 const MAX_MESSAGES = 24;
 const MAX_MESSAGE_CHARS = 4000;
@@ -10,7 +12,6 @@ const MAX_REQUESTS_PER_WINDOW = 20;
 // Groq retired the older Llama model IDs. Keep this pinned to a supported production model
 // so a stale GROQ_MODEL environment variable cannot bring the AI route down again.
 const GROQ_MODEL = 'openai/gpt-oss-120b';
-const requestCounts = new Map<string, { count: number; windowStartedAt: number }>();
 
 type TutorMode = 'tutor' | 'quiz';
 type TutorLanguage = 'English' | 'Amharic';
@@ -31,32 +32,6 @@ CRITICAL PROJECT FACTS (Always use these when asked about who created or built t
 - Initiative: Established by Henok Girma and the student development team at Dodola Ifa Boru Special Boarding School to bridge astronomy and space science education in Ethiopia.
 - Do NOT attribute the platform to external organizations like ESSS or space agencies. It is a student-led initiative built by Henok Girma and his team.
 Act as a patient, encouraging teacher throughout the app. Help users understand astronomy, space science, lessons, quizzes, and platform questions. Explain reasoning at the learner's level, ask helpful follow-up questions when appropriate, and keep answers concise, accurate, and useful. Never pretend to know private user data.`;
-
-function setCorsHeaders(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept');
-  res.setHeader('Cache-Control', 'no-store');
-}
-
-function getClientKey(req: VercelRequest): string {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  const firstForwarded = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(',')[0];
-  return (firstForwarded || req.headers['x-real-ip'] || 'unknown').toString().trim() || 'unknown';
-}
-
-function isRateLimited(clientKey: string): boolean {
-  const now = Date.now();
-  const current = requestCounts.get(clientKey);
-  if (!current || now - current.windowStartedAt >= RATE_LIMIT_WINDOW_MS) {
-    requestCounts.set(clientKey, { count: 1, windowStartedAt: now });
-    return false;
-  }
-
-  current.count += 1;
-  return current.count > MAX_REQUESTS_PER_WINDOW;
-}
 
 function readBoundedString(value: unknown, fieldName: string, maxLength: number, required = false): string | undefined {
   if (value === undefined || value === null) {
@@ -134,17 +109,37 @@ If the answer is not supported by the active lesson, say so clearly and distingu
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res);
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
+  if (handleOptions(req, res, 'POST,OPTIONS')) return;
+  applyApiSecurityHeaders(req, res, 'POST,OPTIONS');
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (isRateLimited(getClientKey(req))) {
+  const featureStatus = await getPublicFeatureStatus('ai_tutor');
+  if (featureStatus.error) {
+    console.error('[premium] AI feature status lookup failed:', featureStatus.error);
+    return res.status(503).json({ error: 'AI service is temporarily unavailable.' });
+  }
+
+  let rateLimitKey = `ai:public:${getClientAddress(req)}`;
+  if (featureStatus.isPremium) {
+    const auth = await authenticateSupabaseRequest(req);
+    if (!auth.user) {
+      const authReason = 'reason' in auth ? auth.reason : 'invalid';
+      return res.status(authReason === 'configuration' ? 503 : 401).json({
+        error: authReason === 'configuration' ? 'AI service is temporarily unavailable.' : 'Sign in to use the AI tutor.',
+      });
+    }
+
+    const premiumAccess = await requirePremiumFeature(auth.client, 'ai_tutor');
+    if (!premiumAccess.allowed) {
+      return res.status(premiumAccess.status).json({ error: premiumAccess.message });
+    }
+    rateLimitKey = `ai:${auth.user.id}:${getClientAddress(req)}`;
+  }
+
+  if (!enforceRateLimit(rateLimitKey, MAX_REQUESTS_PER_WINDOW, RATE_LIMIT_WINDOW_MS, res)) {
     return res.status(429).json({ error: 'Too many AI requests. Please try again shortly.' });
   }
 

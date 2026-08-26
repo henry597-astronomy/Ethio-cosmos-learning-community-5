@@ -1,5 +1,6 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { getApiUrl, PRODUCTION_URL } from '@/lib/api-config';
+import { supabase } from '@/supabase';
 
 export interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -46,6 +47,9 @@ function validateChatResponse(data: ChatResponse | null, status: number): string
 }
 
 async function requestChat(url: string, messages: Message[], options?: ChatOptions): Promise<string> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+
   const requestData = {
     messages,
     ...(options?.tutorContext ? { tutorContext: options.tutorContext } : {}),
@@ -61,6 +65,7 @@ async function requestChat(url: string, messages: Message[], options?: ChatOptio
         Accept: 'application/json',
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
       data: requestData,
       connectTimeout: CONNECT_TIMEOUT_MS,
@@ -76,6 +81,7 @@ async function requestChat(url: string, messages: Message[], options?: ChatOptio
       Accept: 'application/json',
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     cache: 'no-store',
     body: JSON.stringify(requestData),

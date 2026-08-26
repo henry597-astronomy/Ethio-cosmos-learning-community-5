@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 const files = Object.fromEntries(
   await Promise.all([
     ['groqClient', 'src/services/groq.ts'],
-    ['groqApi', 'api/groq.ts'],
+    ['groqApi', 'api/groq/chat.ts'],
+    ['voiceApi', 'api/voice/transcribe.ts'],
     ['tokenApi', 'api/livekit/token.ts'],
     ['stopApi', 'api/livekit/stop-hosting.ts'],
     ['security', 'api/_lib/security.ts'],
@@ -17,13 +18,17 @@ const files = Object.fromEntries(
     ['premiumCheckoutApi', 'api/premium/checkout.ts'],
     ['premiumMigration', 'supabase/premium_mode.sql'],
     ['premiumSecurityMigration', 'supabase/premium_security.sql'],
+    ['premiumLessonMigration', 'supabase/premium_lessons.sql'],
+    ['premiumAiClient', 'src/components/AIChatBar.tsx'],
+    ['premiumSolarPage', 'src/pages/SolarSystemPage.tsx'],
   ].map(async ([key, path]) => [key, await readFile(path, 'utf8')]))
 );
 
 const checks = [
   ['Groq client has no browser key or direct provider URL', !/VITE_GROQ_API_KEY|api\.groq\.com|atob\(/.test(files.groqClient)],
   ['Groq API uses server-only key', /process\.env\.GROQ_API_KEY/.test(files.groqApi)],
-  ['Groq API validates and rate-limits requests', /parseMessages/.test(files.groqApi) && /enforceRateLimit/.test(files.groqApi)],
+  ['Groq API authenticates, Premium-gates, validates, and rate-limits requests', /authenticateSupabaseRequest/.test(files.groqApi) && /requirePremiumFeature\(auth\.client, 'ai_tutor'\)/.test(files.groqApi) && /enforceRateLimit/.test(files.groqApi)],
+  ['Voice transcription Premium-gates before provider usage', /authenticateSupabaseRequest/.test(files.voiceApi) && /requirePremiumFeature\(auth\.client, 'ai_tutor'\)/.test(files.voiceApi)],
   ['LiveKit token verifies the authenticated user', /authenticateSupabaseRequest/.test(files.tokenApi) && /Authorization/.test(files.security)],
   ['LiveKit token does not trust client identity metadata', !/requestBody\.(userName|userId|avatarUrl)/.test(files.tokenApi)],
   ['LiveKit viewers cannot publish media or room data', /canPublish: isHost/.test(files.tokenApi) && /canPublishData: isHost/.test(files.tokenApi)],
@@ -34,6 +39,9 @@ const checks = [
   ['Startup errors are rendered as text, not HTML', !/errDiv\.innerHTML/.test(files.index) && /details\.textContent/.test(files.index)],
   ['Premium client contains no provider secrets', !/CHAPA_SECRET_KEY|ARIFPAY_SECRET_KEY|PREMIUM_PROVIDER_WEBHOOK_SECRET/.test(files.premiumClient + files.premiumAdmin)],
   ['Premium server guard uses the ownership-safe RPC', /user_has_premium_feature/.test(files.premiumHelper) && /requested_feature/.test(files.premiumHelper) && !/requested_user/.test(files.premiumHelper)],
+  ['AI client sends the signed-in bearer token', /Authorization: `Bearer \$\{accessToken\}`/.test(files.groqClient)],
+  ['Premium lesson flags are Admin-write-only and protect lesson rows', /premium_lessons/.test(files.premiumLessonMigration) && /Admins manage premium lesson flags/.test(files.premiumLessonMigration) && /user_has_premium_lesson/.test(files.premiumLessonMigration) && /DROP POLICY IF EXISTS "Public read access for lessons"/.test(files.premiumLessonMigration)],
+  ['Premium UI uses the exact seeded feature keys', /canUse\('ai_tutor'\)/.test(files.premiumAiClient) && /canUse\('observatory_simulation'\)/.test(files.premiumSolarPage)],
   ['Premium access API authenticates and rate-limits requests', /authenticateSupabaseRequest/.test(files.premiumAccessApi) && /enforceRateLimit/.test(files.premiumAccessApi)],
   ['Premium checkout fails closed while provider is not ready', /PAYMENT_PROVIDER_NOT_CONNECTED/.test(files.premiumCheckoutApi) && /readyForCheckout/.test(files.premiumCheckoutApi)],
   ['Premium entitlement writes are Admin-only', /Admins manage premium entitlements/.test(files.premiumMigration) && /public\.is_active_admin\(\)/.test(files.premiumMigration)],

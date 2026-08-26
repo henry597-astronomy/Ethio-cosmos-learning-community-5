@@ -245,7 +245,12 @@ export type AppCopyKey =
   | 'sourceControlsHint'
   | 'sourceScale'
   | 'sourceMoons'
-  | 'sourceLoading';
+  | 'sourceLoading'
+  | 'premiumRequiredTitle'
+  | 'premiumRequiredBody'
+  | 'premiumManualMode'
+  | 'backToLearning'
+  | 'close';
 
 const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
   en: {
@@ -494,6 +499,11 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     sourceScale: 'Scale modeled from astronomical data',
     sourceMoons: 'Moons',
     sourceLoading: 'Building the Solar System…',
+    premiumRequiredTitle: 'Premium access required',
+    premiumRequiredBody: 'This feature is available with Premium. Subscribe when checkout is connected, or ask an administrator to grant access.',
+    premiumManualMode: 'Subscription checkout is not connected yet. An administrator can grant Premium manually in the Admin dashboard.',
+    backToLearning: 'Back to learning',
+    close: 'Close',
   },
   am: {
     home: 'መነሻ',
@@ -741,6 +751,11 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     sourceScale: 'በእውነተኛ የሥነ ፈለክ መረጃ ላይ የተመሠረተ ልኬት',
     sourceMoons: 'ጨረቃዎች',
     sourceLoading: 'የፀሐይ ሥርዓቱ በመገንባት ላይ…',
+    premiumRequiredTitle: 'የPremium መዳረሻ ያስፈልጋል',
+    premiumRequiredBody: 'ይህ ባህሪ በPremium ይገኛል። የክፍያ ስርዓቱ ሲገናኝ ይመዝገቡ ወይም አስተዳዳሪ መዳረሻ እንዲሰጥዎ ይጠይቁ።',
+    premiumManualMode: 'የደንበኝነት ክፍያ ስርዓት ገና አልተገናኘም። አስተዳዳሪ ከAdmin ዳሽቦርድ በእጅ Premium መስጠት ይችላል።',
+    backToLearning: 'ወደ መማር ተመለስ',
+    close: 'ዝጋ',
   },
 };
 

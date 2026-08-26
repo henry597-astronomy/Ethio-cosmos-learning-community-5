@@ -1,9 +1,11 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTopics } from '@/hooks/use-cms-data';
 import { useSubtopics, useLesson } from '@/hooks/use-cms-data';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/supabase';
 import { useLessonTutorContext } from '@/context/LessonTutorContext';
+import { usePremium } from '@/context/usePremium';
+import { PremiumRequiredScreen } from '@/components/PremiumRequiredMessage';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import { ArrowLeft, ArrowRight, BookmarkPlus, BookmarkCheck, CheckCircle } from 'lucide-react';
 import LessonTutor from '@/components/LessonTutor';
@@ -20,10 +22,12 @@ import {
 
 export default function LessonPage() {
   const { topicId, subtopicId } = useParams<{ topicId: string; subtopicId: string }>();
+  const navigate = useNavigate();
   const { t } = useAppLanguage();
   const topicsHook = useTopics();
   const { user } = useAuth();
   const { setActiveLesson } = useLessonTutorContext();
+  const { loading: premiumLoading, canUseLesson } = usePremium();
 
   const { topics, loading: topicsLoading, error: topicsError } = topicsHook;
   // Parameterized hooks are called directly so they stay valid React hooks.
@@ -46,7 +50,7 @@ export default function LessonPage() {
   const progress = subtopics.length > 0 ? ((currentIndex + 1) / subtopics.length) * 100 : 0;
 
   useEffect(() => {
-    if (!topic || !currentSubtopic) {
+    if (premiumLoading || !topic || !currentSubtopic || !subtopicId || !canUseLesson(subtopicId)) {
       setActiveLesson(null);
       return;
     }
@@ -68,7 +72,7 @@ export default function LessonPage() {
     });
 
     return () => setActiveLesson(null);
-  }, [currentSubtopic, lesson, setActiveLesson, topic]);
+  }, [canUseLesson, currentSubtopic, lesson, premiumLoading, setActiveLesson, subtopicId, topic]);
 
   // Check bookmark and progress status on mount
   useEffect(() => {
@@ -143,7 +147,7 @@ export default function LessonPage() {
     }
   };
 
-  if (topicsLoading || subtopicsLoading || lessonLoading) {
+  if (topicsLoading || subtopicsLoading || lessonLoading || premiumLoading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] text-white">
         {t('loadingLesson')}
@@ -173,6 +177,10 @@ export default function LessonPage() {
         </div>
       </div>
     );
+  }
+
+  if (!subtopicId || !canUseLesson(subtopicId)) {
+    return <PremiumRequiredScreen featureName={currentSubtopic.title} onBack={() => navigate(`/learning/${topicId}`)} />;
   }
 
   // Default lesson content if none exists in DB

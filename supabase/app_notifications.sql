@@ -156,3 +156,110 @@ REVOKE ALL ON FUNCTION public.touch_notification_preferences() FROM PUBLIC, anon
 GRANT EXECUTE ON FUNCTION public.touch_notification_preferences() TO service_role;
 REVOKE ALL ON FUNCTION public.protect_app_notification_fields() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.protect_app_notification_fields() TO service_role;
+
+
+-- Channel posts are durable app notifications with their own per-user preference.
+ALTER TABLE public.notification_preferences
+  ADD COLUMN IF NOT EXISTS channel_posts_enabled BOOLEAN NOT NULL DEFAULT true;
+
+ALTER TABLE public.app_notifications
+  DROP CONSTRAINT IF EXISTS app_notifications_notification_type_check;
+
+ALTER TABLE public.app_notifications
+  ADD CONSTRAINT app_notifications_notification_type_check
+  CHECK (notification_type IN ('admin_announcement', 'classroom_reminder', 'classroom_live', 'channel_post', 'system'));
+
+GRANT SELECT, INSERT, UPDATE ON TABLE public.notification_preferences TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.notify_channel_post()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  recipient RECORD;
+  post_body TEXT;
+BEGIN
+  post_body := COALESCE(
+    NULLIF(btrim(NEW.message_text), ''),
+    CASE WHEN NEW.image_url IS NOT NULL THEN 'A new image was posted in the community channel.' ELSE 'A new post was published in the community channel.' END
+  );
+  post_body := left(post_body, 2000);
+
+  FOR recipient IN
+    SELECT p.id
+    FROM public.profiles AS p
+    LEFT JOIN public.notification_preferences AS np ON np.user_id = p.id
+    WHERE p.id IS DISTINCT FROM NEW.user_id
+      AND COALESCE(p.is_blocked, false) = false
+      AND COALESCE(np.channel_posts_enabled, true) = true
+  LOOP
+    INSERT INTO public.app_notifications (
+      user_id,
+      notification_type,
+      title,
+      body,
+      action_path,
+      metadata,
+      dedupe_key
+    )
+    VALUES (
+      recipient.id,
+      'channel_post',
+      'New channel post',
+      post_body,
+      '/chat',
+      jsonb_build_object('post_id', NEW.id, 'image_url', NEW.image_url),
+      'channel-post:' || NEW.id::text
+    )
+    ON CONFLICT (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS channel_post_notification_fanout ON public.channel_posts;
+CREATE TRIGGER channel_post_notification_fanout
+  AFTER INSERT ON public.channel_posts
+  FOR EACH ROW
+  EXECUTE FUNCTION public.notify_channel_post();
+
+REVOKE ALL ON FUNCTION public.notify_channel_post() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.notify_channel_post() TO service_role;
+
+-- Backfill the latest 50 existing posts once so the notification center reflects
+-- the posts users can already see in the channel. ON CONFLICT makes reruns safe.
+WITH recent_posts AS (
+  SELECT id, user_id, message_text, image_url
+  FROM public.channel_posts
+  ORDER BY created_at DESC
+  LIMIT 50
+)
+INSERT INTO public.app_notifications (
+  user_id,
+  notification_type,
+  title,
+  body,
+  action_path,
+  metadata,
+  dedupe_key
+)
+SELECT
+  p.id,
+  'channel_post',
+  'New channel post',
+  left(COALESCE(
+    NULLIF(btrim(rp.message_text), ''),
+    CASE WHEN rp.image_url IS NOT NULL THEN 'A new image was posted in the community channel.' ELSE 'A new post was published in the community channel.' END
+  ), 2000),
+  '/chat',
+  jsonb_build_object('post_id', rp.id, 'image_url', rp.image_url),
+  'channel-post:' || rp.id::text
+FROM recent_posts AS rp
+JOIN public.profiles AS p ON p.id IS DISTINCT FROM rp.user_id
+LEFT JOIN public.notification_preferences AS np ON np.user_id = p.id
+WHERE COALESCE(p.is_blocked, false) = false
+  AND COALESCE(np.channel_posts_enabled, true) = true
+ON CONFLICT (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;

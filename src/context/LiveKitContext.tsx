@@ -11,18 +11,23 @@ import { useAuth } from './AuthContext';
 import { slugify } from '@/lib/utils';
 import { getApiUrl, PRODUCTION_URL } from '@/lib/api-config';
 
+const SESSION_FRESHNESS_MS = 90 * 1000;
+
 interface LiveSession {
   id: string;
   room_name: string;
   host_id: string;
   host_name: string;
-  host_avatar?: string;
+  host_avatar?: string | null;
+  last_heartbeat?: string | null;
+  created_at: string;
 }
 
 interface LiveKitContextType {
   isLiveModalOpen: boolean;
   isHosting: boolean;
   activeSessions: LiveSession[];
+  allActiveSessions: LiveSession[];
   liveRoomName: string | null;
   liveHostUserId: string | null;
   liveToken: string | null;
@@ -34,6 +39,7 @@ interface LiveKitContextType {
   joinSession: (roomName: string) => Promise<void>;
   clearSession: () => void;
   clearStreamError: () => void;
+  refreshSessions: () => Promise<void>;
 }
 
 const LiveKitContext = createContext<LiveKitContextType | undefined>(undefined);
@@ -43,6 +49,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
   const [isLiveModalOpen, setIsLiveModalOpen] = useState(false);
   const [isHosting, setIsHosting] = useState(false);
   const [activeSessions, setActiveSessions] = useState<LiveSession[]>([]);
+  const [allActiveSessions, setAllActiveSessions] = useState<LiveSession[]>([]);
   const [liveRoomName, setLiveRoomName] = useState<string | null>(null);
   const [liveHostUserId, setLiveHostUserId] = useState<string | null>(null);
   const [liveToken, setLiveToken] = useState<string | null>(null);
@@ -52,7 +59,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
   const fetchSessions = useCallback(async () => {
     const { data, error } = await supabase
       .from('live_sessions')
-      .select('*')
+      .select('id, room_name, host_id, host_name, host_avatar, last_heartbeat, created_at')
       .eq('is_active', true);
     
     if (error) {
@@ -62,40 +69,36 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
     
     // Optimization: Only update state if the session list has actually changed
     // to avoid triggering unnecessary re-renders across the entire app.
-    const newData = data || [];
+    const newData = (data || []) as LiveSession[];
+    setAllActiveSessions(newData);
+
+    const freshnessCutoff = Date.now() - SESSION_FRESHNESS_MS;
+    const freshSessions = newData.filter((session) => {
+      const heartbeatTime = Date.parse(session.last_heartbeat || session.created_at);
+      return Number.isFinite(heartbeatTime) && heartbeatTime >= freshnessCutoff;
+    });
+
     setActiveSessions(prev => {
-      if (prev.length !== newData.length) return newData;
-      
-      const hasChanges = newData.some((session, index) => {
+      if (prev.length !== freshSessions.length) return freshSessions;
+
+      const hasChanges = freshSessions.some((session, index) => {
         const prevSession = prev[index];
-        return !prevSession || 
-               prevSession.id !== session.id || 
+        return !prevSession ||
+               prevSession.id !== session.id ||
                prevSession.host_id !== session.host_id ||
-               prevSession.room_name !== session.room_name;
+               prevSession.room_name !== session.room_name ||
+               prevSession.last_heartbeat !== session.last_heartbeat;
       });
-      
-      return hasChanges ? newData : prev;
+
+      return hasChanges ? freshSessions : prev;
     });
   }, []);
 
-  // Clean up stale sessions (heartbeat older than 90 seconds or created older than 30 minutes)
+  // Refresh only here. Stale rows remain visible to the primary Admin’s
+  // management list so they can be removed one by one; viewers receive the
+  // heartbeat-filtered activeSessions collection above.
   const cleanupStaleSessions = useCallback(async () => {
-    const ninetySecondsAgo = new Date(Date.now() - 90 * 1000).toISOString();
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-    
-    // Deactivate sessions with missing heartbeats OR very old sessions
-    const { error } = await supabase
-      .from('live_sessions')
-      .update({ is_active: false })
-      .eq('is_active', true)
-      .or(`last_heartbeat.lt.${ninetySecondsAgo},created_at.lt.${thirtyMinutesAgo}`);
-    
-    if (error) {
-      console.error('Error cleaning up stale sessions:', error);
-    } else {
-      // Refresh sessions after cleanup
-      fetchSessions();
-    }
+    await fetchSessions();
   }, [fetchSessions]);
 
   useEffect(() => {
@@ -281,11 +284,13 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       
       if (!session) {
         // Only if not found locally, check Supabase
+        const freshnessCutoff = new Date(Date.now() - SESSION_FRESHNESS_MS).toISOString();
         const { data: sessionData, error: sessionError } = await supabase
           .from('live_sessions')
-          .select('*')
+          .select('id, room_name, host_id, host_name, host_avatar, last_heartbeat, created_at')
           .or(`room_name.eq.${slugifiedRoomName},room_name.eq.${roomName}`)
           .eq('is_active', true)
+          .gte('last_heartbeat', freshnessCutoff)
           .order('created_at', { ascending: false })
           .limit(1);
 
@@ -355,7 +360,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
       // Re-throw so the UI can catch and display the error
       throw error;
     }
-  }, [displayName, user, clearSession]);
+  }, [activeSessions, displayName, user, clearSession]);
 
   return (
     <LiveKitContext.Provider
@@ -363,6 +368,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         isLiveModalOpen,
         isHosting,
         activeSessions,
+        allActiveSessions,
         liveRoomName,
         liveHostUserId,
         liveToken,
@@ -374,6 +380,7 @@ export function LiveKitProvider({ children }: { children: ReactNode }) {
         joinSession,
         clearSession,
         clearStreamError,
+        refreshSessions: fetchSessions,
       }}
     >
       {children}

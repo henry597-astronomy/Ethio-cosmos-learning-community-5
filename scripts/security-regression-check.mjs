@@ -7,6 +7,8 @@ const files = Object.fromEntries(
     ['voiceApi', 'api/voice/transcribe.ts'],
     ['tokenApi', 'api/livekit/token.ts'],
     ['stopApi', 'api/livekit/stop-hosting.ts'],
+    ['liveKitContext', 'src/context/LiveKitContext.tsx'],
+    ['adminClassrooms', 'src/components/ClassroomAdminPanel.tsx'],
     ['security', 'api/_lib/security.ts'],
     ['migration', 'supabase/security_hardening.sql'],
     ['serviceWorker', 'public/sw.js'],
@@ -39,6 +41,9 @@ const checks = [
   ['LiveKit token does not trust client identity metadata', !/requestBody\.(userName|userId|avatarUrl)/.test(files.tokenApi)],
   ['LiveKit viewers cannot publish media or room data', /canPublish: isHost/.test(files.tokenApi) && /canPublishData: isHost/.test(files.tokenApi)],
   ['LiveKit shutdown binds to authenticated owner', /auth\.user\.id/.test(files.stopApi) && /eq\('host_id', auth\.user\.id\)/.test(files.stopApi)],
+  ['Live viewers only receive heartbeat-fresh sessions', /SESSION_FRESHNESS_MS/.test(files.liveKitContext) && /freshSessions/.test(files.liveKitContext) && /setActiveSessions/.test(files.liveKitContext)],
+  ['LiveKit rejects stale viewer token requests', /SESSION_FRESHNESS_MS/.test(files.tokenApi) && /if \(!isHost\)/.test(files.tokenApi) && /last_heartbeat/.test(files.tokenApi) && /\.gte\(/.test(files.tokenApi)],
+  ['Admin room management retains raw active sessions for removal', /allActiveSessions/.test(files.adminClassrooms) && /removeRoom/.test(files.adminClassrooms) && /removeLiveClassroom/.test(files.adminClassrooms)],
   ['Profile privilege escalation is blocked by a trigger', /protect_profile_security_fields/.test(files.migration) && /Only the primary administrator/.test(files.migration)],
   ['Unrestricted storage uploads are removed', /DROP POLICY IF EXISTS "Authenticated Upload Access"/.test(files.migration) && /public\.is_active_admin\(\)/.test(files.migration)],
   ['Private API data is not in the service-worker public cache list', !/channel_posts|channel_comments|channel_reactions|comment_reactions/.test(files.serviceWorker.match(/const PUBLIC_API_PATTERNS = \[[\s\S]*?\];/)?.[0] ?? '')],
@@ -60,6 +65,7 @@ const checks = [
   ['Live hosting feature is seeded free by default', /live_stream_hosting/.test(files.hostingPremiumMigration) && /is_premium[\s\S]*false/.test(files.hostingPremiumMigration)],
   ['Announcement API authenticates Admins and writes through service role', /authenticateSupabaseRequest/.test(files.announceApi) && /is_active_admin/.test(files.announceApi) && /SUPABASE_SERVICE_ROLE_KEY/.test(files.announceApi) && /app_notifications/.test(files.announceApi)],
   ['App notifications have own-row RLS and immutable content fields', /Users can read their own app notifications/.test(files.notificationMigration) && /Only notification read state can be changed/.test(files.notificationMigration) && /protect_app_notification_fields/.test(files.notificationMigration)],
+  ['Channel posts create durable per-user notifications', /channel_posts_enabled/.test(files.notificationMigration) && /notify_channel_post/.test(files.notificationMigration) && /channel_post_notification_fanout/.test(files.notificationMigration) && /channel_post/.test(files.notificationMigration)],
   ['Notification permission is explicit rather than automatic at sign-in', !/Notification\.requestPermission\(\);/.test(files.notificationContext) && /requestBrowserNotificationPermission/.test(files.notificationContext)],
 ];
 

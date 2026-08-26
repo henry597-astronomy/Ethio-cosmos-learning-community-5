@@ -18,10 +18,21 @@ function isCurrentlyActive(entitlement: PremiumEntitlement): boolean {
     && (!entitlement.expires_at || new Date(entitlement.expires_at).getTime() > now);
 }
 
+const EMPTY_MANUAL_PAYMENT: PremiumSettings = {
+  id: 'global',
+  is_enabled: true,
+  manual_payment_enabled: false,
+  manual_payment_method: '',
+  manual_payment_receiver_name: '',
+  manual_payment_account: '',
+  manual_payment_instructions: '',
+};
+
 export function PremiumProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [globalEnabled, setGlobalEnabled] = useState(true);
+  const [manualPayment, setManualPayment] = useState<PremiumSettings>(EMPTY_MANUAL_PAYMENT);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [features, setFeatures] = useState<PremiumFeature[]>([]);
   const [featuresLoaded, setFeaturesLoaded] = useState(false);
@@ -35,7 +46,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const [settingsResult, featuresResult, topicsResult, subtopicsResult, lessonFlagsResult, entitlementsResult] = await Promise.all([
-        supabase.from('premium_settings').select('id, is_enabled').eq('id', 'global').maybeSingle(),
+        supabase.from('premium_settings').select('id, is_enabled, manual_payment_enabled, manual_payment_method, manual_payment_receiver_name, manual_payment_account, manual_payment_instructions').eq('id', 'global').maybeSingle(),
         supabase.from('premium_features').select('key, is_premium'),
         supabase.from('premium_topics').select('topic_id, is_premium'),
         supabase.from('premium_subtopics').select('subtopic_id, is_premium'),
@@ -47,7 +58,9 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
       setSettingsLoaded(!settingsResult.error && Boolean(settingsResult.data));
       if (!settingsResult.error && settingsResult.data) {
-        setGlobalEnabled(Boolean((settingsResult.data as PremiumSettings).is_enabled));
+        const nextSettings = settingsResult.data as PremiumSettings;
+        setGlobalEnabled(Boolean(nextSettings.is_enabled));
+        setManualPayment(nextSettings);
       }
       setFeaturesLoaded(!featuresResult.error);
       if (!featuresResult.error) {
@@ -74,6 +87,12 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const hasActiveGrant = useMemo(() => entitlements.some(isCurrentlyActive), [entitlements]);
+  const hasManualPaymentDetails = useMemo(() => (
+    manualPayment.manual_payment_enabled
+    && Boolean(manualPayment.manual_payment_method.trim())
+    && Boolean(manualPayment.manual_payment_receiver_name.trim())
+    && Boolean(manualPayment.manual_payment_account.trim())
+  ), [manualPayment]);
   const featureMap = useMemo(() => new Map(features.map((feature) => [feature.key, feature])), [features]);
   const topicMap = useMemo(() => new Map(topics.map((flag) => [flag.topic_id, flag])), [topics]);
   const subtopicMap = useMemo(() => new Map(subtopics.map((flag) => [flag.subtopic_id, flag])), [subtopics]);
@@ -117,6 +136,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({
     loading,
     globalEnabled,
+    manualPayment,
+    hasManualPaymentDetails,
     features,
     topics,
     subtopics,
@@ -135,6 +156,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   }), [
     loading,
     globalEnabled,
+    manualPayment,
+    hasManualPaymentDetails,
     features,
     topics,
     subtopics,

@@ -3,6 +3,11 @@ import { createContext } from 'react';
 export type PremiumSettings = {
   id: string;
   is_enabled: boolean;
+  manual_payment_enabled: boolean;
+  manual_payment_method: string;
+  manual_payment_receiver_name: string;
+  manual_payment_account: string;
+  manual_payment_instructions: string;
 };
 
 export type PremiumFeature = {
@@ -36,6 +41,8 @@ export type PremiumEntitlement = {
 export type PremiumContextValue = {
   loading: boolean;
   globalEnabled: boolean;
+  manualPayment: PremiumSettings;
+  hasManualPaymentDetails: boolean;
   features: PremiumFeature[];
   topics: PremiumTopicFlag[];
   subtopics: PremiumSubtopicFlag[];

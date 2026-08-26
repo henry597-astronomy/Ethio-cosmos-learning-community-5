@@ -13,6 +13,7 @@ import AppUpdatePrompt from '@/components/AppUpdatePrompt';
 import AppVersionCheck from '@/components/AppVersionCheck';
 import AIChatBar from '@/components/AIChatBar';
 import BottomTaskBar from '@/components/BottomTaskBar';
+import ClassroomNotificationScheduler from '@/components/ClassroomNotificationScheduler';
 import { recordAndroidAppOpen } from '@/services/app-analytics';
 import { LessonTutorProvider } from '@/context/LessonTutorProvider';
 import { AppLanguageProvider } from '@/context/AppLanguageProvider';
@@ -93,6 +94,7 @@ function RoutedAppContent() {
 
   return (
     <>
+      <ClassroomNotificationScheduler />
       <AppRoutes />
       <Toaster position="top-right" theme="dark" />
       {!isSolarSystemRoute && <AIChatBar />}

@@ -76,6 +76,9 @@ export type AppCopyKey =
   | 'classroomSaved'
   | 'classroomCancelled'
   | 'classroomError'
+  | 'removeClassroom'
+  | 'removeClassroomConfirm'
+  | 'classroomRemoved'
   | 'exploreCosmos'
   | 'joinCommunity'
   | 'logoEmblem'
@@ -283,7 +286,37 @@ export type AppCopyKey =
   | 'premiumRequiredBody'
   | 'premiumManualMode'
   | 'backToLearning'
-  | 'close';
+  | 'close'
+  | 'notifications'
+  | 'notificationSettings'
+  | 'notificationPermissionHelp'
+  | 'classroomReminders'
+  | 'adminAnnouncements'
+  | 'browserNotifications'
+  | 'nativeNotifications'
+  | 'reminderLeadTime'
+  | 'minutes'
+  | 'notificationPermissionGranted'
+  | 'notificationPermissionStatus'
+  | 'notificationPermissionDenied'
+  | 'notificationSettingsError'
+  | 'noNotifications'
+  | 'markAllRead'
+  | 'markRead'
+  | 'unread'
+  | 'notificationAdminAnnouncement'
+  | 'notificationClassroomReminder'
+  | 'notificationClassroomLive'
+  | 'notificationSystem'
+  | 'sendAnnouncement'
+  | 'announcementTitle'
+  | 'announcementMessage'
+  | 'optionalActionPath'
+  | 'announcementHelper'
+  | 'publishAnnouncement'
+  | 'announcementPublished'
+  | 'announcementPublishError'
+  | 'announcementValidation';
 
 const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
   en: {
@@ -362,6 +395,39 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     classroomSaved: 'Classroom saved.',
     classroomCancelled: 'Classroom cancelled.',
     classroomError: 'Could not save classroom. Please try again.',
+    removeClassroom: 'Remove permanently',
+    removeClassroomConfirm: 'Permanently remove this classroom and stop its active room if it is live? This cannot be undone.',
+    classroomRemoved: 'Classroom permanently removed.',
+    notifications: 'Notifications',
+    notificationSettings: 'Notification settings',
+    notificationPermissionHelp: 'Choose which notifications you want to receive. Permissions are requested only when you enable an external notification option.',
+    classroomReminders: 'Classroom reminders',
+    adminAnnouncements: 'Admin announcements',
+    browserNotifications: 'Browser notifications',
+    nativeNotifications: 'Android reminders',
+    reminderLeadTime: 'Reminder lead time',
+    minutes: 'minutes',
+    notificationPermissionGranted: 'Notification permission is enabled for this device.',
+    notificationPermissionStatus: 'In-app notifications remain available. External alerts are optional and device-controlled.',
+    notificationPermissionDenied: 'Notification permission was not granted. You can change it in device or browser settings.',
+    notificationSettingsError: 'Notification settings could not be saved. Please try again.',
+    noNotifications: 'You have no notifications yet.',
+    markAllRead: 'Mark all read',
+    markRead: 'Mark read',
+    unread: 'Unread',
+    notificationAdminAnnouncement: 'Admin announcement',
+    notificationClassroomReminder: 'Classroom reminder',
+    notificationClassroomLive: 'Classroom live',
+    notificationSystem: 'System',
+    sendAnnouncement: 'Send announcement',
+    announcementTitle: 'Announcement title',
+    announcementMessage: 'Announcement message',
+    optionalActionPath: 'Optional app path',
+    announcementHelper: 'This sends the announcement to active, unblocked accounts that have not opted out of Admin announcements. User-entered announcement text is delivered as written.',
+    publishAnnouncement: 'Publish announcement',
+    announcementPublished: 'Announcement sent successfully.',
+    announcementPublishError: 'Could not publish the announcement.',
+    announcementValidation: 'Enter a title and message before publishing.',
     exploreCosmos: 'Explore the Cosmos with Ethiopia',
     joinCommunity: 'Join the EthioCosmos Learning Community',
     logoEmblem: 'EthioCosmos Logo Emblem',
@@ -647,6 +713,39 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     classroomSaved: 'ክፍሉ ተቀምጧል።',
     classroomCancelled: 'ክፍሉ ተሰርዟል።',
     classroomError: 'ክፍሉን ማስቀመጥ አልተቻለም። እባክዎ እንደገና ይሞክሩ።',
+    removeClassroom: 'በቋሚነት አስወግድ',
+    removeClassroomConfirm: 'ይህን ክፍል በቋሚነት ማስወገድ እና በቀጥታ ከሆነ ንቁ ክፍሉን ማቆም ይፈልጋሉ? ይህ ሊቀለበስ አይችልም።',
+    classroomRemoved: 'ክፍሉ በቋሚነት ተወግዷል።',
+    notifications: 'ማሳወቂያዎች',
+    notificationSettings: 'የማሳወቂያ ቅንብሮች',
+    notificationPermissionHelp: 'የሚፈልጓቸውን ማሳወቂያዎች ይምረጡ። የውጭ ማሳወቂያ አማራጭን ሲያነቃቁ ብቻ ፈቃድ ይጠየቃል።',
+    classroomReminders: 'የክፍል አስታዋሾች',
+    adminAnnouncements: 'የአስተዳዳሪ ማስታወቂያዎች',
+    browserNotifications: 'የአሳሽ ማሳወቂያዎች',
+    nativeNotifications: 'የአንድሮይድ አስታዋሾች',
+    reminderLeadTime: 'የአስታዋሽ ቅድመ ጊዜ',
+    minutes: 'ደቂቃዎች',
+    notificationPermissionGranted: 'ለዚህ መሣሪያ የማሳወቂያ ፈቃድ ነቅቷል።',
+    notificationPermissionStatus: 'በመተግበሪያ ውስጥ ያሉ ማሳወቂያዎች ሁልጊዜ ይገኛሉ። የውጭ ማሳወቂያዎች አማራጭና በመሣሪያ የሚቆጣጠሩ ናቸው።',
+    notificationPermissionDenied: 'የማሳወቂያ ፈቃድ አልተሰጠም። በመሣሪያዎ ወይም በአሳሽ ቅንብሮች ሊቀይሩት ይችላሉ።',
+    notificationSettingsError: 'የማሳወቂያ ቅንብሮች ሊቀመጡ አልቻሉም። እባክዎ እንደገና ይሞክሩ።',
+    noNotifications: 'እስካሁን ማሳወቂያ የለዎትም።',
+    markAllRead: 'ሁሉንም እንደተነበበ ምልክት አድርግ',
+    markRead: 'እንደተነበበ ምልክት አድርግ',
+    unread: 'ያልተነበበ',
+    notificationAdminAnnouncement: 'የአስተዳዳሪ ማስታወቂያ',
+    notificationClassroomReminder: 'የክፍል አስታዋሽ',
+    notificationClassroomLive: 'የቀጥታ ክፍል',
+    notificationSystem: 'ስርዓት',
+    sendAnnouncement: 'ማስታወቂያ ላክ',
+    announcementTitle: 'የማስታወቂያ ርዕስ',
+    announcementMessage: 'የማስታወቂያ መልዕክት',
+    optionalActionPath: 'አማራጭ የመተግበሪያ መንገድ',
+    announcementHelper: 'ይህ ማስታወቂያ ከማሳወቂያዎች ያልወጡ ንቁና ያልታገዱ መለያዎች ይላካል። በአስተዳዳሪ የሚጻፈው ጽሑፍ እንደተጻፈ ይደርሳል።',
+    publishAnnouncement: 'ማስታወቂያ አትም',
+    announcementPublished: 'ማስታወቂያው በተሳካ ሁኔታ ተልኳል።',
+    announcementPublishError: 'ማስታወቂያውን ማተም አልተቻለም።',
+    announcementValidation: 'ከማተምዎ በፊት ርዕስና መልዕክት ያስገቡ።',
     exploreCosmos: 'ከኢትዮጵያ እስከ ኮስሞስ ይጓዙ',
     joinCommunity: 'የኢትዮኮስሞስ የመማሪያ ማኅበረሰብን ይቀላቀሉ',
     logoEmblem: 'የኢትዮኮስሞስ አርማ',

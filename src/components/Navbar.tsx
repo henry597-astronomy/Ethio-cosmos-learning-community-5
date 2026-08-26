@@ -6,6 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, BookOpen, BarChart3, Settings, Download, CheckCircle, Users, Sun, Moon, Menu, Pencil, Languages } from 'lucide-react';
 import EditProfileDialog from '@/components/EditProfileDialog';
+import NotificationCenter from '@/components/NotificationCenter';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import { getOfflinePackManifest, type OfflinePackManifest } from '@/lib/offline-cache';
@@ -131,6 +132,7 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {user ? (
             <div className="flex items-center gap-2">
+              <NotificationCenter />
               <Sheet open={profilePanelOpen} onOpenChange={setProfilePanelOpen}>
                 <button
                   onClick={() => setProfilePanelOpen(true)}

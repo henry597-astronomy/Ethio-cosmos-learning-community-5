@@ -1004,8 +1004,8 @@ export default function AdminPage() {
   });
 
   return (
-    <div className="min-h-screen pt-20 bg-[#0a0e1a]" style={{ paddingBottom: 'calc(3rem + max(0px, env(safe-area-inset-bottom)))' }}>
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6">
+    <div className="min-h-full w-full min-w-0 overflow-x-hidden bg-[#0a0e1a] pt-2 sm:pt-4" style={{ paddingBottom: 'calc(4rem + max(0px, env(safe-area-inset-bottom)))' }}>
+      <div className="mx-auto w-full max-w-6xl min-w-0 px-2.5 sm:px-4 lg:px-6">
         <h1 className="text-3xl font-bold text-white mb-1">Admin Dashboard</h1>
         <p className="text-gray-400 mb-4">Signed in as {user.email}</p>
 

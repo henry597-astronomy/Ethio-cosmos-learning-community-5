@@ -1,8 +1,9 @@
 from pathlib import Path
 from PIL import Image, ImageChops, ImageOps
 
-SOURCE = Path('/home/ubuntu/upload/1000078381.jpg')
-RES = Path('/home/ubuntu/ethio-tutor-work/android/app/src/main/res')
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SOURCE = PROJECT_ROOT / 'public/images/app-icon-source.jpg'
+RES = PROJECT_ROOT / 'android/app/src/main/res'
 
 # Android legacy launcher densities used by the explicit manifest icon resources.
 DENSITIES = {

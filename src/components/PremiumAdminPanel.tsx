@@ -1,15 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, Clock3, Crown, RefreshCw, ShieldAlert, UserCheck, UserPlus, X } from 'lucide-react';
+import { BookOpen, Clock3, Crown, RefreshCw, ShieldAlert, UserCheck, UserPlus, WalletCards, X } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useAppLanguage } from '@/context/AppLanguageContext';
 
 type PremiumSettings = {
   id: string;
   is_enabled: boolean;
   updated_at: string;
+  manual_payment_enabled: boolean;
+  manual_payment_method: string;
+  manual_payment_receiver_name: string;
+  manual_payment_account: string;
+  manual_payment_instructions: string;
 };
 
 type PremiumFeature = {
@@ -100,6 +107,7 @@ const isEntitlementCurrentlyActive = (entitlement: PremiumEntitlement) => (
 );
 
 export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
+  const { t } = useAppLanguage();
   const [settings, setSettings] = useState<PremiumSettings | null>(null);
   const [features, setFeatures] = useState<PremiumFeature[]>([]);
   const [plans, setPlans] = useState<PremiumPlan[]>([]);
@@ -118,6 +126,13 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
   const [grantExpiry, setGrantExpiry] = useState('');
   const [grantWithoutExpiry, setGrantWithoutExpiry] = useState(false);
   const [grantNote, setGrantNote] = useState('');
+  const [manualPayment, setManualPayment] = useState({
+    manual_payment_enabled: false,
+    manual_payment_method: '',
+    manual_payment_receiver_name: '',
+    manual_payment_account: '',
+    manual_payment_instructions: '',
+  });
   const [saving, setSaving] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +142,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
     setError(null);
     try {
       const [settingsResult, featuresResult, plansResult, usersResult, entitlementsResult, auditResult, topicsResult, subtopicsResult, lessonsResult, topicFlagsResult, subtopicFlagsResult, lessonFlagsResult] = await Promise.all([
-        supabase.from('premium_settings').select('id, is_enabled, updated_at').eq('id', 'global').maybeSingle(),
+        supabase.from('premium_settings').select('id, is_enabled, updated_at, manual_payment_enabled, manual_payment_method, manual_payment_receiver_name, manual_payment_account, manual_payment_instructions').eq('id', 'global').maybeSingle(),
         supabase.from('premium_features').select('key, name, description, is_premium').order('name'),
         supabase.from('premium_plans').select('key, name, description, price_birr, duration_days, is_active').order('name'),
         supabase.from('profiles').select('id, email, username, role, is_blocked').order('created_at', { ascending: false }).limit(500),
@@ -145,7 +160,17 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         .find((result) => result.error)?.error;
       if (firstError) throw firstError;
 
-      setSettings((settingsResult.data || null) as PremiumSettings | null);
+      const loadedSettings = (settingsResult.data || null) as PremiumSettings | null;
+      setSettings(loadedSettings);
+      if (loadedSettings) {
+        setManualPayment({
+          manual_payment_enabled: Boolean(loadedSettings.manual_payment_enabled),
+          manual_payment_method: loadedSettings.manual_payment_method || '',
+          manual_payment_receiver_name: loadedSettings.manual_payment_receiver_name || '',
+          manual_payment_account: loadedSettings.manual_payment_account || '',
+          manual_payment_instructions: loadedSettings.manual_payment_instructions || '',
+        });
+      }
       setFeatures((featuresResult.data || []) as PremiumFeature[]);
       setPlans((plansResult.data || []) as PremiumPlan[]);
       setUsers((usersResult.data || []) as PremiumUser[]);
@@ -225,6 +250,45 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
     [entitlements, selectedUserId],
   );
   const selectedActiveEntitlement = selectedEntitlements.find(isEntitlementCurrentlyActive) || null;
+
+  const saveManualPaymentSettings = async () => {
+    const method = manualPayment.manual_payment_method.trim();
+    const receiverName = manualPayment.manual_payment_receiver_name.trim();
+    const account = manualPayment.manual_payment_account.trim();
+    const instructions = manualPayment.manual_payment_instructions.trim();
+    if (manualPayment.manual_payment_enabled && (!method || !receiverName || !account)) {
+      toast.error('Enter the payment method, receiver name, and receiver account before showing the instructions.');
+      return;
+    }
+    if (method.length > 80 || receiverName.length > 160 || account.length > 120 || instructions.length > 1200) {
+      toast.error('Payment details are longer than the allowed limits.');
+      return;
+    }
+    if (/\b(pin|password|otp|cvv|cvc|api[ -]?key|secret)\b/i.test(`${method} ${receiverName} ${account} ${instructions}`)) {
+      toast.error('Do not save PINs, passwords, OTPs, card details, API keys, or other secrets.');
+      return;
+    }
+
+    setSaving('manual-payment');
+    const { error: updateError } = await supabase
+      .from('premium_settings')
+      .update({
+        manual_payment_enabled: manualPayment.manual_payment_enabled,
+        manual_payment_method: method,
+        manual_payment_receiver_name: receiverName,
+        manual_payment_account: account,
+        manual_payment_instructions: instructions,
+        updated_by: adminId,
+      })
+      .eq('id', 'global');
+    setSaving(null);
+    if (updateError) {
+      toast.error(`Could not save payment details: ${updateError.message}`);
+      return;
+    }
+    toast.success(t('manualPaymentSaved'));
+    await loadPremiumData();
+  };
 
   const updateGlobalSetting = async (enabled: boolean) => {
     setSaving('global');
@@ -643,6 +707,42 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="w-full min-w-0 rounded-xl border border-white/10 bg-slate-900/50 p-2.5 sm:p-4">
+        <div className="mb-3 flex items-start gap-3">
+          <div className="rounded-lg bg-emerald-500/15 p-2 text-emerald-300"><WalletCards size={20} /></div>
+          <div>
+            <h3 className="text-lg font-bold text-white">{t('manualPaymentTitle')}</h3>
+            <p className="mt-1 text-sm text-gray-400">{t('manualPaymentDescription')}</p>
+          </div>
+        </div>
+        <div className="mb-3 rounded-lg border border-amber-400/25 bg-amber-500/10 p-3 text-xs leading-5 text-amber-100">
+          {t('manualPaymentWarning')} The receiver name may be visible to payers because their bank or wallet confirms the recipient.
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-xs text-gray-400">{t('manualPaymentMethodLabel')}
+            <Input maxLength={80} value={manualPayment.manual_payment_method} onChange={(event) => setManualPayment((current) => ({ ...current, manual_payment_method: event.target.value }))} placeholder="CBE or telebirr" className="mt-1 border-white/10 bg-slate-950 text-white placeholder:text-gray-500" />
+          </label>
+          <label className="text-xs text-gray-400">{t('manualPaymentReceiverLabel')}
+            <Input maxLength={160} value={manualPayment.manual_payment_receiver_name} onChange={(event) => setManualPayment((current) => ({ ...current, manual_payment_receiver_name: event.target.value }))} placeholder="Legal receiver name" className="mt-1 border-white/10 bg-slate-950 text-white placeholder:text-gray-500" />
+          </label>
+          <label className="text-xs text-gray-400 sm:col-span-2">{t('manualPaymentAccountLabel')}
+            <Input maxLength={120} value={manualPayment.manual_payment_account} onChange={(event) => setManualPayment((current) => ({ ...current, manual_payment_account: event.target.value }))} placeholder="Public account number or phone" className="mt-1 border-white/10 bg-slate-950 text-white placeholder:text-gray-500" />
+          </label>
+          <label className="text-xs text-gray-400 sm:col-span-2">{t('manualPaymentInstructionsLabel')} (optional)
+            <Textarea maxLength={1200} rows={3} value={manualPayment.manual_payment_instructions} onChange={(event) => setManualPayment((current) => ({ ...current, manual_payment_instructions: event.target.value }))} placeholder="Tell users what reference to submit after paying." className="mt-1 border-white/10 bg-slate-950 text-sm text-white placeholder:text-gray-500" />
+          </label>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <label className="flex items-center gap-2 text-sm text-gray-300">
+            <input type="checkbox" checked={manualPayment.manual_payment_enabled} onChange={(event) => setManualPayment((current) => ({ ...current, manual_payment_enabled: event.target.checked }))} className="h-4 w-4 accent-orange-500" />
+            {t('manualPaymentEnable')}
+          </label>
+          <Button onClick={() => void saveManualPaymentSettings()} disabled={saving === 'manual-payment'} className="bg-orange-500 text-white hover:bg-orange-600">
+            <WalletCards size={16} className="mr-2" /> {saving === 'manual-payment' ? t('manualPaymentSaving') : t('manualPaymentSave')}
+          </Button>
         </div>
       </div>
 

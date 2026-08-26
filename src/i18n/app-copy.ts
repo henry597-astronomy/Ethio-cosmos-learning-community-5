@@ -285,6 +285,18 @@ export type AppCopyKey =
   | 'premiumRequiredTitle'
   | 'premiumRequiredBody'
   | 'premiumManualMode'
+  | 'manualPaymentTitle'
+  | 'manualPaymentDescription'
+  | 'manualPaymentMethodLabel'
+  | 'manualPaymentReceiverLabel'
+  | 'manualPaymentAccountLabel'
+  | 'manualPaymentInstructionsLabel'
+  | 'manualPaymentWarning'
+  | 'manualPaymentEnable'
+  | 'manualPaymentSave'
+  | 'manualPaymentSaved'
+  | 'manualPaymentSaving'
+  | 'manualPaymentPending'
   | 'backToLearning'
   | 'close'
   | 'notifications'
@@ -638,6 +650,18 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     premiumRequiredTitle: 'Premium access required',
     premiumRequiredBody: 'This feature is available with Premium. Subscribe when checkout is connected, or ask an administrator to grant access.',
     premiumManualMode: 'Subscription checkout is not connected yet. An administrator can grant Premium manually in the Admin dashboard.',
+    manualPaymentTitle: 'Manual payment details',
+    manualPaymentDescription: 'These public details are shown to users when manual Premium payment is available.',
+    manualPaymentMethodLabel: 'Payment method',
+    manualPaymentReceiverLabel: 'Receiver name',
+    manualPaymentAccountLabel: 'Receiver account or phone',
+    manualPaymentInstructionsLabel: 'Payment instructions',
+    manualPaymentWarning: 'Enter only public payment details. Never enter a PIN, password, OTP, card number, or API key.',
+    manualPaymentEnable: 'Show these instructions to users',
+    manualPaymentSave: 'Save payment details',
+    manualPaymentSaved: 'Payment details saved.',
+    manualPaymentSaving: 'Saving…',
+    manualPaymentPending: 'After you pay, send the transaction reference to an administrator. Premium is activated only after the payment is verified.',
     backToLearning: 'Back to learning',
     close: 'Close',
   },
@@ -958,6 +982,18 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     premiumRequiredTitle: 'የPremium መዳረሻ ያስፈልጋል',
     premiumRequiredBody: 'ይህን ባህሪ ለመጠቀም Premium ያስፈልጋል። የክፍያ ስርዓቱ ሲገናኝ ለPremium ይመዝገቡ ወይም አስተዳዳሪውን መዳረሻ እንዲሰጥዎ ይጠይቁ።',
     premiumManualMode: 'የPremium የክፍያ ስርዓት እስካሁን አልተገናኘም። አስተዳዳሪው ከAdmin ዳሽቦርድ በእጅ መዳረሻ ሊሰጥዎ ይችላል።',
+    manualPaymentTitle: 'በእጅ የክፍያ መረጃ',
+    manualPaymentDescription: 'በእጅ የPremium ክፍያ ሲኖር እነዚህ ለሕዝብ የሚታዩ መረጃዎች ለተጠቃሚዎች ይታያሉ።',
+    manualPaymentMethodLabel: 'የክፍያ ዘዴ',
+    manualPaymentReceiverLabel: 'የተቀባዩ ስም',
+    manualPaymentAccountLabel: 'የተቀባዩ ሂሳብ ወይም ስልክ',
+    manualPaymentInstructionsLabel: 'የክፍያ መመሪያ',
+    manualPaymentWarning: 'ለሕዝብ የሚታዩ የክፍያ መረጃዎችን ብቻ ያስገቡ። PIN፣ የይለፍ ቃል፣ OTP፣ የካርድ ቁጥር ወይም API ቁልፍ በፍጹም አያስገቡ።',
+    manualPaymentEnable: 'ይህን መረጃ ለተጠቃሚዎች አሳይ',
+    manualPaymentSave: 'የክፍያ መረጃን አስቀምጥ',
+    manualPaymentSaved: 'የክፍያ መረጃው ተቀምጧል።',
+    manualPaymentSaving: 'በማስቀመጥ ላይ…',
+    manualPaymentPending: 'ከከፈሉ በኋላ የግብይቱን ማጣቀሻ ለአስተዳዳሪ ያስገቡ። Premium የሚነቃው ክፍያው ከተረጋገጠ በኋላ ብቻ ነው።',
     backToLearning: 'ወደ ትምህርቶች ተመለስ',
     close: 'ዝጋ',
   },

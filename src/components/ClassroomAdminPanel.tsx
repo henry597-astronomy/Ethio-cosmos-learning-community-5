@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarClock, Loader2, Radio, RefreshCw, X } from 'lucide-react';
+import { CalendarClock, Loader2, Radio, RefreshCw, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLiveKit } from '@/context/LiveKitContext';
 import {
   createLiveClassroom,
+  deleteLiveClassroom,
   getLiveClassrooms,
   updateLiveClassroom,
 } from '@/services/cms';
@@ -30,7 +31,7 @@ function statusLabel(
 }
 
 export default function ClassroomAdminPanel() {
-  const { user, displayName } = useAuth();
+  const { user, displayName, isSuperAdmin } = useAuth();
   const { activeSessions } = useLiveKit();
   const { t } = useAppLanguage();
   const [classrooms, setClassrooms] = useState<LiveClassroom[]>([]);
@@ -151,6 +152,21 @@ export default function ClassroomAdminPanel() {
     }
   };
 
+  const removeClassroom = async (classroom: LiveClassroom) => {
+    if (!isSuperAdmin || !window.confirm(t('removeClassroomConfirm'))) return;
+    setActionId(classroom.id);
+    try {
+      await deleteLiveClassroom(classroom.id);
+      toast.success(t('classroomRemoved'));
+      await loadClassrooms();
+    } catch (removeError) {
+      console.error('Error permanently removing classroom:', removeError);
+      toast.error(removeError instanceof Error ? removeError.message : t('classroomError'));
+    } finally {
+      setActionId(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-slate-900/60 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -242,6 +258,12 @@ export default function ClassroomAdminPanel() {
                         {actionId === classroom.id ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
                       </Button>
                     </>
+                  )}
+                  {isSuperAdmin && (
+                    <Button size="sm" variant="outline" onClick={() => void removeClassroom(classroom)} disabled={actionId !== null} aria-label={t('removeClassroom')} className="border-red-400/30 text-red-300 hover:bg-red-500/10 hover:text-red-200">
+                      {actionId === classroom.id ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Trash2 size={15} className="mr-2" />}
+                      {t('removeClassroom')}
+                    </Button>
                   )}
                 </div>
               </div>

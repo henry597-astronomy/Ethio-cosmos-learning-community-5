@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useLiveKit } from '@/context/LiveKitContext';
 import { useAppLanguage } from '@/context/AppLanguageContext';
+import { usePremium } from '@/context/usePremium';
+import { PremiumRequiredDialog } from '@/components/PremiumRequiredMessage';
 import { Button } from '@/components/ui/button';
 import { Orbit, Radio, Zap } from 'lucide-react';
 import LiveHostModal from './LiveHostModal';
@@ -14,7 +16,9 @@ export default function BottomTaskBar() {
   const { user } = useAuth();
   const location = useLocation();
   const { t } = useAppLanguage();
+  const { loading: premiumLoading, canUse } = usePremium();
   const [isShortsOpen, setIsShortsOpen] = useState(false);
+  const [premiumPromptOpen, setPremiumPromptOpen] = useState(false);
   const [isClassroomDirectoryOpen, setIsClassroomDirectoryOpen] = useState(false);
   const {
     isLiveModalOpen,
@@ -33,6 +37,15 @@ export default function BottomTaskBar() {
 
   const liveKitUrl = import.meta.env.VITE_LIVEKIT_URL || 'wss://ethiocosmos-learning-community-1vp1cr43.livekit.cloud';
 
+  const handleOpenHostModal = () => {
+    if (premiumLoading) return;
+    if (!canUse('live_stream_hosting')) {
+      setPremiumPromptOpen(true);
+      return;
+    }
+    openLiveModal();
+  };
+
   return (
     <>
       <div 
@@ -50,7 +63,7 @@ export default function BottomTaskBar() {
       >
         {/* Center Host Live / Join Live Button */}
         {user && (
-          <div className="flex items-center justify-center gap-3 sm:gap-8 md:gap-12 w-full">
+          <div className="flex w-full items-center justify-evenly">
             {/* Internal Solar System screen */}
             <Link
               to="/solar-system"
@@ -92,7 +105,7 @@ export default function BottomTaskBar() {
                   <span className="hidden sm:inline">{t('joinStream')}</span>
                 </Button>
                 <Button
-                  onClick={openLiveModal}
+                  onClick={handleOpenHostModal}
                   className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white px-3 py-2 font-semibold transition-all duration-300 shadow-lg shadow-red-500/20 hover:shadow-red-500/40 sm:rounded-full sm:px-6"
                   aria-label={t('hostLive')}
                 >
@@ -120,6 +133,11 @@ export default function BottomTaskBar() {
         onClearError={clearStreamError}
       />
 
+      <PremiumRequiredDialog
+        open={premiumPromptOpen}
+        onOpenChange={setPremiumPromptOpen}
+        featureName={t('hostLive')}
+      />
       {/* Live Stream Component */}
       {liveToken && (
         <TikTokLiveStream

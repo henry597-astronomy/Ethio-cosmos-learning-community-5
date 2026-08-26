@@ -9,6 +9,7 @@ import {
   handleOptions,
   isValidRoomName,
 } from '../_lib/security.js';
+import { requirePremiumFeature } from '../_lib/premium.js';
 
 type TokenRequestBody = {
   roomName?: unknown;
@@ -74,6 +75,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const isHost = requestBody.isHost;
+  if (isHost) {
+    const hostingAccess = await requirePremiumFeature(auth.client, 'live_stream_hosting');
+    if (!hostingAccess.allowed) {
+      return res.status(hostingAccess.status).json({ error: hostingAccess.message });
+    }
+  }
+
   const { data: profile, error: profileError } = await auth.client
     .from('profiles')
     .select('username, avatar_url, is_blocked')

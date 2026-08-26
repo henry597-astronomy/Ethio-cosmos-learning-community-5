@@ -1,4 +1,5 @@
 import { supabase } from "@/supabase";
+import { getApiUrl } from "@/lib/api-config";
 import type {
   Topic,
   Subtopic,
@@ -574,27 +575,61 @@ export const createLiveClassroom = async (
 
 export const updateLiveClassroom = async (
   id: string,
-  classroom: Partial<LiveClassroom>,
+  updates: Partial<Omit<LiveClassroom, "id" | "created_at" | "updated_at">>,
 ): Promise<LiveClassroom> => {
   const { data, error } = await supabase
     .from("live_classrooms")
-    .update(classroom)
+    .update(updates)
     .eq("id", id)
     .select()
     .single();
   if (error) {
-    console.error(`Error updating live classroom ${id}:`, error);
+    console.error("Error updating live classroom:", error);
     throw error;
   }
   return data as LiveClassroom;
 };
 
+export const removeLiveClassroom = async (roomName: string): Promise<void> => {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error("Authentication required");
+
+  const response = await fetch(getApiUrl("/api/livekit/remove-room"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ room_name: roomName }),
+  });
+
+  const responseText = await response.text();
+  let payload: { error?: string } = {};
+  try {
+    payload = JSON.parse(responseText) as { error?: string };
+  } catch {
+    // Preserve a useful generic error when the server did not return JSON.
+  }
+
+  if (!response.ok) {
+    throw new Error(payload.error || `Room removal failed (HTTP ${response.status})`);
+  }
+};
+
 export const deleteLiveClassroom = async (id: string): Promise<void> => {
-  const { error } = await supabase.from("live_classrooms").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("live_classrooms")
+    .select("room_name")
+    .eq("id", id)
+    .maybeSingle();
   if (error) {
-    console.error(`Error deleting live classroom ${id}:`, error);
+    console.error(`Error loading live classroom ${id} for removal:`, error);
     throw error;
   }
+  if (!data?.room_name) throw new Error("Classroom was not found");
+  await removeLiveClassroom(data.room_name);
 };
 
 // --- User Progress ---

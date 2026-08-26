@@ -22,6 +22,12 @@ const files = Object.fromEntries(
     ['premiumContentMigration', 'supabase/premium_content_and_profile_repair.sql'],
     ['premiumAiClient', 'src/components/AIChatBar.tsx'],
     ['premiumSolarPage', 'src/pages/SolarSystemPage.tsx'],
+    ['removeRoomApi', 'api/livekit/remove-room.ts'],
+    ['hostingPremiumMigration', 'supabase/live_hosting_premium.sql'],
+    ['roomRemovalMigration', 'supabase/primary_admin_room_removal.sql'],
+    ['notificationMigration', 'supabase/app_notifications.sql'],
+    ['announceApi', 'api/notifications/announce.ts'],
+    ['notificationContext', 'src/context/NotificationContext.tsx'],
   ].map(async ([key, path]) => [key, await readFile(path, 'utf8')]))
 );
 
@@ -49,6 +55,13 @@ const checks = [
   ['Premium checkout fails closed while provider is not ready', /PAYMENT_PROVIDER_NOT_CONNECTED/.test(files.premiumCheckoutApi) && /readyForCheckout/.test(files.premiumCheckoutApi)],
   ['Premium entitlement writes are Admin-only', /Admins manage premium entitlements/.test(files.premiumMigration) && /public\.is_active_admin\(\)/.test(files.premiumMigration)],
   ['Premium RPC removes the arbitrary-user argument', /DROP FUNCTION IF EXISTS public\.user_has_premium_feature\(text, uuid\)/.test(files.premiumSecurityMigration) && /CREATE OR REPLACE FUNCTION public\.user_has_premium_feature\(requested_feature text\)/.test(files.premiumSecurityMigration) && !/requested_user/.test(files.premiumSecurityMigration)],
+  ['LiveKit hosting uses the existing Premium feature guard', /isHost/.test(files.tokenApi) && /requirePremiumFeature\(auth\.client, 'live_stream_hosting'\)/.test(files.tokenApi) && /hostingAccess\.allowed/.test(files.tokenApi)],
+  ['Permanent room removal is primary-Admin-only and service-role bounded', /authenticateSupabaseRequest/.test(files.removeRoomApi) && /is_primary_admin/.test(files.removeRoomApi) && /SUPABASE_SERVICE_ROLE_KEY/.test(files.removeRoomApi) && /live_sessions/.test(files.removeRoomApi)],
+  ['Production classroom DELETE policy is primary-Admin-only', /DROP POLICY IF EXISTS "Admins can delete classrooms"/.test(files.roomRemovalMigration) && /public\.is_primary_admin\(\)/.test(files.roomRemovalMigration)],
+  ['Live hosting feature is seeded free by default', /live_stream_hosting/.test(files.hostingPremiumMigration) && /is_premium[\s\S]*false/.test(files.hostingPremiumMigration)],
+  ['Announcement API authenticates Admins and writes through service role', /authenticateSupabaseRequest/.test(files.announceApi) && /is_active_admin/.test(files.announceApi) && /SUPABASE_SERVICE_ROLE_KEY/.test(files.announceApi) && /app_notifications/.test(files.announceApi)],
+  ['App notifications have own-row RLS and immutable content fields', /Users can read their own app notifications/.test(files.notificationMigration) && /Only notification read state can be changed/.test(files.notificationMigration) && /protect_app_notification_fields/.test(files.notificationMigration)],
+  ['Notification permission is explicit rather than automatic at sign-in', !/Notification\.requestPermission\(\);/.test(files.notificationContext) && /requestBrowserNotificationPermission/.test(files.notificationContext)],
 ];
 
 const failed = checks.filter(([, passed]) => !passed);

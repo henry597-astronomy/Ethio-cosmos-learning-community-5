@@ -286,3 +286,22 @@ export interface Short {
   user_name?: string;
   user_avatar?: string;
 }
+
+export type LiveClassroomStatus = 'scheduled' | 'cancelled' | 'ended';
+
+export interface LiveClassroom {
+  id: string;
+  room_name: string;
+  host_id: string;
+  title: string;
+  description?: string | null;
+  subject?: string | null;
+  grade_level?: string | null;
+  host_name?: string | null;
+  scheduled_start_at: string;
+  scheduled_end_at?: string | null;
+  published: boolean;
+  status: LiveClassroomStatus;
+  created_at?: string;
+  updated_at?: string;
+}

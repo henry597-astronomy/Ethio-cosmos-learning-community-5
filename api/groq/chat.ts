@@ -133,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const premiumAccess = await requirePremiumFeature(auth.client, 'ai_tutor');
-    if (!premiumAccess.allowed) {
+    if ('status' in premiumAccess) {
       return res.status(premiumAccess.status).json({ error: premiumAccess.message });
     }
     rateLimitKey = `ai:${auth.user.id}:${getClientAddress(req)}`;

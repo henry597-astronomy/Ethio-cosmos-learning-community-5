@@ -77,7 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const isHost = requestBody.isHost;
   if (isHost) {
     const hostingAccess = await requirePremiumFeature(auth.client, 'live_stream_hosting');
-    if (!hostingAccess.allowed) {
+    if ('status' in hostingAccess) {
       return res.status(hostingAccess.status).json({ error: hostingAccess.message });
     }
   }

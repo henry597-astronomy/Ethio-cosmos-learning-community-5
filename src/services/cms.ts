@@ -531,24 +531,30 @@ export const deleteQuizQuestion = async (id: string): Promise<void> => {
 
 // --- Live Classrooms ---
 export const getLiveClassrooms = async (admin = false): Promise<LiveClassroom[]> => {
-  let query = supabase
-    .from("live_classrooms")
-    .select("*")
-    .order("scheduled_start_at", { ascending: true });
-
-  if (!admin) {
-    query = query
-      .eq("published", true)
-      .eq("status", "scheduled")
-      .gte("scheduled_start_at", new Date().toISOString());
+  if (admin) {
+    const { data, error } = await supabase
+      .from("live_classrooms")
+      .select("*")
+      .order("scheduled_start_at", { ascending: true });
+    if (error) {
+      console.error("Error fetching live classrooms:", error);
+      throw error;
+    }
+    return (data || []) as LiveClassroom[];
   }
 
-  const { data, error } = await query;
+  const { data, error } = await supabase
+    .from("live_classrooms")
+    .select("id, room_name, title, description, subject, grade_level, host_name, scheduled_start_at, scheduled_end_at, published, status, created_at, updated_at")
+    .eq("published", true)
+    .eq("status", "scheduled")
+    .gte("scheduled_start_at", new Date().toISOString())
+    .order("scheduled_start_at", { ascending: true });
   if (error) {
     console.error("Error fetching live classrooms:", error);
     throw error;
   }
-  return (data || []) as LiveClassroom[];
+  return (data || []) as unknown as LiveClassroom[];
 };
 
 export const createLiveClassroom = async (

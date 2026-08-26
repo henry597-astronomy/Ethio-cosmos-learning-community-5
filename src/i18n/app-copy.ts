@@ -644,9 +644,9 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
   am: {
     home: 'መነሻ ገጽ',
     lesson: 'ትምህርት',
-    materials: 'የትምህርት መርጃዎች',
-    channel: 'የማኅበረሰብ ቻናል',
-    quizzes: 'የእውቀት ፈተናዎች',
+    materials: 'ት/ት መርጃ',
+    channel: 'ቻናል',
+    quizzes: 'ፈተናዎች',
     about: 'ስለ እኛ',
     aboutSubtitle: 'የኢትዮጵያን ቀጣይ ትውልድ የሥነ ፈለክ ተመራማሪዎችና የህዋ አድናቂዎች ለመሆን እናበረታታለን።',
     ourMission: 'ተልዕኳችን',

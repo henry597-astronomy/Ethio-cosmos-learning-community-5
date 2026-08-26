@@ -15,6 +15,7 @@ import type {
   AboutContent,
   GroupedMaterials,
   MaterialGroup,
+  LiveClassroom,
 } from "@/types";
 
 // Helper to fetch single site content item
@@ -524,6 +525,68 @@ export const deleteQuizQuestion = async (id: string): Promise<void> => {
   const { error } = await supabase.from("quiz_questions").delete().eq("id", id);
   if (error) {
     console.error(`Error deleting quiz question ${id}:`, error);
+    throw error;
+  }
+};
+
+// --- Live Classrooms ---
+export const getLiveClassrooms = async (admin = false): Promise<LiveClassroom[]> => {
+  let query = supabase
+    .from("live_classrooms")
+    .select("*")
+    .order("scheduled_start_at", { ascending: true });
+
+  if (!admin) {
+    query = query
+      .eq("published", true)
+      .eq("status", "scheduled")
+      .gte("scheduled_start_at", new Date().toISOString());
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("Error fetching live classrooms:", error);
+    throw error;
+  }
+  return (data || []) as LiveClassroom[];
+};
+
+export const createLiveClassroom = async (
+  classroom: Omit<LiveClassroom, "id" | "created_at" | "updated_at" | "status">,
+): Promise<LiveClassroom> => {
+  const { data, error } = await supabase
+    .from("live_classrooms")
+    .insert({ ...classroom, status: "scheduled" })
+    .select()
+    .single();
+  if (error) {
+    console.error("Error creating live classroom:", error);
+    throw error;
+  }
+  return data as LiveClassroom;
+};
+
+export const updateLiveClassroom = async (
+  id: string,
+  classroom: Partial<LiveClassroom>,
+): Promise<LiveClassroom> => {
+  const { data, error } = await supabase
+    .from("live_classrooms")
+    .update(classroom)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) {
+    console.error(`Error updating live classroom ${id}:`, error);
+    throw error;
+  }
+  return data as LiveClassroom;
+};
+
+export const deleteLiveClassroom = async (id: string): Promise<void> => {
+  const { error } = await supabase.from("live_classrooms").delete().eq("id", id);
+  if (error) {
+    console.error(`Error deleting live classroom ${id}:`, error);
     throw error;
   }
 };

@@ -44,6 +44,38 @@ export type AppCopyKey =
   | 'loadingProgress'
   | 'progressLoadError'
   | 'signIn'
+  | 'joinStream'
+  | 'hostLive'
+  | 'liveNow'
+  | 'upcomingClassrooms'
+  | 'joinRoom'
+  | 'joining'
+  | 'refreshClassrooms'
+  | 'noLiveRooms'
+  | 'noUpcomingClassrooms'
+  | 'streamRoomsLoadError'
+  | 'startsAt'
+  | 'hostedBy'
+  | 'classrooms'
+  | 'scheduleClassroom'
+  | 'classroomTitle'
+  | 'classroomSubject'
+  | 'gradeLevel'
+  | 'classroomDescription'
+  | 'startTime'
+  | 'endTime'
+  | 'roomName'
+  | 'publishClassroom'
+  | 'schedule'
+  | 'cancelClassroom'
+  | 'cancelledStatus'
+  | 'scheduledStatus'
+  | 'endedStatus'
+  | 'publishedStatus'
+  | 'hiddenStatus'
+  | 'classroomSaved'
+  | 'classroomCancelled'
+  | 'classroomError'
   | 'exploreCosmos'
   | 'joinCommunity'
   | 'logoEmblem'
@@ -298,6 +330,38 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     loadingProgress: 'Loading your progress...',
     progressLoadError: 'Failed to load progress. Please try again.',
     signIn: 'Sign In',
+    joinStream: 'Join Stream',
+    hostLive: 'Host Live',
+    liveNow: 'Live Now',
+    upcomingClassrooms: 'Upcoming Classrooms',
+    joinRoom: 'Join Room',
+    joining: 'Joining...',
+    refreshClassrooms: 'Refresh classrooms',
+    noLiveRooms: 'No classrooms are live right now.',
+    noUpcomingClassrooms: 'No upcoming classrooms.',
+    streamRoomsLoadError: 'Could not load classrooms. Please try again.',
+    startsAt: 'Starts',
+    hostedBy: 'Hosted by',
+    classrooms: 'Classrooms',
+    scheduleClassroom: 'Schedule Classroom',
+    classroomTitle: 'Classroom title',
+    classroomSubject: 'Subject',
+    gradeLevel: 'Grade level',
+    classroomDescription: 'Description',
+    startTime: 'Start time',
+    endTime: 'End time',
+    roomName: 'Room name',
+    publishClassroom: 'Publish for students',
+    schedule: 'Schedule',
+    cancelClassroom: 'Cancel classroom',
+    cancelledStatus: 'Cancelled',
+    scheduledStatus: 'Scheduled',
+    endedStatus: 'Ended',
+    publishedStatus: 'Published',
+    hiddenStatus: 'Hidden',
+    classroomSaved: 'Classroom saved.',
+    classroomCancelled: 'Classroom cancelled.',
+    classroomError: 'Could not save classroom. Please try again.',
     exploreCosmos: 'Explore the Cosmos with Ethiopia',
     joinCommunity: 'Join the EthioCosmos Learning Community',
     logoEmblem: 'EthioCosmos Logo Emblem',
@@ -551,6 +615,38 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     loadingProgress: 'የእርስዎ እድገት በመጫን ላይ ነው...',
     progressLoadError: 'እድገትን መጫን አልተቻለም። እባክዎ እንደገና ይሞክሩ።',
     signIn: 'ግባ',
+    joinStream: 'የቀጥታ ስርጭትን ይቀላቀሉ',
+    hostLive: 'በቀጥታ ያስተናግዱ',
+    liveNow: 'አሁን በቀጥታ',
+    upcomingClassrooms: 'መጪ የትምህርት ክፍሎች',
+    joinRoom: 'ክፍሉን ይቀላቀሉ',
+    joining: 'በመቀላቀል ላይ...',
+    refreshClassrooms: 'ክፍሎችን አድስ',
+    noLiveRooms: 'አሁን በቀጥታ የሚሰጥ ክፍል የለም።',
+    noUpcomingClassrooms: 'መጪ ክፍል የለም።',
+    streamRoomsLoadError: 'ክፍሎችን መጫን አልተቻለም። እባክዎ እንደገና ይሞክሩ።',
+    startsAt: 'ይጀምራል',
+    hostedBy: 'አቅራቢ',
+    classrooms: 'ክፍሎች',
+    scheduleClassroom: 'ክፍል ያቅዱ',
+    classroomTitle: 'የክፍሉ ርዕስ',
+    classroomSubject: 'ትምህርት ዓይነት',
+    gradeLevel: 'የክፍል ደረጃ',
+    classroomDescription: 'መግለጫ',
+    startTime: 'የመጀመሪያ ሰዓት',
+    endTime: 'የመጨረሻ ሰዓት',
+    roomName: 'የክፍል ስም',
+    publishClassroom: 'ለተማሪዎች አሳይ',
+    schedule: 'አቅድ',
+    cancelClassroom: 'ክፍሉን ሰርዝ',
+    cancelledStatus: 'ተሰርዟል',
+    scheduledStatus: 'ታቅዷል',
+    endedStatus: 'ተጠናቋል',
+    publishedStatus: 'ታትሟል',
+    hiddenStatus: 'ተደብቋል',
+    classroomSaved: 'ክፍሉ ተቀምጧል።',
+    classroomCancelled: 'ክፍሉ ተሰርዟል።',
+    classroomError: 'ክፍሉን ማስቀመጥ አልተቻለም። እባክዎ እንደገና ይሞክሩ።',
     exploreCosmos: 'ከኢትዮጵያ እስከ ኮስሞስ ይጓዙ',
     joinCommunity: 'የኢትዮኮስሞስ የመማሪያ ማኅበረሰብን ይቀላቀሉ',
     logoEmblem: 'የኢትዮኮስሞስ አርማ',

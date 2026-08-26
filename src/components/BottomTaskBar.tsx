@@ -8,17 +8,17 @@ import { Orbit, Radio, Zap } from 'lucide-react';
 import LiveHostModal from './LiveHostModal';
 import TikTokLiveStream from './TikTokLiveStream';
 import ShortsFeed from './ShortsFeed';
+import ClassroomDirectoryModal from './ClassroomDirectoryModal';
 
 export default function BottomTaskBar() {
   const { user } = useAuth();
   const location = useLocation();
   const { t } = useAppLanguage();
   const [isShortsOpen, setIsShortsOpen] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
+  const [isClassroomDirectoryOpen, setIsClassroomDirectoryOpen] = useState(false);
   const {
     isLiveModalOpen,
     isHosting,
-    activeSessions,
     liveToken,
     liveRoomName,
     liveHostUserId,
@@ -27,7 +27,6 @@ export default function BottomTaskBar() {
     closeLiveModal,
     startHosting,
     stopHosting,
-    joinSession,
     clearSession,
     clearStreamError,
   } = useLiveKit();
@@ -71,66 +70,46 @@ export default function BottomTaskBar() {
               <span className="hidden sm:inline">Shorts</span>
             </Button>
 
-            {/* 
-              If user is currently hosting, show "Live Now" (disabled).
-              If user is NOT hosting, but there is an active session NOT hosted by them, show "Join Live".
-              Otherwise, show "Host Live".
-            */}
+            {/* Hosts keep the existing Live Now/Host Live behavior. Other users
+                open the classroom directory and choose a specific live room. */}
             {isHosting ? (
               <Button
                 disabled
-                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-500 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 opacity-50 cursor-not-allowed shadow-lg shadow-red-500/20"
+                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-500 text-white px-3 py-2 font-semibold transition-all duration-300 opacity-50 cursor-not-allowed shadow-lg shadow-red-500/20 sm:rounded-full sm:px-6"
+                aria-label={t('liveNow')}
               >
                 <Radio size={18} className="animate-pulse" />
-                <span>Live Now</span>
-              </Button>
-            ) : activeSessions.length > 0 && activeSessions.some(s => s.host_id !== user.id) ? (
-              <Button
-                disabled={isJoining}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  
-                  const sessionToJoin = activeSessions.find(s => s.host_id !== user.id);
-                  if (sessionToJoin) {
-                    try {
-                      setIsJoining(true);
-                      // Clear any previous errors
-                      clearStreamError();
-                      await joinSession(sessionToJoin.room_name);
-                    } catch (error) {
-                      console.error('Failed to join session:', error);
-                    } finally {
-                      setIsJoining(false);
-                    }
-                  }
-                }}
-                className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 shadow-lg shadow-green-500/20 hover:shadow-green-500/40 min-w-[120px]"
-              >
-                {isJoining ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Joining...</span>
-                  </>
-                ) : (
-                  <>
-                    <Radio size={18} className="animate-pulse" />
-                    <span>Join Live</span>
-                  </>
-                )}
+                <span className="hidden sm:inline">{t('liveNow')}</span>
               </Button>
             ) : (
-              <Button
-                onClick={openLiveModal}
-                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 shadow-lg shadow-red-500/20 hover:shadow-red-500/40"
-              >
-                <Radio size={18} />
-                <span>Host Live</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setIsClassroomDirectoryOpen(true)}
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-3 py-2 font-semibold transition-all duration-300 shadow-lg shadow-green-500/20 hover:shadow-green-500/40 sm:rounded-full sm:px-6"
+                  aria-label={t('joinStream')}
+                >
+                  <Radio size={18} />
+                  <span className="hidden sm:inline">{t('joinStream')}</span>
+                </Button>
+                <Button
+                  onClick={openLiveModal}
+                  className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white px-3 py-2 font-semibold transition-all duration-300 shadow-lg shadow-red-500/20 hover:shadow-red-500/40 sm:rounded-full sm:px-6"
+                  aria-label={t('hostLive')}
+                >
+                  <Radio size={18} />
+                  <span className="hidden sm:inline">{t('hostLive')}</span>
+                </Button>
+              </div>
             )}
           </div>
         )}
       </div>
+
+      <ClassroomDirectoryModal
+        isOpen={isClassroomDirectoryOpen}
+        currentUserId={user?.id}
+        onClose={() => setIsClassroomDirectoryOpen(false)}
+      />
 
       {/* Live Host Modal */}
       <LiveHostModal

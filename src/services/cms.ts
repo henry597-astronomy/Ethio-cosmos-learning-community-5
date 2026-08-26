@@ -595,14 +595,14 @@ export const removeLiveClassroom = async (roomName: string): Promise<void> => {
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("Authentication required");
 
-  const response = await fetch(getApiUrl("/api/livekit/remove-room"), {
+  const response = await fetch(getApiUrl("/api/livekit/stop-hosting"), {
     method: "POST",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ room_name: roomName }),
+    body: JSON.stringify({ room_name: roomName, operation: "permanent_remove" }),
   });
 
   const responseText = await response.text();

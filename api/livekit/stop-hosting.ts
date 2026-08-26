@@ -14,6 +14,7 @@ type StopHostingBody = {
   room_name?: unknown;
   host_id?: unknown;
   token?: unknown;
+  operation?: unknown;
 };
 
 function parseBody(req: VercelRequest): StopHostingBody {
@@ -61,6 +62,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Invalid room name' });
   }
 
+  const isPermanentRemoval = body.operation === 'permanent_remove';
+  if (isPermanentRemoval) {
+    const { data: isPrimaryAdmin, error: primaryAdminError } = await auth.client.rpc('is_primary_admin');
+    if (primaryAdminError) {
+      console.error('[livekit/stop-hosting] Primary Admin check failed:', primaryAdminError.message);
+      return res.status(500).json({ error: 'Unable to verify administrator access' });
+    }
+    if (isPrimaryAdmin !== true) {
+      return res.status(403).json({ error: 'Only the primary administrator can permanently remove rooms' });
+    }
+  }
+
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !supabaseServiceKey) {
@@ -72,6 +85,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    if (isPermanentRemoval) {
+      const { data: sessions, error: sessionError } = await adminClient
+        .from('live_sessions')
+        .update({ is_active: false })
+        .eq('room_name', roomName)
+        .eq('is_active', true)
+        .select('id');
+      if (sessionError) {
+        console.error('[livekit/stop-hosting] Permanent session deactivation failed:', sessionError.message);
+        return res.status(500).json({ error: 'Failed to remove room access' });
+      }
+
+      const { data: classrooms, error: classroomError } = await adminClient
+        .from('live_classrooms')
+        .delete()
+        .eq('room_name', roomName)
+        .select('id');
+      if (classroomError) {
+        console.error('[livekit/stop-hosting] Permanent classroom removal failed:', classroomError.message);
+        return res.status(500).json({ error: 'Failed to remove classroom metadata' });
+      }
+
+      const deactivatedSessions = sessions?.length || 0;
+      const removedClassrooms = classrooms?.length || 0;
+      if (deactivatedSessions === 0 && removedClassrooms === 0) {
+        return res.status(404).json({ error: 'Room was not found' });
+      }
+      return res.status(200).json({ success: true, deactivatedSessions, removedClassrooms });
+    }
+
     const { data, error } = await adminClient
       .from('live_sessions')
       .update({ is_active: false })

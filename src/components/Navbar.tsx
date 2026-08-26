@@ -449,21 +449,23 @@ export default function Navbar() {
       {/* Second Fixed Navbar (Below Top Navbar) - Compact Static Navigation */}
       <div 
         ref={scrollRef}
-        className="bg-slate-950/90 backdrop-blur-md border-b border-white/5 overflow-x-auto scrollbar-hide"
+        className={`bg-slate-950/90 backdrop-blur-md border-b border-white/5 scrollbar-hide ${
+          language === 'am' ? 'overflow-hidden' : 'overflow-x-auto'
+        }`}
       >
-        <div className="max-w-7xl mx-auto px-4 flex items-center h-10 justify-center">
-          <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className={`${language === 'am' ? 'w-full px-2' : 'max-w-7xl mx-auto px-4'} flex items-center h-10 justify-center`}>
+          <div className={language === 'am' ? 'grid w-full grid-cols-6 gap-0' : 'flex items-center gap-1.5 sm:gap-2'}>
             {allNavLinks.map((link, idx) => (
               <Link
                 key={`nav-${idx}`}
                 to={link.path}
-                className={`relative px-2.5 py-1 text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap rounded-full border ${
+                className={`${language === 'am' ? 'min-w-0 w-full px-0.5 sm:px-1 py-1 text-[10px] sm:text-xs text-center' : 'relative px-2.5 py-1 text-[11px] sm:text-xs'} font-medium transition-all whitespace-nowrap rounded-full border ${
                   isActive(link.path)
                     ? 'text-white bg-orange-500/20 border-orange-500/50 font-bold shadow-[0_0_10px_rgba(249,115,22,0.2)]'
                     : 'text-gray-400 bg-white/5 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/20'
                 }`}
                 >
-                  {translate(link.key)}
+                  <span className={language === 'am' ? 'block min-w-0 truncate' : undefined}>{translate(link.key)}</span>
                 </Link>
             ))}
           </div>

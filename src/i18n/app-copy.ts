@@ -150,6 +150,7 @@ export type AppCopyKey =
   | 'onlineDescription'
   | 'preparing'
   | 'offlineReady'
+  | 'offlineItemSaved'
   | 'useUpdateOnline'
   | 'useOnlineVersion'
   | 'downloadForOffline'
@@ -403,6 +404,7 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     onlineDescription: 'Use the current version online, or download the available content now for offline access.',
     preparing: 'Preparing...',
     offlineReady: 'Offline content is ready on this device.',
+    offlineItemSaved: 'Saved for offline use.',
     useUpdateOnline: 'Use update online',
     useOnlineVersion: 'Use online version',
     downloadForOffline: 'Download for offline',
@@ -655,6 +657,7 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     onlineDescription: 'የአሁኑን ስሪት በመስመር ላይ ይጠቀሙ ወይም ይዘቶችን አሁን ያውርዱና ያለ ኢንተርኔት ይጠቀሙ።',
     preparing: 'በማዘጋጀት ላይ...',
     offlineReady: 'ያለ ኢንተርኔት ይዘት በዚህ መሣሪያ ላይ ዝግጁ ነው።',
+    offlineItemSaved: 'ያለ ኢንተርኔት ለመጠቀም ተቀምጧል።',
     useUpdateOnline: 'ማዘመኛውን በመስመር ላይ ተጠቀም',
     useOnlineVersion: 'የመስመር ላይ ስሪቱን ተጠቀም',
     downloadForOffline: 'ያለ ኢንተርኔት አውርድ',

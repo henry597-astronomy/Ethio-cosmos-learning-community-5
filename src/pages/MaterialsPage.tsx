@@ -7,7 +7,8 @@ import { FallbackImage } from '@/components/MediaFallback';
 import { getEmbedUrl, getVideoType } from '@/lib/video-utils';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import LocalizedOfficialText from '@/components/LocalizedOfficialText';
-import type { MaterialType } from '@/types';
+import OfflineSaveButton from '@/components/OfflineSaveButton';
+import type { MaterialGroup, MaterialType } from '@/types';
 
 type ViewTab = 'all' | MaterialType;
 
@@ -18,6 +19,7 @@ interface GroupedSection {
   link?: string;
   preview_image?: string;
   type: MaterialType;
+  group?: MaterialGroup;
   galleryItems: { id: string; url: string; title: string }[];
   videos: { id: string; url: string; thumbnail: string; title: string }[];
   pdfs: { id: string; url: string; title: string; label: string }[];
@@ -56,6 +58,7 @@ export default function MaterialsPage() {
         link: g.link,
         preview_image: g.preview_image,
         type: g.type,
+        group: g,
         galleryItems: [],
         videos: [],
         pdfs: [],
@@ -418,22 +421,28 @@ function GroupContent({
           <h3 className="text-xl font-bold text-white mb-4">{t('photoGallery')}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {section.galleryItems.map((image) => (
-              <button
-                key={image.id}
-                onClick={() => onOpenImage(image.url)}
-                className="relative aspect-square rounded-xl overflow-hidden group"
-              >
-                <FallbackImage
-                  src={image.url}
-                  alt={image.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                  <span className="text-white text-sm">
-                    <LocalizedOfficialText sourceType="material" sourceId={image.id} field="title" sourceText={image.title} />
-                  </span>
+              <div key={image.id} className="relative aspect-square overflow-hidden rounded-xl group">
+                <button
+                  type="button"
+                  onClick={() => onOpenImage(image.url)}
+                  className="absolute inset-0 h-full w-full text-left"
+                  aria-label={image.title}
+                >
+                  <FallbackImage
+                    src={image.url}
+                    alt={image.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                    <span className="text-white text-sm">
+                      <LocalizedOfficialText sourceType="material" sourceId={image.id} field="title" sourceText={image.title} />
+                    </span>
+                  </div>
+                </button>
+                <div className="absolute right-2 top-2 z-10">
+                  <OfflineSaveButton kind="material" selection={{ type: 'gallery', item: image, group: section.group }} />
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </section>
@@ -445,29 +454,40 @@ function GroupContent({
           <h3 className="text-xl font-bold text-white mb-4">{t('videos')}</h3>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {section.videos.map((video) => (
-              <button
+              <div
                 key={video.id}
-                onClick={() => onOpenVideo(video.url, video.title)}
-                className="group relative rounded-xl overflow-hidden bg-slate-900 border border-white/10 hover:border-orange-500/50 transition-all text-left"
+                className="group relative overflow-hidden rounded-xl border border-white/10 bg-slate-900 text-left transition-all hover:border-orange-500/50"
               >
-                <div className="relative aspect-video">
-                  <FallbackImage
-                    src={video.thumbnail}
-                    alt={video.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/30 transition-colors">
-                    <div className="w-16 h-16 rounded-full bg-orange-500/90 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Play className="w-8 h-8 text-white ml-1" />
+                <button
+                  type="button"
+                  onClick={() => onOpenVideo(video.url, video.title)}
+                  className="block w-full text-left"
+                  aria-label={video.title}
+                >
+                  <div className="relative aspect-video">
+                    <FallbackImage
+                      src={video.thumbnail}
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/30 transition-colors">
+                      <div className="w-16 h-16 rounded-full bg-orange-500/90 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Play className="w-8 h-8 text-white ml-1" />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="p-4">
-                  <h4 className="text-white font-semibold group-hover:text-orange-500 transition-colors">
-                    <LocalizedOfficialText sourceType="material" sourceId={video.id} field="title" sourceText={video.title} />
-                  </h4>
-                </div>
-              </button>
+                  <div className="p-4 pr-14">
+                    <h4 className="text-white font-semibold group-hover:text-orange-500 transition-colors">
+                      <LocalizedOfficialText sourceType="material" sourceId={video.id} field="title" sourceText={video.title} />
+                    </h4>
+                  </div>
+                </button>
+                {getVideoType(video.url) === 'direct' && (
+                  <div className="absolute right-2 top-2 z-10">
+                    <OfflineSaveButton kind="material" selection={{ type: 'video', item: video, group: section.group }} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </section>
@@ -514,6 +534,7 @@ function GroupContent({
                     <Download className="w-4 h-4 mr-2" />
                     {t('download')}
                   </Button>
+                  <OfflineSaveButton kind="material" selection={{ type: 'pdf', item: pdf, group: section.group }} />
                 </div>
               </div>
             ))}

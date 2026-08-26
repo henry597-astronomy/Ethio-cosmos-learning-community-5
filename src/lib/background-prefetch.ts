@@ -11,7 +11,7 @@
  */
 
 import { supabase } from '@/supabase';
-import type { Topic, Lesson, GalleryImage, VideoItem, PdfItem, AboutContent, Quiz, QuizQuestion } from '@/types';
+import type { Topic, Subtopic, Lesson, GalleryImage, VideoItem, PdfItem, AboutContent, Quiz, QuizQuestion, GroupedMaterials, MaterialGroup } from '@/types';
 import { APP_LANGUAGE_STORAGE_KEY, type AppLanguage } from '@/context/AppLanguageContext';
 import {
   OFFLINE_PACK_SCHEMA_VERSION,
@@ -19,7 +19,9 @@ import {
   cacheOfflineData,
   clearOfflineData,
   getOfflineData,
+  getOfflinePackManifestKey,
   saveOfflinePackManifest,
+  type OfflinePackManifest,
 } from '@/lib/offline-cache';
 
 export interface PrefetchProgress {
@@ -28,6 +30,19 @@ export interface PrefetchProgress {
   currentItem: string;
   status: 'idle' | 'running' | 'completed' | 'error';
   error?: string;
+}
+
+export interface OfflineCacheEntry {
+  key: string;
+  data: unknown;
+}
+
+export interface OfflineSelectionInput {
+  userId: string;
+  language: AppLanguage;
+  entries: OfflineCacheEntry[];
+  contentKeys?: string[];
+  mediaUrls?: string[];
 }
 
 let prefetchProgress: PrefetchProgress = {
@@ -40,8 +55,136 @@ let prefetchProgress: PrefetchProgress = {
 // Callback for progress updates
 let onProgressCallback: ((progress: PrefetchProgress) => void) | null = null;
 
+function isOfficialPackKey(key: string): boolean {
+  return key === 'topics'
+    || key === 'materials_groups'
+    || key.startsWith('subtopics_')
+    || key.startsWith('lesson_');
+}
+
 export function setPrefetchProgressCallback(callback: (progress: PrefetchProgress) => void) {
   onProgressCallback = callback;
+}
+
+async function getCompatibleOfflineManifest(userId: string, language: AppLanguage): Promise<OfflinePackManifest | null> {
+  const stored = await getOfflineData<OfflinePackManifest>(getOfflinePackManifestKey(userId, language));
+  if (!stored || stored.schemaVersion !== OFFLINE_PACK_SCHEMA_VERSION || stored.version !== OFFLINE_PACK_VERSION || stored.userId !== userId || stored.language !== language) {
+    return null;
+  }
+  return stored;
+}
+
+export async function saveSelectedOfflineContent(input: OfflineSelectionInput): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session?.user?.id || sessionData.session.user.id !== input.userId) {
+    throw new Error('Sign in to save content for offline use.');
+  }
+  if (!input.entries.length) throw new Error('Choose content before saving it offline.');
+
+  const uniqueEntries = [...new Map(input.entries.map((entry) => [entry.key, entry])).values()];
+  if (uniqueEntries.some((entry) => !isOfficialPackKey(entry.key))) {
+    throw new Error('This content cannot be saved for offline use.');
+  }
+
+  await Promise.all(uniqueEntries.map((entry) => cacheOfflineData(entry.key, entry.data)));
+  if (input.mediaUrls?.length) {
+    await sendToServiceWorker('CACHE_URLS', { urls: input.mediaUrls });
+  }
+
+  const existing = await getCompatibleOfflineManifest(input.userId, input.language);
+  const sourceVersions = { ...(existing?.sourceVersions || {}) };
+  uniqueEntries.forEach((entry) => {
+    sourceVersions[entry.key] = stableDataHash(entry.data);
+  });
+  const contentKeys = new Set(existing?.contentKeys || []);
+  input.contentKeys?.forEach((key) => contentKeys.add(key));
+  uniqueEntries.forEach((entry) => contentKeys.add(entry.key));
+
+  await saveOfflinePackManifest({
+    schemaVersion: OFFLINE_PACK_SCHEMA_VERSION,
+    version: OFFLINE_PACK_VERSION,
+    downloadedAt: Date.now(),
+    userId: input.userId,
+    language: input.language,
+    status: 'complete',
+    contentKeys: [...contentKeys],
+    sourceVersions,
+    mediaCount: existing?.mediaCount || input.mediaUrls?.length || 0,
+    translationCount: existing?.translationCount || 0,
+  });
+}
+
+async function mergeSelectedArray<T extends { id: string }>(
+  key: string,
+  incoming: T[],
+  manifest: OfflinePackManifest | null,
+): Promise<T[]> {
+  if (!manifest?.contentKeys.includes(key)) return incoming;
+  const cached = await getOfflineData<T[]>(key);
+  const merged = new Map((cached || []).map((item) => [item.id, item]));
+  incoming.forEach((item) => merged.set(item.id, item));
+  return [...merged.values()];
+}
+
+export async function saveSelectedLessonOffline(
+  userId: string,
+  language: AppLanguage,
+  lesson: Lesson,
+  topic?: Topic,
+  subtopic?: Subtopic,
+): Promise<void> {
+  const manifest = await getCompatibleOfflineManifest(userId, language);
+  const entries: OfflineCacheEntry[] = [{ key: `lesson_${lesson.subtopic_id}`, data: lesson }];
+  if (topic) {
+    entries.push({ key: 'topics', data: await mergeSelectedArray('topics', [topic], manifest) });
+  }
+  if (topic && subtopic) {
+    entries.push({ key: `subtopics_${topic.id}`, data: await mergeSelectedArray(`subtopics_${topic.id}`, [subtopic], manifest) });
+  }
+  const mediaUrls = (lesson.content_blocks || [])
+    .filter((block) => block.type === 'image' && Boolean(block.content))
+    .map((block) => block.content);
+  await saveSelectedOfflineContent({ userId, language, entries, mediaUrls });
+}
+
+export type MaterialSelection =
+  | { type: 'gallery'; item: GalleryImage; group?: MaterialGroup }
+  | { type: 'video'; item: VideoItem; group?: MaterialGroup }
+  | { type: 'pdf'; item: PdfItem; group?: MaterialGroup };
+
+export async function saveSelectedMaterialOffline(
+  userId: string,
+  language: AppLanguage,
+  selection: MaterialSelection,
+): Promise<void> {
+  const manifest = await getCompatibleOfflineManifest(userId, language);
+  const cached = manifest?.contentKeys.includes('materials_groups')
+    ? await getOfflineData<GroupedMaterials>('materials_groups')
+    : null;
+  const current: GroupedMaterials = cached || { groups: [], gallery: [], videos: [], pdfs: [] };
+  const groups = selection.group && !current.groups.some((group) => group.id === selection.group?.id)
+    ? [...current.groups, selection.group]
+    : current.groups;
+
+  const next: GroupedMaterials = { ...current, groups };
+  const mediaUrls: string[] = [];
+  if (selection.type === 'gallery') {
+    next.gallery = [...current.gallery.filter((item) => item.id !== selection.item.id), selection.item];
+    mediaUrls.push(selection.item.url);
+  } else if (selection.type === 'video') {
+    next.videos = [...current.videos.filter((item) => item.id !== selection.item.id), selection.item];
+    mediaUrls.push(selection.item.url, selection.item.thumbnail);
+  } else {
+    next.pdfs = [...current.pdfs.filter((item) => item.id !== selection.item.id), selection.item];
+    mediaUrls.push(selection.item.url);
+  }
+
+  await saveSelectedOfflineContent({
+    userId,
+    language,
+    entries: [{ key: 'materials_groups', data: next }],
+    mediaUrls,
+  });
 }
 
 function updateProgress(update: Partial<PrefetchProgress>) {

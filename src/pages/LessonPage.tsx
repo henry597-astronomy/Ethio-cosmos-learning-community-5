@@ -9,6 +9,7 @@ import { PremiumRequiredScreen } from '@/components/PremiumRequiredMessage';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import { ArrowLeft, ArrowRight, BookmarkPlus, BookmarkCheck, CheckCircle } from 'lucide-react';
 import LessonTutor from '@/components/LessonTutor';
+import OfflineSaveButton from '@/components/OfflineSaveButton';
 import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -281,6 +282,7 @@ export default function LessonPage() {
                   {t('completed')}
                 </Button>
               )}
+              {lesson && <OfflineSaveButton kind="lesson" lesson={lesson} topic={topic} subtopic={currentSubtopic} />}
             </div>
           )}
         </div>

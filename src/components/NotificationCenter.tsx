@@ -13,6 +13,7 @@ function notificationLabel(type: AppNotificationType, t: (key: AppCopyKey) => st
   if (type === 'admin_announcement') return t('notificationAdminAnnouncement');
   if (type === 'classroom_reminder') return t('notificationClassroomReminder');
   if (type === 'classroom_live') return t('notificationClassroomLive');
+  if (type === 'channel_post') return t('notificationChannelPost');
   return t('notificationSystem');
 }
 
@@ -130,10 +131,12 @@ export default function NotificationCenter() {
                     toast.error(error instanceof Error ? error.message : t('notificationSettingsError'));
                   }
                 }}
-                className="h-8 px-2 text-xs text-orange-300 hover:bg-orange-500/10 hover:text-orange-200"
+                aria-label={t('markAllRead')}
+                title={t('markAllRead')}
+                className="h-8 shrink-0 px-2 text-xs text-orange-300 hover:bg-orange-500/10 hover:text-orange-200"
               >
                 <CheckCheck size={14} className="mr-1" />
-                {t('markAllRead')}
+                <span className="hidden sm:inline">{t('markAllRead')}</span>
               </Button>
               <Button
                 type="button"
@@ -171,6 +174,14 @@ export default function NotificationCenter() {
                   checked={preferences.admin_announcements_enabled}
                   onCheckedChange={(checked) => void updatePreference({ admin_announcements_enabled: checked })}
                   aria-label={t('adminAnnouncements')}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/[0.03] p-3">
+                <span className="text-sm text-slate-200">{t('channelPosts')}</span>
+                <Switch
+                  checked={preferences.channel_posts_enabled}
+                  onCheckedChange={(checked) => void updatePreference({ channel_posts_enabled: checked })}
+                  aria-label={t('channelPosts')}
                 />
               </label>
               <label className="flex items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/[0.03] p-3">

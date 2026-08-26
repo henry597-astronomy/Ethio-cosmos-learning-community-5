@@ -292,6 +292,7 @@ export type AppCopyKey =
   | 'notificationPermissionHelp'
   | 'classroomReminders'
   | 'adminAnnouncements'
+  | 'channelPosts'
   | 'browserNotifications'
   | 'nativeNotifications'
   | 'reminderLeadTime'
@@ -307,6 +308,7 @@ export type AppCopyKey =
   | 'notificationAdminAnnouncement'
   | 'notificationClassroomReminder'
   | 'notificationClassroomLive'
+  | 'notificationChannelPost'
   | 'notificationSystem'
   | 'sendAnnouncement'
   | 'announcementTitle'
@@ -403,6 +405,7 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     notificationPermissionHelp: 'Choose which notifications you want to receive. Permissions are requested only when you enable an external notification option.',
     classroomReminders: 'Classroom reminders',
     adminAnnouncements: 'Admin announcements',
+    channelPosts: 'Channel posts',
     browserNotifications: 'Browser notifications',
     nativeNotifications: 'Android reminders',
     reminderLeadTime: 'Reminder lead time',
@@ -418,6 +421,7 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     notificationAdminAnnouncement: 'Admin announcement',
     notificationClassroomReminder: 'Classroom reminder',
     notificationClassroomLive: 'Classroom live',
+    notificationChannelPost: 'Channel post',
     notificationSystem: 'System',
     sendAnnouncement: 'Send announcement',
     announcementTitle: 'Announcement title',
@@ -721,6 +725,7 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     notificationPermissionHelp: 'የሚፈልጓቸውን ማሳወቂያዎች ይምረጡ። የውጭ ማሳወቂያ አማራጭን ሲያነቃቁ ብቻ ፈቃድ ይጠየቃል።',
     classroomReminders: 'የክፍል አስታዋሾች',
     adminAnnouncements: 'የአስተዳዳሪ ማስታወቂያዎች',
+    channelPosts: 'የቻናል ልጥፎች',
     browserNotifications: 'የአሳሽ ማሳወቂያዎች',
     nativeNotifications: 'የአንድሮይድ አስታዋሾች',
     reminderLeadTime: 'የአስታዋሽ ቅድመ ጊዜ',
@@ -736,6 +741,7 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     notificationAdminAnnouncement: 'የአስተዳዳሪ ማስታወቂያ',
     notificationClassroomReminder: 'የክፍል አስታዋሽ',
     notificationClassroomLive: 'የቀጥታ ክፍል',
+    notificationChannelPost: 'የቻናል ልጥፍ',
     notificationSystem: 'ስርዓት',
     sendAnnouncement: 'ማስታወቂያ ላክ',
     announcementTitle: 'የማስታወቂያ ርዕስ',

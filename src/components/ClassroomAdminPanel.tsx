@@ -8,8 +8,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useLiveKit } from '@/context/LiveKitContext';
 import {
   createLiveClassroom,
-  deleteLiveClassroom,
   getLiveClassrooms,
+  removeLiveClassroom,
   updateLiveClassroom,
 } from '@/services/cms';
 import { slugify } from '@/lib/utils';
@@ -32,7 +32,7 @@ function statusLabel(
 
 export default function ClassroomAdminPanel() {
   const { user, displayName, isSuperAdmin } = useAuth();
-  const { activeSessions } = useLiveKit();
+  const { allActiveSessions, refreshSessions } = useLiveKit();
   const { t } = useAppLanguage();
   const [classrooms, setClassrooms] = useState<LiveClassroom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,8 +48,8 @@ export default function ClassroomAdminPanel() {
   const [published, setPublished] = useState(true);
 
   const liveRoomNames = useMemo(
-    () => new Set(activeSessions.map((session) => session.room_name)),
-    [activeSessions],
+    () => new Set(allActiveSessions.map((session) => session.room_name)),
+    [allActiveSessions],
   );
 
   const loadClassrooms = useCallback(async () => {
@@ -152,19 +152,23 @@ export default function ClassroomAdminPanel() {
     }
   };
 
-  const removeClassroom = async (classroom: LiveClassroom) => {
+  const removeRoom = async (roomName: string) => {
     if (!isSuperAdmin || !window.confirm(t('removeClassroomConfirm'))) return;
-    setActionId(classroom.id);
+    setActionId(roomName);
     try {
-      await deleteLiveClassroom(classroom.id);
+      await removeLiveClassroom(roomName);
       toast.success(t('classroomRemoved'));
-      await loadClassrooms();
+      await Promise.all([loadClassrooms(), refreshSessions()]);
     } catch (removeError) {
-      console.error('Error permanently removing classroom:', removeError);
+      console.error('Error permanently removing live room:', removeError);
       toast.error(removeError instanceof Error ? removeError.message : t('classroomError'));
     } finally {
       setActionId(null);
     }
+  };
+
+  const removeClassroom = async (classroom: LiveClassroom) => {
+    await removeRoom(classroom.room_name);
   };
 
   return (
@@ -230,6 +234,51 @@ export default function ClassroomAdminPanel() {
       </div>
 
       <div className="space-y-3">
+        <div className="rounded-xl border border-green-400/20 bg-green-500/[0.04] p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 font-semibold text-white"><Radio size={16} className="text-green-300" />{t('liveNow')}</h2>
+              <p className="mt-1 text-xs text-slate-400">{t('roomName')} · {t('hostedBy')}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void refreshSessions()}
+              disabled={actionId !== null}
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              <RefreshCw size={15} className="mr-2" />
+              {t('refreshClassrooms')}
+            </Button>
+          </div>
+          {allActiveSessions.length === 0 ? (
+            <p className="mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm text-slate-400">{t('noLiveRooms')}</p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {allActiveSessions.map((session) => (
+                <div key={session.id} className="flex flex-col gap-3 rounded-lg border border-white/10 bg-slate-950/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-white">{session.room_name}</p>
+                    <p className="mt-1 text-xs text-slate-400">{t('hostedBy')}: {session.host_name}</p>
+                  </div>
+                  {isSuperAdmin && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void removeRoom(session.room_name)}
+                      disabled={actionId !== null}
+                      className="shrink-0 border-red-400/30 text-red-300 hover:bg-red-500/10 hover:text-red-200"
+                    >
+                      {actionId === session.room_name ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Trash2 size={15} className="mr-2" />}
+                      {t('removeClassroom')}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {loading && classrooms.length === 0 ? (
           <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/60 p-4 text-sm text-slate-300"><Loader2 size={16} className="animate-spin" />{t('loading')}</div>
         ) : classrooms.length === 0 ? (
@@ -261,7 +310,8 @@ export default function ClassroomAdminPanel() {
                   )}
                   {isSuperAdmin && (
                     <Button size="sm" variant="outline" onClick={() => void removeClassroom(classroom)} disabled={actionId !== null} aria-label={t('removeClassroom')} className="border-red-400/30 text-red-300 hover:bg-red-500/10 hover:text-red-200">
-                      {actionId === classroom.id ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Trash2 size={15} className="mr-2" />}
+                                              {actionId === classroom.room_name ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Trash2 size={15} className="mr-2" />}
+
                       {t('removeClassroom')}
                     </Button>
                   )}

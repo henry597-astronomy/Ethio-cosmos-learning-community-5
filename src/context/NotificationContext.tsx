@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
 import { supabase } from '@/supabase';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
@@ -26,6 +25,7 @@ interface NotificationContextType {
   refreshNotifications: () => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  markChannelPostNotificationsAsRead: () => Promise<void>;
   savePreferences: (changes: Partial<Omit<NotificationPreferences, 'user_id' | 'updated_at'>>) => Promise<void>;
   requestBrowserNotificationPermission: () => Promise<boolean>;
   requestNativeNotificationPermission: () => Promise<boolean>;
@@ -42,6 +42,7 @@ function isNotificationEnabledForType(
   preferences: NotificationPreferences,
 ): boolean {
   if (type === 'admin_announcement') return preferences.admin_announcements_enabled;
+  if (type === 'channel_post') return preferences.channel_posts_enabled;
   if (type === 'classroom_reminder' || type === 'classroom_live') return preferences.classroom_reminders_enabled;
   return true;
 }
@@ -56,16 +57,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [nativePermission, setNativePermission] = useState<'granted' | 'denied' | 'prompt' | 'unsupported'>('unsupported');
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission | 'unsupported'>(getBrowserPermission());
-  const [channelUnreadCount, setChannelUnreadCount] = useState(0);
   const { user } = useAuth();
-  const location = useLocation();
-  const isChatPage = location.pathname === '/chat';
 
   const unreadNotificationCount = useMemo(
     () => notifications.reduce((count, notification) => count + (notification.read_at ? 0 : 1), 0),
     [notifications],
   );
-  const unreadCount = channelUnreadCount + unreadNotificationCount;
+  // The global bell counts only durable app notifications. Channel posts have
+  // their own unread indicator and must not point to an empty app-notification list.
+  const unreadCount = unreadNotificationCount;
 
   useEffect(() => {
     if ('setAppBadge' in navigator) {
@@ -76,14 +76,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
     }
   }, [unreadCount]);
-
-  useEffect(() => {
-    if (isChatPage) setChannelUnreadCount(0);
-  }, [isChatPage]);
-
-  useEffect(() => {
-    if (!user?.id) setChannelUnreadCount(0);
-  }, [user?.id]);
 
   const showBrowserNotification = useCallback((title: string, body: string, tag: string) => {
     if (
@@ -146,8 +138,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
 
     const { data, error } = await supabase
-      .from('notification_preferences')
-      .select('user_id, classroom_reminders_enabled, admin_announcements_enabled, browser_notifications_enabled, native_notifications_enabled, reminder_minutes, updated_at')
+        .from('notification_preferences')
+      .select('user_id, classroom_reminders_enabled, admin_announcements_enabled, channel_posts_enabled, browser_notifications_enabled, native_notifications_enabled, reminder_minutes, updated_at')
       .eq('user_id', user.id)
       .maybeSingle();
     if (error) {
@@ -184,26 +176,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           }
         },
       )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'channel_posts' },
-        async (payload) => {
-          const newPost = payload.new as { user_id: string; message_text: string | null };
-          if (newPost.user_id === user.id) return;
 
-          if (!isChatPage) setChannelUnreadCount((count) => count + 1);
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('username, email')
-            .eq('id', newPost.user_id)
-            .maybeSingle();
-          const senderName = profileData?.username || profileData?.email?.split('@')[0] || 'Admin';
-          const title = `New announcement from ${senderName}`;
-          const body = newPost.message_text || 'New channel broadcast';
-          showBrowserNotification(title, body, 'channel-notification');
-          if (!isChatPage) showToast(title, body, '/chat');
-        },
-      )
       .subscribe();
 
     const actionListener = addNotificationActionListener((actionPath) => {
@@ -214,28 +187,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       supabase.removeChannel(channel);
       void actionListener?.then((listener) => listener.remove());
     };
-  }, [user?.id, isChatPage, preferences, showBrowserNotification, showToast]);
+  }, [user?.id, preferences, showBrowserNotification, showToast]);
 
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const loadChannelUnreadCount = async () => {
-      const { count, error } = await supabase
-        .from('channel_posts')
-        .select('id', { count: 'exact', head: true })
-        .neq('user_id', user.id);
-      if (!error && typeof count === 'number') setChannelUnreadCount(isChatPage ? 0 : count);
-    };
-    void loadChannelUnreadCount();
-  }, [user?.id, isChatPage]);
-
-  const resetUnreadCount = useCallback(() => {
-    setChannelUnreadCount(0);
-  }, []);
-
-  const updateChannelUnreadCount = useCallback((count: number) => {
-    setChannelUnreadCount(Math.max(0, count));
-  }, []);
+  // Kept as no-op compatibility methods for older ChannelPage consumers.
+  // Channel-post read state now lives in app_notifications.
+  const resetUnreadCount = useCallback(() => undefined, []);
+  const updateChannelUnreadCount = useCallback((_count: number) => undefined, []);
 
   const markAsRead = useCallback(async (notificationId: string) => {
     if (!user?.id) return;
@@ -273,6 +230,26 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [notifications, unreadNotificationCount, user?.id]);
 
+  const markChannelPostNotificationsAsRead = useCallback(async () => {
+    if (!user?.id) return;
+    const readAt = new Date().toISOString();
+    setNotifications((current) => current.map((notification) => (
+      notification.notification_type === 'channel_post' && !notification.read_at
+        ? { ...notification, read_at: readAt }
+        : notification
+    )));
+    const { error } = await supabase
+      .from('app_notifications')
+      .update({ read_at: readAt })
+      .eq('user_id', user.id)
+      .eq('notification_type', 'channel_post')
+      .is('read_at', null);
+    if (error) {
+      await refreshNotifications();
+      throw error;
+    }
+  }, [refreshNotifications, user?.id]);
+
   const savePreferences = useCallback(async (
     changes: Partial<Omit<NotificationPreferences, 'user_id' | 'updated_at'>>,
   ) => {
@@ -283,7 +260,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const { data, error } = await supabase
       .from('notification_preferences')
       .upsert(next, { onConflict: 'user_id' })
-      .select('user_id, classroom_reminders_enabled, admin_announcements_enabled, browser_notifications_enabled, native_notifications_enabled, reminder_minutes, updated_at')
+      .select('user_id, classroom_reminders_enabled, admin_announcements_enabled, channel_posts_enabled, browser_notifications_enabled, native_notifications_enabled, reminder_minutes, updated_at')
       .single();
     if (error) {
       setPreferences(previous);
@@ -330,6 +307,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         refreshNotifications,
         markAsRead,
         markAllAsRead,
+        markChannelPostNotificationsAsRead,
         savePreferences,
         requestBrowserNotificationPermission,
         requestNativeNotificationPermission: requestNativePermission,

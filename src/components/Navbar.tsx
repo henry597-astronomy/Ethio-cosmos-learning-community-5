@@ -462,9 +462,9 @@ export default function Navbar() {
                     ? 'text-white bg-orange-500/20 border-orange-500/50 font-bold shadow-[0_0_10px_rgba(249,115,22,0.2)]'
                     : 'text-gray-400 bg-white/5 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/20'
                 }`}
-              >
-                {translate(link.key)}
-              </Link>
+                >
+                  {translate(link.key)}
+                </Link>
             ))}
           </div>
         </div>

@@ -11,6 +11,8 @@ import {
 } from '../_lib/security.js';
 import { requirePremiumFeature } from '../_lib/premium.js';
 
+const SESSION_FRESHNESS_MS = 90 * 1000;
+
 type TokenRequestBody = {
   roomName?: unknown;
   isHost?: unknown;
@@ -101,11 +103,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'Account is blocked' });
   }
 
-  const { data: activeSession, error: sessionError } = await auth.client
+  let activeSessionQuery = auth.client
     .from('live_sessions')
     .select('id')
     .eq('room_name', roomName)
-    .eq('is_active', true)
+    .eq('is_active', true);
+  if (!isHost) {
+    activeSessionQuery = activeSessionQuery.gte(
+      'last_heartbeat',
+      new Date(Date.now() - SESSION_FRESHNESS_MS).toISOString(),
+    );
+  }
+  const { data: activeSession, error: sessionError } = await activeSessionQuery
     .limit(1)
     .maybeSingle();
 

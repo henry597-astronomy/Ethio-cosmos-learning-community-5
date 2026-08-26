@@ -155,7 +155,7 @@ export default function ChatPage() {
   // the current user is the admin — avoids hardcoding or exposing any email.
   const adminUserId = profile?.role === 'admin' ? profile.id : null;
   const isSuperAdminSignedIn = user?.email === 'henokgirma648@gmail.com';
-  const { resetUnreadCount } = useNotifications();
+  const { resetUnreadCount, markChannelPostNotificationsAsRead } = useNotifications();
   const [posts, setPosts] = useState<ChannelPost[]>([]);
   const [newPostText, setNewPostText] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -261,6 +261,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!user) return;
     resetUnreadCount();
+    void markChannelPostNotificationsAsRead();
     fetchChannelData();
 
     const postsChannel = supabase

@@ -16,6 +16,7 @@ import BottomTaskBar from '@/components/BottomTaskBar';
 import { recordAndroidAppOpen } from '@/services/app-analytics';
 import { LessonTutorProvider } from '@/context/LessonTutorProvider';
 import { AppLanguageProvider } from '@/context/AppLanguageProvider';
+import { PremiumProvider } from '@/context/PremiumContext';
 
 import HomePage from '@/pages/HomePage';
 import LearningPage from '@/pages/LearningPage';
@@ -113,9 +114,11 @@ function App() {
             <LiveKitProvider>
               <ThemeProvider>
                 <AppLanguageProvider>
-                  <LessonTutorProvider>
-                    <RoutedAppContent />
-                  </LessonTutorProvider>
+                  <PremiumProvider>
+                    <LessonTutorProvider>
+                      <RoutedAppContent />
+                    </LessonTutorProvider>
+                  </PremiumProvider>
                 </AppLanguageProvider>
               </ThemeProvider>
             </LiveKitProvider>

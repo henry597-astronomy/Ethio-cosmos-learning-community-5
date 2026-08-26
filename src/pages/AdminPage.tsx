@@ -32,6 +32,7 @@ import type {
   MaterialType,
 } from '@/types';
 import { toast } from 'sonner';
+import PremiumAdminPanel from '@/components/PremiumAdminPanel';
 
 const DEFAULT_ABOUT: AboutContent = {
   missionText: '',
@@ -385,8 +386,8 @@ export default function AdminPage() {
   if (!user) return null;
 
   // Define which tabs are available for regular admins vs super admin
-  const regularAdminTabs = ['home', 'lessons', 'space-news', 'analytics'];
-  const allTabs = ['home', 'homepage', 'topics', 'subtopics', 'lessons', 'space-news', 'about', 'materials', 'quizzes', 'users', 'analytics'];
+  const regularAdminTabs = ['home', 'lessons', 'space-news', 'analytics', 'premium'];
+  const allTabs = ['home', 'homepage', 'topics', 'subtopics', 'lessons', 'space-news', 'about', 'materials', 'quizzes', 'users', 'analytics', 'premium'];
   const availableTabs = isSuperAdmin ? allTabs : regularAdminTabs;
 
   // If user tries to access a restricted tab, reset to first available tab
@@ -2178,6 +2179,11 @@ export default function AdminPage() {
                 </Button>
               </div>
             </div>
+          </TabsContent>
+
+          {/* ── PREMIUM TAB ──────────────────────────────────────────── */}
+          <TabsContent value="premium" className="space-y-4">
+            <PremiumAdminPanel adminId={user.id} />
           </TabsContent>
 
           {/* ── USERS TAB ─────────────────────────────────────────────── */}

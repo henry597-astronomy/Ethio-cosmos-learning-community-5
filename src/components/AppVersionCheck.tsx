@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/supabase';
 
 // Current app version matching the latest build
-const CURRENT_APP_VERSION = 39; // v1.10.10 Premium gates and lesson access in APK
+const CURRENT_APP_VERSION = 40; // v1.10.11 corrected telescope launcher icon and responsive Admin
 
 export default function AppVersionCheck({ children }: { children: React.ReactNode }) {
   const [updateRequired, setUpdateRequired] = useState(false);

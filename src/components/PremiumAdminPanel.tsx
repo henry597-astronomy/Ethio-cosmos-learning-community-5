@@ -435,9 +435,9 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="rounded-xl border border-orange-400/30 bg-gradient-to-br from-orange-500/10 via-slate-900/70 to-slate-950/80 p-3 sm:p-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="w-full min-w-0 space-y-2 overflow-x-hidden">
+      <div className="w-full min-w-0 rounded-xl border border-orange-400/30 bg-gradient-to-br from-orange-500/10 via-slate-900/70 to-slate-950/80 p-2.5 sm:p-4">
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-orange-500/15 p-3 text-orange-300"><Crown size={24} /></div>
             <div>
@@ -451,7 +451,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
             <RefreshCw size={15} className="mr-2" /> Refresh
           </Button>
         </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/10 bg-slate-950/50 p-4">
+        <div className="mt-2 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-950/50 p-2.5 sm:p-3">
           <div>
             <p className="font-semibold text-white">Premium mode</p>
             <p className="text-sm text-gray-400">{settings?.is_enabled ? 'Feature switches are active.' : 'All Premium-only features are currently shut down globally.'}</p>
@@ -475,8 +475,8 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         )}
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
-        <div className="mb-3">
+      <div className="w-full min-w-0 rounded-xl border border-white/10 bg-slate-900/50 p-2.5 sm:p-4">
+        <div className="mb-2">
           <h3 className="text-lg font-bold text-white">Feature-by-feature switches</h3>
           <p className="mt-1 text-sm text-gray-400">New features start free. Turn a feature on as Premium-only only after its user experience and server-side cost protection are ready.</p>
         </div>
@@ -505,8 +505,8 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
-        <div className="mb-3 flex items-start gap-3">
+      <div className="w-full min-w-0 rounded-xl border border-white/10 bg-slate-900/50 p-2.5 sm:p-4">
+        <div className="mb-2 flex min-w-0 items-start gap-2.5">
           <div className="rounded-lg bg-cyan-500/15 p-2 text-cyan-300"><BookOpen size={19} /></div>
           <div>
             <h3 className="text-lg font-bold text-white">Learning content access</h3>
@@ -514,8 +514,8 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
           </div>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-3">
-          <div className="rounded-lg border border-white/10 bg-slate-800/50 p-3">
+        <div className="grid min-w-0 gap-2.5 lg:grid-cols-3">
+          <div className="min-w-0 rounded-lg border border-white/10 bg-slate-800/50 p-2.5">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
                 <h4 className="font-semibold text-white">Topics</h4>
@@ -541,7 +541,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-slate-800/50 p-3">
+          <div className="min-w-0 rounded-lg border border-white/10 bg-slate-800/50 p-2.5">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
                 <h4 className="font-semibold text-white">Subtopics</h4>
@@ -568,7 +568,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-slate-800/50 p-3">
+          <div className="min-w-0 rounded-lg border border-white/10 bg-slate-800/50 p-2.5">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
                 <h4 className="font-semibold text-white">Lessons</h4>
@@ -597,7 +597,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
+      <div className="w-full min-w-0 rounded-xl border border-white/10 bg-slate-900/50 p-2.5 sm:p-4">
         <div className="mb-3 flex items-start gap-3">
           <div className="rounded-lg bg-sky-500/15 p-2 text-sky-300"><Clock3 size={20} /></div>
           <div>
@@ -608,7 +608,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           {plans.map((plan) => (
-            <div key={plan.key} className="rounded-lg border border-white/10 bg-slate-800/70 p-3">
+            <div key={plan.key} className="min-w-0 rounded-lg border border-white/10 bg-slate-800/70 p-2.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold text-white">{plan.name}</p>
                 <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[11px] font-semibold text-gray-300">DRAFT</span>
@@ -646,7 +646,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
+      <div className="w-full min-w-0 rounded-xl border border-white/10 bg-slate-900/50 p-2.5 sm:p-4">
         <div className="mb-3 flex items-start gap-3">
           <div className="rounded-lg bg-violet-500/15 p-2 text-violet-300"><UserPlus size={20} /></div>
           <div>
@@ -754,7 +754,7 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-900/50 p-3 sm:p-4">
+      <div className="w-full min-w-0 rounded-xl border border-white/10 bg-slate-900/50 p-2.5 sm:p-4">
         <h3 className="text-lg font-bold text-white">Recent Premium audit activity</h3>
         <p className="mt-1 text-sm text-gray-400">This is an append-only record of setting, feature, plan, entitlement, and payment-ledger mutations.</p>
         <div className="mt-4 space-y-2">

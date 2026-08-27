@@ -28,7 +28,7 @@ async function getSiteContent<T>(key: string): Promise<T | null> {
     .single();
   if (error && error.code !== "PGRST116") {
     console.error(`Error fetching site content for ${key}:`, error);
-    return null;
+    throw error;
   }
   return data ? (data.value as T) : null;
 }
@@ -233,7 +233,7 @@ export const getTopics = async (): Promise<Topic[]> => {
     .order("order_index");
   if (error) {
     console.error("Error fetching topics:", error);
-    return [];
+    throw error;
   }
   return data as Topic[];
 };
@@ -295,7 +295,7 @@ export const getAllSubtopics = async (): Promise<Subtopic[]> => {
     .order("order_index");
   if (error) {
     console.error("Error fetching all subtopics:", error);
-    return [];
+    throw error;
   }
   return data as Subtopic[];
 };
@@ -308,7 +308,7 @@ export const getSubtopicsByTopicId = async (topicId: string): Promise<Subtopic[]
     .order("order_index");
   if (error) {
     console.error(`Error fetching subtopics for topic ${topicId}:`, error);
-    return [];
+    throw error;
   }
   return data as Subtopic[];
 };
@@ -370,7 +370,7 @@ export const getLessonBySubtopicId = async (subtopicId: string): Promise<Lesson 
     .single();
   if (error && error.code !== "PGRST116") {
     console.error(`Error fetching lesson for subtopic ${subtopicId}:`, error);
-    return null;
+    throw error;
   }
   return data ? (data as Lesson) : null;
 };

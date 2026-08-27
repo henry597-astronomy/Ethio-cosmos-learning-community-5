@@ -198,11 +198,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         applySession(session);
-        // If we just signed in on mobile, force jump to home
-        const isMobile = Capacitor.isNativePlatform();
-        if (event === 'SIGNED_IN' && isMobile) {
-          window.location.hash = '/';
-        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setAccessToken(null);

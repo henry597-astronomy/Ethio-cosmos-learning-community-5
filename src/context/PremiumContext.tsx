@@ -28,6 +28,20 @@ const EMPTY_MANUAL_PAYMENT: PremiumSettings = {
   manual_payment_instructions: '',
 };
 
+type PremiumSnapshot = {
+  globalEnabled: boolean;
+  manualPayment: PremiumSettings;
+  features: PremiumFeature[];
+  topics: PremiumTopicFlag[];
+  subtopics: PremiumSubtopicFlag[];
+  lessonFlags: PremiumLessonFlag[];
+  entitlements: PremiumEntitlement[];
+};
+
+function getPremiumSnapshotKey(userId: string | undefined) {
+  return `ethio-premium-snapshot:${userId || 'guest'}`;
+}
+
 export function PremiumProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -42,7 +56,46 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   const [contentFlagsLoaded, setContentFlagsLoaded] = useState(false);
   const [entitlements, setEntitlements] = useState<PremiumEntitlement[]>([]);
 
+  useEffect(() => {
+    setGlobalEnabled(true);
+    setManualPayment(EMPTY_MANUAL_PAYMENT);
+    setFeatures([]);
+    setTopics([]);
+    setSubtopics([]);
+    setLessonFlags([]);
+    setEntitlements([]);
+    setSettingsLoaded(false);
+    setFeaturesLoaded(false);
+    setContentFlagsLoaded(false);
+    try {
+      const raw = window.localStorage.getItem(getPremiumSnapshotKey(user?.id));
+      if (!raw) {
+        setLoading(false);
+        return;
+      }
+      const snapshot = JSON.parse(raw) as PremiumSnapshot;
+      setGlobalEnabled(snapshot.globalEnabled);
+      setManualPayment(snapshot.manualPayment);
+      setFeatures(snapshot.features || []);
+      setTopics(snapshot.topics || []);
+      setSubtopics(snapshot.subtopics || []);
+      setLessonFlags(snapshot.lessonFlags || []);
+      setEntitlements(snapshot.entitlements || []);
+      setSettingsLoaded(true);
+      setFeaturesLoaded(true);
+      setContentFlagsLoaded(true);
+      setLoading(false);
+    } catch (error) {
+      console.warn('Premium offline snapshot unavailable:', error);
+      setLoading(false);
+    }
+  }, [user?.id]);
+
   const refresh = useCallback(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [settingsResult, featuresResult, topicsResult, subtopicsResult, lessonFlagsResult, entitlementsResult] = await Promise.all([
@@ -76,6 +129,18 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       if (!entitlementsResult.error) {
         setEntitlements((entitlementsResult.data || []) as PremiumEntitlement[]);
       }
+      if (!settingsResult.error && !featuresResult.error && contentFlagsSucceeded && !entitlementsResult.error) {
+        const snapshot: PremiumSnapshot = {
+          globalEnabled: Boolean(settingsResult.data?.is_enabled ?? true),
+          manualPayment: (settingsResult.data as PremiumSettings) || EMPTY_MANUAL_PAYMENT,
+          features: (featuresResult.data || []) as PremiumFeature[],
+          topics: (topicsResult.data || []) as PremiumTopicFlag[],
+          subtopics: (subtopicsResult.data || []) as PremiumSubtopicFlag[],
+          lessonFlags: (lessonFlagsResult.data || []) as PremiumLessonFlag[],
+          entitlements: (entitlementsResult.data || []) as PremiumEntitlement[],
+        };
+        window.localStorage.setItem(getPremiumSnapshotKey(user?.id), JSON.stringify(snapshot));
+      }
     } finally {
       setLoading(false);
     }
@@ -85,6 +150,24 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     const handle = window.setTimeout(() => { void refresh(); }, 0);
     return () => window.clearTimeout(handle);
   }, [refresh]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    const refreshOnFocus = () => { void refresh(); };
+    const interval = window.setInterval(refreshWhenVisible, 20_000);
+
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [refresh, user?.id]);
 
   const hasActiveGrant = useMemo(() => entitlements.some(isCurrentlyActive), [entitlements]);
   const hasManualPaymentDetails = useMemo(() => (

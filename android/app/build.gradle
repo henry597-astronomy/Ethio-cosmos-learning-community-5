@@ -8,8 +8,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Version 24 fixes mobile OAuth redirect by using Capacitor.isNativePlatform().
-        versionCode 56
-        versionName "1.10.27"
+        versionCode 57
+        versionName "1.10.28"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -22,7 +22,8 @@ android {
             // Keep the release wrapper smaller and harder to reverse-engineer.
             // The APK still contains the web bundle, so server secrets must never be placed in frontend code.
             minifyEnabled true
-            shrinkResources true
+            // Keep all launcher densities in the installable test artifact; older Android launchers need them.
+            shrinkResources false
             // Use the debug signing key for this installable test artifact only.
             // A private release keystore is required before Play Store publication.
             signingConfig signingConfigs.debug

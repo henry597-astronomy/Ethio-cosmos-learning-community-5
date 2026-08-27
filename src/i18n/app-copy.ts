@@ -162,6 +162,8 @@ export type AppCopyKey =
   | 'photoGallery'
   | 'videos'
   | 'downloads'
+  | 'documents'
+  | 'document'
   | 'open'
   | 'download'
   | 'noMaterials'
@@ -186,6 +188,11 @@ export type AppCopyKey =
   | 'preparing'
   | 'offlineReady'
   | 'offlineItemSaved'
+  | 'offlineExportedToDownloads'
+  | 'offlineSavedButExportFailed'
+  | 'offlineTopicDownloadHint'
+  | 'offlineMaterialDownloadHint'
+  | 'externalMaterialNotOffline'
   | 'useUpdateOnline'
   | 'useOnlineVersion'
   | 'downloadForOffline'
@@ -338,16 +345,16 @@ export type AppCopyKey =
   | 'backToLearning'
   | 'close'
   | 'notifications'
-  | 'clearNotifications'
-  | 'clearNotificationsConfirm'
-  | 'notificationsCleared'
-  | 'notificationClearError'
-  | 'clearingNotifications'
+  | 'removeNotification'
+  | 'notificationRemoveError'
   | 'notificationSettings'
   | 'notificationPermissionHelp'
   | 'classroomReminders'
   | 'adminAnnouncements'
   | 'channelPosts'
+  | 'channelLoading'
+  | 'channelLoadError'
+  | 'retry'
   | 'browserNotifications'
   | 'nativeNotifications'
   | 'reminderLeadTime'
@@ -461,6 +468,9 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     classroomReminders: 'Classroom reminders',
     adminAnnouncements: 'Admin announcements',
     channelPosts: 'Channel posts',
+    channelLoading: 'Loading channel posts…',
+    channelLoadError: 'Channel posts are temporarily unavailable. Check your connection and try again.',
+    retry: 'Retry',
     browserNotifications: 'Browser notifications',
     nativeNotifications: 'Android reminders',
     reminderLeadTime: 'Reminder lead time',
@@ -570,6 +580,8 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     photoGallery: 'Photo Gallery',
     videos: 'Videos',
     downloads: 'Downloads',
+    documents: 'Documents',
+    document: 'Document',
     open: 'Open',
     download: 'Download',
     noMaterials: 'No materials available yet.',
@@ -594,6 +606,11 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     preparing: 'Preparing...',
     offlineReady: 'Offline content is ready on this device.',
     offlineItemSaved: 'Saved for offline use.',
+    offlineExportedToDownloads: 'Saved to the Downloads folder.',
+    offlineSavedButExportFailed: 'Saved for offline use, but could not be copied to Downloads.',
+    offlineTopicDownloadHint: 'Download this topic first to use its lessons without internet.',
+    offlineMaterialDownloadHint: 'Download this material first to open it without internet.',
+    externalMaterialNotOffline: 'External materials cannot be saved for offline use.',
     useUpdateOnline: 'Use update online',
     useOnlineVersion: 'Use online version',
     downloadForOffline: 'Download for offline',
@@ -745,11 +762,8 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     paymentSubmissionLoadError: 'Could not load payment submissions.',
     backToLearning: 'Back to learning',
     close: 'Close',
-    clearNotifications: 'Clear notifications',
-    clearNotificationsConfirm: 'Clear all notifications for this account? This does not delete posts or other users’ notifications.',
-    notificationsCleared: 'Notifications cleared.',
-    notificationClearError: 'Could not clear notifications.',
-    clearingNotifications: 'Clearing…',
+    removeNotification: 'Remove notification',
+    notificationRemoveError: 'Could not remove notification.',
   },
   am: {
     home: 'መነሻ ገጽ',
@@ -836,6 +850,9 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     classroomReminders: 'የክፍል ማሳሰቢያዎች',
     adminAnnouncements: 'የአስተዳዳሪ ማሳወቂያዎች',
     channelPosts: 'የቻናል ልጥፎች',
+    channelLoading: 'የቻናል ልጥፎች በመጫን ላይ…',
+    channelLoadError: 'የቻናል ልጥፎች ለጊዜው አይገኙም። የኢንተርኔት ግንኙነትዎን ይመልከቱና እንደገና ይሞክሩ።',
+    retry: 'እንደገና ሞክር',
     browserNotifications: 'የአሳሽ ማሳወቂያዎች',
     nativeNotifications: 'የአንድሮይድ አስታዋሾች',
     reminderLeadTime: 'የአስታዋሽ ቅድመ ጊዜ',
@@ -945,6 +962,8 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     photoGallery: 'የፎቶ ማዕከል',
     videos: 'ቪዲዮዎች',
     downloads: 'ውርዶች',
+    documents: 'ሰነዶች',
+    document: 'ሰነድ',
     open: 'ይክፈቱ',
     download: 'ያውርዱ',
     noMaterials: 'እስካሁን ምንም የትምህርት መርጃ የለም።',
@@ -969,6 +988,11 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     preparing: 'በማዘጋጀት ላይ...',
     offlineReady: 'ያለ ኢንተርኔት ይዘት በዚህ መሣሪያ ላይ ዝግጁ ነው።',
     offlineItemSaved: 'ያለ ኢንተርኔት ለመጠቀም ተቀምጧል።',
+    offlineExportedToDownloads: 'ወደ Downloads አቃፊ ተቀምጧል።',
+    offlineSavedButExportFailed: 'ያለ ኢንተርኔት ለመጠቀም ተቀምጧል፣ ግን ወደ Downloads መቅዳት አልተቻለም።',
+    offlineTopicDownloadHint: 'ያለ ኢንተርኔት ለመጠቀም መጀመሪያ ይህን ርዕስ ያውርዱ።',
+    offlineMaterialDownloadHint: 'ያለ ኢንተርኔት ለመክፈት መጀመሪያ ይህን መርጃ ያውርዱ።',
+    externalMaterialNotOffline: 'ውጫዊ መርጃዎች ለከመስመር ውጭ መጠቀሚያ ሊቀመጡ አይችሉም።',
     useUpdateOnline: 'ማዘመኛውን በመስመር ላይ ይጠቀሙ',
     useOnlineVersion: 'የመስመር ላይ ስሪቱን ይጠቀሙ',
     downloadForOffline: 'ከመስመር ውጭ ለመጠቀም ያውርዱ',
@@ -1120,11 +1144,8 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     paymentSubmissionLoadError: 'የክፍያ ማረጋገጫዎችን መጫን አልተቻለም።',
     backToLearning: 'ወደ ትምህርቶች ተመለስ',
     close: 'ዝጋ',
-    clearNotifications: 'ማሳወቂያዎችን አጽዳ',
-    clearNotificationsConfirm: 'ለዚህ መለያ ያሉትን ማሳወቂያዎች በሙሉ ያጽዱ? ይህ ጽሑፎችን ወይም የሌሎች ተጠቃሚዎችን ማሳወቂያዎች አይሰርዝም።',
-    notificationsCleared: 'ማሳወቂያዎቹ ጸድተዋል።',
-    notificationClearError: 'ማሳወቂያዎችን ማጽዳት አልተቻለም።',
-    clearingNotifications: 'በማጽዳት ላይ…',
+    removeNotification: 'ማሳወቂያን አስወግድ',
+    notificationRemoveError: 'ማሳወቂያውን ማስወገድ አልተቻለም።',
   },
 };
 

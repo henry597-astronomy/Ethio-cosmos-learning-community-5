@@ -79,7 +79,9 @@ VALUES
 ON CONFLICT (key) DO NOTHING;
 
 INSERT INTO public.premium_plans (key, name, description, price_birr, duration_days, is_active)
-VALUES ('premium_30d', 'Premium 30 Days', 'A 30-day Premium access pass. Set the Ethiopian-birr price before enabling real payments.', 0, 30, false)
+VALUES
+  ('premium_monthly', 'Premium Monthly', 'Premium access for 30 days.', 50, 30, true),
+  ('premium_annual', 'Premium Annual', 'Premium access for 365 days.', 300, 365, true)
 ON CONFLICT (key) DO NOTHING;
 
 CREATE OR REPLACE FUNCTION public.set_premium_updated_at()

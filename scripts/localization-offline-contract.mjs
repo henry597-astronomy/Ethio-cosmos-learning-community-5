@@ -44,10 +44,15 @@ assert.match(dailyNewsBlock, /dailyNews\.summary/);
 assert.match(dailyNewsBlock, /dailyNews\.category/);
 assert.doesNotMatch(dailyNewsBlock, /LocalizedOfficialText/);
 
-const officialPackKeys = ['topics', 'all_subtopics', 'site_content', 'materials_gallery_images', 'materials_videos', 'materials_pdfs', 'materials_groups', 'about_content', 'quizzes', 'quiz_questions_all'];
-for (const key of officialPackKeys) assert.match(offline, new RegExp(`['"]${key}['"]`));
+const overviewKeys = ['topics', 'all_subtopics', 'materials_groups', 'about_content', 'homepage_hero', 'homepage_feature_cards', 'homepage_featured_topics'];
+for (const key of overviewKeys) assert.match(offline, new RegExp(`['"]${key}['"]`));
 assert.doesNotMatch(offline, /prefetchPublicCommunityContent|from\(['"](?:channel_posts|space_news|shorts)['"]\)/);
-assert.match(offline, /saveOfflinePackManifest/);
+assert.match(offline, /saveSelectedTopicOffline/);
+assert.match(offline, /saveSelectedMaterialOffline/);
+assert.match(offline, /refreshSelectedOfflineContent/);
+assert.match(offline, /selectedTopicIds/);
+assert.match(offline, /selectedMaterials/);
+assert.doesNotMatch(offline, /downloadOfficialLearningPack\(\)[\s\S]{0,300}getTopics\(/);
 assert.match(offline, /language/);
 
 console.log('Localization/offline contract checks passed.');

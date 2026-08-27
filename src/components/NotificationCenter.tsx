@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bell, Check, CheckCheck, Settings2, Trash2 } from 'lucide-react';
+import { Bell, Check, CheckCheck, Settings2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -27,7 +27,7 @@ export default function NotificationCenter() {
     unreadCount,
     markAsRead,
     markAllAsRead,
-    clearNotifications,
+    removeNotification,
     savePreferences,
     requestBrowserNotificationPermission,
     requestNativeNotificationPermission,
@@ -35,7 +35,7 @@ export default function NotificationCenter() {
   const { language, t } = useAppLanguage();
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [clearing, setClearing] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const unreadNotifications = useMemo(
     () => notifications.filter((notification) => !notification.read_at).length,
@@ -143,30 +143,6 @@ export default function NotificationCenter() {
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                disabled={notifications.length === 0 || clearing}
-                aria-label={t('clearNotifications')}
-                title={t('clearNotifications')}
-                onClick={async () => {
-                  if (!window.confirm(t('clearNotificationsConfirm'))) return;
-                  setClearing(true);
-                  try {
-                    await clearNotifications();
-                    toast.success(t('notificationsCleared'));
-                  } catch (error) {
-                    toast.error(error instanceof Error ? error.message : t('notificationClearError'));
-                  } finally {
-                    setClearing(false);
-                  }
-                }}
-                className="h-8 shrink-0 px-2 text-xs text-red-300 hover:bg-red-500/10 hover:text-red-200"
-              >
-                <Trash2 size={14} className="mr-1" />
-                <span className="hidden sm:inline">{clearing ? t('clearingNotifications') : t('clearNotifications')}</span>
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
                 size="icon"
                 aria-label={t('notificationSettings')}
                 onClick={() => setSettingsOpen((value) => !value)}
@@ -259,8 +235,28 @@ export default function NotificationCenter() {
               {notifications.map((notification) => (
                 <article
                   key={notification.id}
-                  className={`rounded-xl border p-3 transition-colors ${notification.read_at ? 'border-white/5 bg-slate-900/50' : 'border-orange-500/25 bg-orange-500/[0.08]'}`}
+                  className={`relative rounded-xl border p-3 pr-10 transition-colors ${notification.read_at ? 'border-white/5 bg-slate-900/50' : 'border-orange-500/25 bg-orange-500/[0.08]'}`}
                 >
+                  <button
+                    type="button"
+                    aria-label={t('removeNotification')}
+                    title={t('removeNotification')}
+                    disabled={removingId === notification.id}
+                    onClick={async (event) => {
+                      event.stopPropagation();
+                      setRemovingId(notification.id);
+                      try {
+                        await removeNotification(notification.id);
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : t('notificationRemoveError'));
+                      } finally {
+                        setRemovingId((current) => current === notification.id ? null : current);
+                      }
+                    }}
+                    className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-red-500/15 hover:text-red-300 disabled:opacity-50"
+                  >
+                    <X size={15} aria-hidden="true" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => void goToNotification(notification)}

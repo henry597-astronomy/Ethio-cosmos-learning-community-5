@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
+import { useAppLanguage } from '@/context/AppLanguageContext';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -156,10 +157,13 @@ export default function ChatPage() {
   const adminUserId = profile?.role === 'admin' ? profile.id : null;
   const isSuperAdminSignedIn = user?.email === 'henokgirma648@gmail.com';
   const { resetUnreadCount, markChannelPostNotificationsAsRead } = useNotifications();
+  const { t } = useAppLanguage();
   const [posts, setPosts] = useState<ChannelPost[]>([]);
   const [newPostText, setNewPostText] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [channelLoading, setChannelLoading] = useState(true);
+  const [channelLoadError, setChannelLoadError] = useState<string | null>(null);
 
   // Telegram style comment drawer / modal state
   const [activePostForComments, setActivePostForComments] = useState<ChannelPost | null>(null);
@@ -173,17 +177,15 @@ export default function ChatPage() {
   const postsEndRef = useRef<HTMLDivElement>(null);
 
   const fetchChannelData = async () => {
+    setChannelLoading(true);
+    setChannelLoadError(null);
     try {
       const { data: postsData, error: postsError } = await supabase
         .from('channel_posts')
         .select(`id, message_text, image_url, created_at, pinned_at, user_id, profiles ( username, bio, avatar_url, role )`)
         .order('created_at', { ascending: true });
 
-      if (postsError) {
-        console.error('Error fetching channel posts:', postsError);
-        setError('Channel tables not initialized yet. Please run migration `supabase/telegram_channel_setup.sql`.');
-        return;
-      }
+      if (postsError) throw postsError;
 
       const { data: reactionsData } = await supabase
         .from('channel_reactions')
@@ -245,6 +247,7 @@ export default function ChatPage() {
       });
 
       setPosts(mappedPosts);
+      setChannelLoadError(null);
 
       // Keep active comment modal in sync instantly
       setActivePostForComments(prev => {
@@ -254,7 +257,9 @@ export default function ChatPage() {
       });
     } catch (err) {
       console.error('Error loading channel data:', err);
-      setError('Failed to load channel data.');
+      setChannelLoadError('Unable to load channel posts. Check your connection and try again.');
+    } finally {
+      setChannelLoading(false);
     }
   };
 
@@ -526,6 +531,14 @@ export default function ChatPage() {
             {error}
           </div>
         )}
+        {channelLoadError && posts.length > 0 && (
+          <div className="flex flex-wrap items-center justify-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-200">
+            <span>{t('channelLoadError')}</span>
+            <Button type="button" variant="ghost" size="sm" onClick={() => void fetchChannelData()} className="h-7 px-2 text-xs text-amber-100 hover:bg-amber-500/15 hover:text-white">
+              {t('retry')}
+            </Button>
+          </div>
+        )}
 
         {/* Admin Composer */}
         {isAdmin && (
@@ -588,7 +601,20 @@ export default function ChatPage() {
               </button>
             )}
 
-            {posts.length === 0 ? (
+            {channelLoading && posts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-slate-900/40 p-8 py-16 text-center backdrop-blur-sm" aria-live="polite">
+                <div className="mb-4 h-10 w-10 animate-spin rounded-full border-2 border-white/15 border-t-blue-400" />
+                <p className="text-sm text-gray-300">{t('channelLoading')}</p>
+              </div>
+            ) : channelLoadError && posts.length === 0 ? (
+              <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-8 py-16 text-center backdrop-blur-sm" role="status">
+                <span className="mb-3 block text-4xl">🌐</span>
+                <h3 className="mb-2 text-base font-semibold text-amber-100">{t('channelLoadError')}</h3>
+                <Button type="button" variant="outline" onClick={() => void fetchChannelData()} className="mt-2 border-amber-300/30 text-amber-100 hover:bg-amber-500/10">
+                  {t('retry')}
+                </Button>
+              </div>
+            ) : posts.length === 0 ? (
               <div className="text-center py-16 bg-slate-900/40 rounded-2xl border border-white/10 backdrop-blur-sm p-8">
                 <span className="text-4xl mb-3 block">📭</span>
                 <h3 className="text-white font-semibold text-base mb-1">No channel posts yet</h3>

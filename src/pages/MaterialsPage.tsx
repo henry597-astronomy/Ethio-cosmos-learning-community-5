@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react';
-import { Download, ExternalLink, Play, X, FolderOpen, Search } from 'lucide-react';
+import { ExternalLink, Play, X, FolderOpen, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useMaterialsGroups } from '@/hooks/use-cms-data';
+import { useAuth } from '@/context/AuthContext';
 import { FallbackImage } from '@/components/MediaFallback';
-import { getEmbedUrl, getVideoType } from '@/lib/video-utils';
+import { getEmbedUrl, getVideoPreviewUrl, getVideoType } from '@/lib/video-utils';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 import OfflineSaveButton from '@/components/OfflineSaveButton';
-import type { MaterialGroup, MaterialType } from '@/types';
+import type { GalleryImage, MaterialGroup, MaterialType, PdfItem, VideoItem } from '@/types';
+import { getExplicitMaterialSelection, getOfflineData, getOfflineMediaKey } from '@/lib/offline-cache';
+import { toast } from 'sonner';
 
-type ViewTab = 'all' | MaterialType;
+type ViewTab = 'all' | Exclude<MaterialType, 'pdf'> | 'document';
 
 interface GroupedSection {
   id: string;
@@ -26,13 +29,55 @@ interface GroupedSection {
 }
 
 export default function MaterialsPage() {
-  const { t } = useAppLanguage();
+  const { t, language } = useAppLanguage();
+  const { user } = useAuth();
   const { grouped, loading } = useMaterialsGroups();
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; title: string } | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const resolveMaterialUrl = async (type: 'gallery' | 'video' | 'pdf', id: string, sourceUrl: string) => {
+    if (typeof navigator === 'undefined' || navigator.onLine) return sourceUrl;
+    if (!user) return null;
+    const selection = await getExplicitMaterialSelection(user.id, language, id, type);
+    if (!selection) return null;
+    const blob = await getOfflineData<Blob>(getOfflineMediaKey(sourceUrl));
+    if (!blob || typeof blob.arrayBuffer !== 'function') return null;
+    return URL.createObjectURL(blob);
+  };
+
+  const openImage = async (image: GalleryImage) => {
+    const resolvedUrl = await resolveMaterialUrl('gallery', image.id, image.url);
+    if (!resolvedUrl) {
+      toast.error(t('offlineMaterialDownloadHint'));
+      return;
+    }
+    setSelectedImage({ url: resolvedUrl, title: image.title });
+  };
+
+  const openVideo = async (video: VideoItem) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine && !getVideoType(video.url).includes('direct')) {
+      toast.error(t('externalMaterialNotOffline'));
+      return;
+    }
+    const resolvedUrl = await resolveMaterialUrl('video', video.id, video.url);
+    if (!resolvedUrl) {
+      toast.error(t('offlineMaterialDownloadHint'));
+      return;
+    }
+    setSelectedVideo({ url: resolvedUrl, title: video.title });
+  };
+
+  const openPdf = async (pdf: PdfItem) => {
+    const resolvedUrl = await resolveMaterialUrl('pdf', pdf.id, pdf.url);
+    if (!resolvedUrl) {
+      toast.error(t('offlineMaterialDownloadHint'));
+      return;
+    }
+    window.open(resolvedUrl, '_blank');
+  };
 
   // Build group sections. Items without a group fall into "Uncategorized",
   // preserving everything the admin previously uploaded as a flat list.
@@ -113,7 +158,7 @@ export default function MaterialsPage() {
       result = result.filter((s) => s.galleryItems.length > 0);
     } else if (viewTab === 'video') {
       result = result.filter((s) => s.videos.length > 0);
-    } else if (viewTab === 'pdf') {
+    } else if (viewTab === 'document') {
       result = result.filter((s) => s.pdfs.length > 0);
     }
     if (searchQuery.trim()) {
@@ -182,12 +227,12 @@ export default function MaterialsPage() {
                   {t('videos')}
                 </Button>
                 <Button
-                  variant={viewTab === 'pdf' ? 'default' : 'outline'}
+                  variant={viewTab === 'document' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => { setViewTab('pdf'); setActiveGroup(null); }}
-                  className={viewTab === 'pdf' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
+                  onClick={() => { setViewTab('document'); setActiveGroup(null); }}
+                  className={viewTab === 'document' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-white/20 text-white hover:bg-white/10'}
                 >
-                  {t('downloads')}
+                  {t('documents')}
                 </Button>
               </div>
 
@@ -218,7 +263,7 @@ export default function MaterialsPage() {
         <section className="py-8">
           <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
             <h2 className="text-xl font-bold text-white mb-6">
-              {viewTab === 'all' ? t('browseByCategory') : `${t('categories')} (${viewTab === 'gallery' ? t('photos') : viewTab === 'video' ? t('videos') : t('downloads')})`}
+              {viewTab === 'all' ? t('browseByCategory') : `${t('categories')} (${viewTab === 'gallery' ? t('photos') : viewTab === 'video' ? t('videos') : t('documents')})`}
             </h2>
             {visibleSections.length === 0 ? (
               <p className="text-gray-400 text-sm">
@@ -231,7 +276,7 @@ export default function MaterialsPage() {
                   const preview = section.preview_image || section.galleryItems[0]?.url || section.videos[0]?.thumbnail;
                   const typeLabel =
                     section.type === 'gallery' ? t('photos') :
-                    section.type === 'video' ? t('videos') : t('downloads');
+                    section.type === 'video' ? t('videos') : t('documents');
                   return (
                     <button
                       key={section.id}
@@ -307,8 +352,9 @@ export default function MaterialsPage() {
                 <GroupContent
                   section={section}
                   viewTab={viewTab}
-                  onOpenImage={(url) => setSelectedImage(url)}
-                  onOpenVideo={(url, title) => setSelectedVideo({ url, title })}
+                  onOpenImage={(image) => void openImage(image)}
+                  onOpenVideo={(video) => void openVideo(video)}
+                  onOpenPdf={(pdf) => void openPdf(pdf)}
                 />
               </div>
             ))}
@@ -329,8 +375,8 @@ export default function MaterialsPage() {
             <X className="w-8 h-8" />
           </button>
           <img
-            src={selectedImage}
-            alt={t('galleryImage')}
+            src={selectedImage.url}
+            alt={selectedImage.title || t('galleryImage')}
             className="max-w-full max-h-[90vh] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
@@ -405,11 +451,13 @@ function GroupContent({
   viewTab,
   onOpenImage,
   onOpenVideo,
+  onOpenPdf,
 }: {
   section: GroupedSection;
   viewTab: ViewTab;
-  onOpenImage: (url: string) => void;
-  onOpenVideo: (url: string, title: string) => void;
+  onOpenImage: (image: GalleryImage) => void;
+  onOpenVideo: (video: VideoItem) => void;
+  onOpenPdf: (pdf: PdfItem) => void;
 }) {
   const { t } = useAppLanguage();
 
@@ -424,7 +472,7 @@ function GroupContent({
               <div key={image.id} className="relative aspect-square overflow-hidden rounded-xl group">
                 <button
                   type="button"
-                  onClick={() => onOpenImage(image.url)}
+                  onClick={() => onOpenImage(image)}
                   className="absolute inset-0 h-full w-full text-left"
                   aria-label={image.title}
                 >
@@ -460,13 +508,13 @@ function GroupContent({
               >
                 <button
                   type="button"
-                  onClick={() => onOpenVideo(video.url, video.title)}
+                  onClick={() => onOpenVideo(video)}
                   className="block w-full text-left"
                   aria-label={video.title}
                 >
                   <div className="relative aspect-video">
                     <FallbackImage
-                      src={video.thumbnail}
+                      src={video.thumbnail || getVideoPreviewUrl(video.url) || ''}
                       alt={video.title}
                       className="w-full h-full object-cover"
                     />
@@ -494,9 +542,9 @@ function GroupContent({
       )}
 
       {/* PDF Downloads */}
-      {(viewTab === 'all' || viewTab === 'pdf') && section.pdfs.length > 0 && (
+      {(viewTab === 'all' || viewTab === 'document') && section.pdfs.length > 0 && (
         <section className="py-2">
-          <h3 className="text-xl font-bold text-white mb-4">{t('downloads')}</h3>
+          <h3 className="text-xl font-bold text-white mb-4">{t('documents')}</h3>
           <div className="space-y-2 sm:space-y-3">
             {section.pdfs.map((pdf) => (
               <div
@@ -515,24 +563,11 @@ function GroupContent({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(pdf.url, '_blank')}
+                    onClick={() => onOpenPdf(pdf)}
                     className="border-white/20 text-white hover:bg-white/10"
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     {t('open')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = pdf.url;
-                      link.download = pdf.title;
-                      link.click();
-                    }}
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    {t('download')}
                   </Button>
                   <OfflineSaveButton kind="material" selection={{ type: 'pdf', item: pdf, group: section.group }} />
                 </div>

@@ -1,5 +1,5 @@
 -- Manual Premium payment evidence submitted by users for Admin review.
--- This does not process payments or grant Premium automatically.
+-- This does not process payments. A separate Admin-only review RPC can grant Premium only after evidence is explicitly approved.
 
 CREATE TABLE IF NOT EXISTS public.premium_payment_submissions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

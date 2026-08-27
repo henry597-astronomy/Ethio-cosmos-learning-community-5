@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -11,6 +11,13 @@ import {
   saveSelectedMaterialOffline,
   type MaterialSelection,
 } from '@/lib/background-prefetch';
+import {
+  getOfflineData,
+  getOfflineMediaKey,
+  isMaterialOfflineReady,
+  isTopicOfflineReady,
+} from '@/lib/offline-cache';
+import { exportMaterialToDownloads } from '@/lib/material-download';
 import type { Lesson, Subtopic, Topic } from '@/types';
 
 type OfflineSaveButtonProps =
@@ -24,6 +31,25 @@ export default function OfflineSaveButton(props: OfflineSaveButtonProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [premiumPromptOpen, setPremiumPromptOpen] = useState(false);
+
+  const topicId = props.kind === 'lesson' ? props.topic?.id : undefined;
+  const materialId = props.kind === 'material' ? props.selection.item.id : undefined;
+  const materialType = props.kind === 'material' ? props.selection.type : undefined;
+
+  useEffect(() => {
+    let active = true;
+    const checkSaved = async () => {
+      if (!user) return;
+      const ready = topicId
+        ? await isTopicOfflineReady(user.id, language, topicId)
+        : materialId && materialType
+        ? await isMaterialOfflineReady(user.id, language, materialId, materialType)
+        : false;
+      if (active) setSaved(ready);
+    };
+    void checkSaved();
+    return () => { active = false; };
+  }, [language, materialId, materialType, topicId, user]);
 
   if (!user) return null;
 
@@ -40,9 +66,21 @@ export default function OfflineSaveButton(props: OfflineSaveButtonProps) {
         await saveSelectedLessonOffline(user.id, language, props.lesson, props.topic, props.subtopic);
       } else {
         await saveSelectedMaterialOffline(user.id, language, props.selection);
+        const sourceUrl = props.selection.item.url;
+        const cachedBlob = await getOfflineData<Blob>(getOfflineMediaKey(sourceUrl));
+        if (!cachedBlob || typeof cachedBlob.arrayBuffer !== 'function') {
+          throw new Error('The material was cached in the app but could not be prepared for Downloads.');
+        }
+        try {
+          await exportMaterialToDownloads(cachedBlob, props.selection.item.title, sourceUrl);
+          toast.success(t('offlineExportedToDownloads'));
+        } catch (exportError) {
+          console.warn('Material was cached but Downloads export failed:', exportError);
+          toast.warning(t('offlineSavedButExportFailed'));
+        }
       }
       setSaved(true);
-      toast.success(t('offlineItemSaved'));
+      if (props.kind === 'lesson') toast.success(t('offlineItemSaved'));
     } catch (error) {
       console.error('Failed to save selected content offline:', error);
       toast.error(error instanceof Error ? error.message : t('offlineDownloadFailed'));

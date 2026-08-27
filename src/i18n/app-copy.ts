@@ -289,6 +289,9 @@ export type AppCopyKey =
   | 'premiumRequiredTitle'
   | 'premiumRequiredBody'
   | 'premiumManualMode'
+  | 'premiumSubscriptionTitle'
+  | 'premiumSubscriptionBody'
+  | 'subscribe'
   | 'manualPaymentTitle'
   | 'manualPaymentDescription'
   | 'manualPaymentMethodLabel'
@@ -658,6 +661,9 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     premiumRequiredTitle: 'Premium access required',
     premiumRequiredBody: 'This feature requires Premium. Ask an administrator to grant access after your payment is verified.',
     premiumManualMode: 'Premium access is granted manually by an administrator after payment verification.',
+    premiumSubscriptionTitle: 'Premium subscription',
+    premiumSubscriptionBody: 'Review the payment details below, then send your transaction reference to an administrator after payment.',
+    subscribe: 'Subscribe',
     manualPaymentTitle: 'Manual payment details',
     manualPaymentDescription: 'These public details are shown to users when manual Premium payment is available.',
     manualPaymentMethodLabel: 'Payment method',
@@ -994,6 +1000,9 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     premiumRequiredTitle: 'የPremium መዳረሻ ያስፈልጋል',
     premiumRequiredBody: 'ይህን ባህሪ ለመጠቀም Premium መዳረሻ ያስፈልጋል። ክፍያዎ ከተረጋገጠ በኋላ አስተዳዳሪውን መዳረሻ እንዲሰጥዎ ይጠይቁ።',
     premiumManualMode: 'የPremium መዳረሻ በአስተዳዳሪ በእጅ ይሰጣል፤ ክፍያዎ ከተረጋገጠ በኋላ መዳረሻ ሊሰጥዎ ይችላል።',
+    premiumSubscriptionTitle: 'የPremium ምዝገባ',
+    premiumSubscriptionBody: 'ከመክፈልዎ በፊት ከታች ያለውን የክፍያ መረጃ ይመልከቱ፤ ከከፈሉ በኋላ የግብይቱን ማጣቀሻ ለአስተዳዳሪ ይላኩ።',
+    subscribe: 'ይመዝገቡ',
     manualPaymentTitle: 'በእጅ የክፍያ መረጃ',
     manualPaymentDescription: 'በእጅ የPremium ክፍያ ሲኖር እነዚህ ለሕዝብ የሚታዩ መረጃዎች ለተጠቃሚዎች ይታያሉ።',
     manualPaymentMethodLabel: 'የክፍያ ዘዴ',

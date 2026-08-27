@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useNavigate } from 'react-router-dom';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import { usePremium } from '@/context/usePremium';
 
@@ -22,7 +23,7 @@ type PremiumRequiredScreenProps = {
   onBack?: () => void;
 };
 
-function ManualPaymentDetails() {
+export function ManualPaymentDetails() {
   const { t } = useAppLanguage();
   const { manualPayment, hasManualPaymentDetails } = usePremium();
 
@@ -49,6 +50,8 @@ function ManualPaymentDetails() {
 
 export function PremiumRequiredDialog({ open, onOpenChange, featureName }: PremiumRequiredMessageProps) {
   const { t } = useAppLanguage();
+  const navigate = useNavigate();
+  const subscriptionPath = featureName ? `/subscribe?feature=${encodeURIComponent(featureName)}` : '/subscribe';
   const namedDescription = featureName
     ? `${featureName} — ${t('premiumRequiredBody')}`
     : t('premiumRequiredBody');
@@ -69,9 +72,18 @@ export function PremiumRequiredDialog({ open, onOpenChange, featureName }: Premi
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
           <p>{t('premiumManualMode')}</p>
         </div>
-        <ManualPaymentDetails />
-        <DialogFooter>
-          <Button type="button" onClick={() => onOpenChange(false)} className="bg-orange-500 text-white hover:bg-orange-600">
+        <DialogFooter className="gap-2 sm:justify-end">
+          <Button
+            type="button"
+            onClick={() => {
+              onOpenChange(false);
+              navigate(subscriptionPath);
+            }}
+            className="bg-orange-500 text-white hover:bg-orange-600"
+          >
+            {t('subscribe')}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-slate-600 bg-transparent text-white hover:bg-slate-800">
             {t('close')}
           </Button>
         </DialogFooter>
@@ -82,6 +94,8 @@ export function PremiumRequiredDialog({ open, onOpenChange, featureName }: Premi
 
 export function PremiumRequiredScreen({ featureName, onBack }: PremiumRequiredScreenProps) {
   const { t } = useAppLanguage();
+  const navigate = useNavigate();
+  const subscriptionPath = featureName ? `/subscribe?feature=${encodeURIComponent(featureName)}` : '/subscribe';
   const namedDescription = featureName
     ? `${featureName} — ${t('premiumRequiredBody')}`
     : t('premiumRequiredBody');
@@ -98,14 +112,16 @@ export function PremiumRequiredScreen({ featureName, onBack }: PremiumRequiredSc
           <p className="mt-4 rounded-xl border border-sky-400/20 bg-sky-500/10 p-3 text-sm leading-6 text-sky-100">
             {t('premiumManualMode')}
           </p>
-          <div className="mt-4">
-            <ManualPaymentDetails />
-          </div>
-          {onBack && (
-            <Button type="button" onClick={onBack} className="mt-5 bg-orange-500 text-white hover:bg-orange-600">
-              {t('backToLearning')}
+          <div className="mt-5 flex flex-col gap-2">
+            <Button type="button" onClick={() => navigate(subscriptionPath)} className="bg-orange-500 text-white hover:bg-orange-600">
+              {t('subscribe')}
             </Button>
-          )}
+            {onBack && (
+              <Button type="button" onClick={onBack} variant="outline" className="border-slate-600 bg-transparent text-white hover:bg-slate-800">
+                {t('backToLearning')}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

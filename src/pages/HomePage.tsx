@@ -172,7 +172,7 @@ export default function HomePage() {
         {/* Soft uniform dark overlay to tone down brightness across all corners without hiding the background */}
         <div className="absolute inset-0 bg-black/40 pointer-events-none" />
         
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative z-10 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-24 relative z-10 w-full">
           {dailyNews && (
             <article className="mb-6 max-w-5xl mx-auto overflow-hidden rounded-xl border border-orange-300/30 bg-[#0b1222]/90 shadow-2xl backdrop-blur-sm">
               <div className="grid md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">

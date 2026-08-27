@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
+import { getVideoType, getEmbedUrl, getVideoPreviewUrl } from '@/lib/video-utils';
 import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics, useAboutContent, useMaterialsGalleryImages, useMaterialsVideos, useMaterialsPdfs, useMaterialsGroups, useTopics, useQuizzes } from '@/hooks/use-cms-data';
 import {
   useSubtopics,
@@ -1859,6 +1859,14 @@ export default function AdminPage() {
                       <Input value={video.title} onChange={(e) => updateVideoLocal(video.id, 'title', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
                       <label className="block text-sm text-gray-400">Video URL</label>
                       <Input value={video.url} onChange={(e) => updateVideoLocal(video.id, 'url', e.target.value)} className="bg-slate-800 border-white/20 text-white" />
+                      {(video.thumbnail || getVideoPreviewUrl(video.url)) && (
+                        <img
+                          src={video.thumbnail || getVideoPreviewUrl(video.url) || ''}
+                          alt={`${video.title} preview`}
+                          className="mt-2 h-24 w-40 rounded-lg border border-white/10 object-cover"
+                          onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                        />
+                      )}
                       <ImageUpload 
                         currentImage={video.thumbnail}
                         onImageUploaded={(url) => updateVideoLocal(video.id, 'thumbnail', url)}
@@ -2201,7 +2209,7 @@ export default function AdminPage() {
 
           {/* ── PAYMENT SUBMISSIONS TAB ───────────────────────────────── */}
           <TabsContent value="payments" className="space-y-4">
-            <PremiumPaymentAdminPanel adminId={user.id} />
+            <PremiumPaymentAdminPanel />
           </TabsContent>
 
           {/* ── USERS TAB ─────────────────────────────────────────────── */}

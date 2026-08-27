@@ -10,6 +10,7 @@ type ReviewStatus = 'all' | 'pending' | 'approved' | 'rejected';
 type PaymentSubmission = {
   id: string;
   user_id: string;
+  plan_key: string | null;
   plan_name: string;
   amount_birr: number | string;
   payment_method: string;
@@ -46,7 +47,7 @@ const statusLabel = (status: PaymentSubmission['status']) => (
   status === 'pending' ? 'Pending review' : status === 'approved' ? 'Approved' : 'Rejected'
 );
 
-export default function PremiumPaymentAdminPanel({ adminId }: { adminId: string }) {
+export default function PremiumPaymentAdminPanel() {
   const [submissions, setSubmissions] = useState<PaymentSubmission[]>([]);
   const [users, setUsers] = useState<Record<string, UserSummary>>({});
   const [statusFilter, setStatusFilter] = useState<ReviewStatus>('pending');
@@ -63,7 +64,7 @@ export default function PremiumPaymentAdminPanel({ adminId }: { adminId: string 
     try {
       const { data, error: submissionsError } = await supabase
         .from('premium_payment_submissions')
-        .select('id, user_id, plan_name, amount_birr, payment_method, transaction_reference, user_note, proof_path, proof_mime_type, proof_size_bytes, status, reviewed_by, reviewed_at, admin_note, created_at')
+        .select('id, user_id, plan_key, plan_name, amount_birr, payment_method, transaction_reference, user_note, proof_path, proof_mime_type, proof_size_bytes, status, reviewed_by, reviewed_at, admin_note, created_at')
         .order('created_at', { ascending: false })
         .limit(200);
       if (submissionsError) throw submissionsError;
@@ -111,22 +112,32 @@ export default function PremiumPaymentAdminPanel({ adminId }: { adminId: string 
   const reviewSubmission = async (submission: PaymentSubmission, status: Exclude<ReviewStatus, 'all'>) => {
     if (submission.status !== 'pending') return;
     setSavingId(submission.id);
-    const { error: updateError } = await supabase
-      .from('premium_payment_submissions')
-      .update({
-        status,
-        reviewed_by: adminId,
-        reviewed_at: new Date().toISOString(),
-        admin_note: (reviewNotes[submission.id] || '').trim(),
-      })
-      .eq('id', submission.id)
-      .eq('status', 'pending');
+    const { error: reviewError } = await supabase.rpc('review_premium_payment_submission', {
+      p_submission_id: submission.id,
+      p_status: status,
+      p_admin_note: (reviewNotes[submission.id] || '').trim(),
+    });
     setSavingId(null);
-    if (updateError) {
-      toast.error(`Could not review submission: ${updateError.message}`);
+    if (reviewError) {
+      toast.error(`Could not review submission: ${reviewError.message}`);
       return;
     }
-    toast.success(status === 'approved' ? 'Payment evidence approved.' : 'Payment evidence rejected.');
+    toast.success(status === 'approved' ? 'Payment approved and Premium access granted.' : 'Payment evidence rejected.');
+    await loadSubmissions();
+  };
+
+  const syncApprovedSubmission = async (submission: PaymentSubmission) => {
+    if (submission.status !== 'approved') return;
+    setSavingId(submission.id);
+    const { error: syncError } = await supabase.rpc('sync_approved_premium_payment_submission', {
+      p_submission_id: submission.id,
+    });
+    setSavingId(null);
+    if (syncError) {
+      toast.error(`Could not sync Premium access: ${syncError.message}`);
+      return;
+    }
+    toast.success('Premium access is synchronized for this approved payment.');
     await loadSubmissions();
   };
 
@@ -166,7 +177,7 @@ export default function PremiumPaymentAdminPanel({ adminId }: { adminId: string 
             <div className="rounded-xl bg-violet-500/15 p-3 text-violet-300"><ShieldCheck size={24} aria-hidden="true" /></div>
             <div>
               <h2 className="text-xl font-bold text-white">Payment submissions</h2>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-300">Review payment references and private proof files submitted by users. Approving evidence does not grant Premium automatically; use Manual user access in the Premium panel after you verify the payment.</p>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-300">Review payment references and private proof files submitted by users. Approving verified evidence grants the selected Premium plan through the existing Admin-only entitlement path; legacy approved records can be synchronized safely.</p>
             </div>
           </div>
           <Button onClick={() => void loadSubmissions()} variant="outline" className="border-white/20 text-white hover:bg-white/10">
@@ -260,7 +271,15 @@ export default function PremiumPaymentAdminPanel({ adminId }: { adminId: string 
                   </div>
                 ) : (
                   <div className="mt-4 rounded-lg border border-white/10 bg-slate-950/40 p-3 text-xs text-gray-400">
-                    Reviewed {formatDate(submission.reviewed_at)}{submission.admin_note ? <span className="block mt-1 whitespace-pre-wrap text-gray-300">{submission.admin_note}</span> : null}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span>Reviewed {formatDate(submission.reviewed_at)}</span>
+                      {submission.status === 'approved' && (
+                        <Button type="button" size="sm" variant="outline" onClick={() => void syncApprovedSubmission(submission)} disabled={savingId === submission.id} className="h-8 border-emerald-300/30 text-xs text-emerald-200 hover:bg-emerald-500/10">
+                          {savingId === submission.id ? 'Syncing…' : 'Sync Premium access'}
+                        </Button>
+                      )}
+                    </div>
+                    {submission.admin_note ? <span className="mt-1 block whitespace-pre-wrap text-gray-300">{submission.admin_note}</span> : null}
                   </div>
                 )}
               </article>

@@ -25,7 +25,7 @@ interface NotificationContextType {
   refreshNotifications: () => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
-  clearNotifications: () => Promise<void>;
+  removeNotification: (notificationId: string) => Promise<void>;
   markChannelPostNotificationsAsRead: () => Promise<void>;
   savePreferences: (changes: Partial<Omit<NotificationPreferences, 'user_id' | 'updated_at'>>) => Promise<void>;
   requestBrowserNotificationPermission: () => Promise<boolean>;
@@ -231,18 +231,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [notifications, unreadNotificationCount, user?.id]);
 
-  const clearNotifications = useCallback(async () => {
-    if (!user?.id || notifications.length === 0) return;
-    setNotifications([]);
+  const removeNotification = useCallback(async (notificationId: string) => {
+    if (!user?.id) return;
+    const previous = notifications;
+    const target = previous.find((notification) => notification.id === notificationId);
+    if (!target) return;
+
+    setNotifications((current) => current.filter((notification) => notification.id !== notificationId));
     const { error } = await supabase
       .from('app_notifications')
       .delete()
+      .eq('id', notificationId)
       .eq('user_id', user.id);
     if (error) {
       await refreshNotifications();
       throw error;
     }
-  }, [notifications.length, refreshNotifications, user?.id]);
+  }, [notifications, refreshNotifications, user?.id]);
 
   const markChannelPostNotificationsAsRead = useCallback(async () => {
     if (!user?.id) return;
@@ -321,7 +326,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         refreshNotifications,
         markAsRead,
         markAllAsRead,
-        clearNotifications,
+        removeNotification,
         markChannelPostNotificationsAsRead,
         savePreferences,
         requestBrowserNotificationPermission,

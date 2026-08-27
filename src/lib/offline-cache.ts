@@ -1,12 +1,28 @@
-// Original CMS records are cached as read-only snapshots; they are never rewritten.
+// IndexedDB stores read-only CMS snapshots and explicit offline selections.
+// Original CMS records are never rewritten or translated in the cache.
 const DB_NAME = 'EthioCosmosOffline';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_NAME = 'learning_data';
 
-export const OFFLINE_PACK_VERSION = 'official-learning-v2';
-export const OFFLINE_PACK_SCHEMA_VERSION = 2;
+// Version 3 intentionally invalidates the old all-content pack contract. New
+// offline access must be earned by an explicit topic/material download.
+export const OFFLINE_PACK_VERSION = 'explicit-downloads-v1';
+export const OFFLINE_PACK_SCHEMA_VERSION = 3;
 const LEGACY_READY_KEY = 'ethio-offline-cache-ready';
 const APP_LANGUAGE_STORAGE_KEY = 'ethio-cosmos-language';
+
+export const OFFLINE_OVERVIEW_KEYS = new Set([
+  'homepage_hero',
+  'homepage_feature_cards',
+  'homepage_featured_topics',
+  'about_content',
+  'topics',
+  'materials_groups',
+  'materials_gallery_images',
+  'materials_videos',
+  'materials_pdfs',
+  'all_subtopics',
+]);
 
 interface CachedData<T = unknown> {
   key: string;
@@ -15,6 +31,16 @@ interface CachedData<T = unknown> {
 }
 
 export type OfflinePackStatus = 'downloading' | 'complete' | 'error';
+export type OfflineMaterialType = 'gallery' | 'video' | 'pdf';
+
+export interface OfflineMaterialSelectionRecord {
+  id: string;
+  type: OfflineMaterialType;
+  cacheKey: string;
+  mediaUrls: string[];
+  cacheable: boolean;
+  downloadedAt: number;
+}
 
 export interface OfflinePackManifest {
   schemaVersion: number;
@@ -23,10 +49,15 @@ export interface OfflinePackManifest {
   userId: string;
   language: 'en' | 'am';
   status: OfflinePackStatus;
+  // These keys are exact structured records that completed an explicit save.
+  // Overview keys may also be present, but they do not unlock detail pages.
   contentKeys: string[];
   sourceVersions: Record<string, string>;
   mediaCount: number;
   translationCount: number;
+  selectedTopicIds: string[];
+  topicContentKeys: Record<string, string[]>;
+  selectedMaterials: OfflineMaterialSelectionRecord[];
   error?: string;
 }
 
@@ -35,6 +66,23 @@ let openingDb: Promise<void> | null = null;
 
 export function getOfflinePackManifestKey(userId: string, language: 'en' | 'am'): string {
   return `offline_pack_manifest:${userId}:${language}`;
+}
+
+export function getOfflineMediaKey(url: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < url.length; index += 1) {
+    hash ^= url.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `offline_media:${(hash >>> 0).toString(16)}`;
+}
+
+export function isOfflineOverviewKey(key: string): boolean {
+  return OFFLINE_OVERVIEW_KEYS.has(key);
+}
+
+export function isOfflineDetailKey(key: string): boolean {
+  return key.startsWith('subtopics_') || key.startsWith('lesson_');
 }
 
 export async function initOfflineDb(): Promise<void> {
@@ -113,6 +161,10 @@ function isCompleteManifest(manifest: OfflinePackManifest | null, userId: string
       && manifest.status === 'complete'
       && manifest.userId === userId
       && manifest.language === language
+      && Array.isArray(manifest.contentKeys)
+      && Array.isArray(manifest.selectedTopicIds)
+      && manifest.topicContentKeys && typeof manifest.topicContentKeys === 'object'
+      && Array.isArray(manifest.selectedMaterials)
   );
 }
 
@@ -123,13 +175,16 @@ export async function saveOfflinePackManifest(manifest: OfflinePackManifest): Pr
     version: manifest.version || OFFLINE_PACK_VERSION,
     sourceVersions: manifest.sourceVersions || {},
     translationCount: manifest.translationCount || 0,
+    selectedTopicIds: manifest.selectedTopicIds || [],
+    topicContentKeys: manifest.topicContentKeys || {},
+    selectedMaterials: manifest.selectedMaterials || [],
   };
   await cacheOfflineData(getOfflinePackManifestKey(normalized.userId, normalized.language), normalized);
   if (typeof window !== 'undefined') {
     const readyKey = `${LEGACY_READY_KEY}:${normalized.userId}:${normalized.language}`;
     if (normalized.status === 'complete') {
       window.localStorage.setItem(readyKey, '1');
-      window.localStorage.setItem(LEGACY_READY_KEY, '1');
+      window.localStorage.removeItem(LEGACY_READY_KEY);
       window.dispatchEvent(new CustomEvent('ethio:offline-pack-updated', { detail: normalized }));
     } else {
       window.localStorage.removeItem(readyKey);
@@ -150,29 +205,19 @@ export async function getOfflinePackManifest(
   }
 }
 
-function isOfficialPackKey(key: string): boolean {
-  return key === 'topics'
-    || key === 'all_subtopics'
-    || key === 'site_content'
-    || key === 'materials_gallery_images'
-    || key === 'materials_videos'
-    || key === 'materials_pdfs'
-    || key === 'materials_groups'
-    || key === 'about_content'
-    || key === 'quizzes'
-    || key === 'quiz_questions_all'
-    || key.startsWith('subtopics_')
-    || key.startsWith('lesson_')
-    || key.startsWith('quiz_questions_');
-}
-
 /**
- * Serve a CMS record only when a complete pack exists for the current signed-in
- * account and its profile-selected locale. Ordinary cache entries and guest
- * sessions are never treated as an offline learning pack.
+ * Overview data is safe to show as a last-known shell snapshot. Detailed
+ * learning records are only readable when their exact key was completed by an
+ * explicit, current-user download.
  */
 export async function getValidatedOfflineData<T = unknown>(key: string): Promise<T | null> {
-  if (typeof window === 'undefined' || !isOfficialPackKey(key)) return null;
+  if (typeof window === 'undefined') return null;
+
+  if (isOfflineOverviewKey(key)) {
+    return getOfflineData<T>(key);
+  }
+
+  if (!isOfflineDetailKey(key)) return null;
 
   const token = await import('@/supabase').then(({ supabase }) => supabase.auth.getSession());
   const userId = token.data.session?.user?.id;
@@ -181,10 +226,53 @@ export async function getValidatedOfflineData<T = unknown>(key: string): Promise
   const storedLanguage = window.localStorage.getItem(`${APP_LANGUAGE_STORAGE_KEY}:${userId}`);
   const language: 'en' | 'am' = storedLanguage === 'am' ? 'am' : 'en';
   const manifest = await getOfflinePackManifest(userId, language);
-  if (!manifest || !manifest.contentKeys.some((contentKey) => contentKey === key || (contentKey === 'all_subtopics' && key.startsWith('subtopics_')) || (contentKey === 'quiz_questions_all' && key.startsWith('quiz_questions_')) || (contentKey === 'all_subtopics' && key.startsWith('lesson_')))) {
-    return null;
-  }
+  if (!manifest?.contentKeys.includes(key)) return null;
   return getOfflineData<T>(key);
+}
+
+export async function getExplicitMaterialSelection(
+  userId: string,
+  language: 'en' | 'am',
+  materialId: string,
+  type: OfflineMaterialType,
+): Promise<OfflineMaterialSelectionRecord | null> {
+  const manifest = await getOfflinePackManifest(userId, language);
+  return manifest?.selectedMaterials.find((item) => item.id === materialId && item.type === type) || null;
+}
+
+export async function isTopicOfflineReady(
+  userId: string,
+  language: 'en' | 'am',
+  topicId: string,
+): Promise<boolean> {
+  const manifest = await getOfflinePackManifest(userId, language);
+  if (!manifest?.selectedTopicIds.includes(topicId) || !manifest.contentKeys.includes(`subtopics_${topicId}`)) return false;
+  const topicKeys = manifest.topicContentKeys[topicId] || [];
+  if (!topicKeys.includes(`subtopics_${topicId}`)) return false;
+  const records = await Promise.all(topicKeys.map((key) => getOfflineData<unknown>(key)));
+  return records.every((record) => record !== null);
+}
+
+export async function isMaterialOfflineReady(
+  userId: string,
+  language: 'en' | 'am',
+  materialId: string,
+  type: OfflineMaterialType,
+): Promise<boolean> {
+  const selection = await getExplicitMaterialSelection(userId, language, materialId, type);
+  if (!selection) return false;
+  const cached = await getOfflineData<unknown>(selection.cacheKey);
+  return cached !== null;
+}
+
+export async function getValidatedOfflineMaterial<T = unknown>(
+  userId: string,
+  language: 'en' | 'am',
+  materialId: string,
+  type: OfflineMaterialType,
+): Promise<T | null> {
+  const selection = await getExplicitMaterialSelection(userId, language, materialId, type);
+  return selection ? getOfflineData<T>(selection.cacheKey) : null;
 }
 
 export async function clearOfflineData(): Promise<void> {

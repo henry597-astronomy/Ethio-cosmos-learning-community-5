@@ -1,11 +1,6 @@
-// EthioCosmos Service Worker - Enhanced Version
-// Strategy: Comprehensive offline support with automatic background sync
-// Features:
-// 1. Full static asset caching (images, fonts, CSS, JS)
-// 2. Background API data prefetching (topics, lessons, quizzes, materials)
-// 3. Automatic cache updates when online
-// 4. Network-first for API calls with cache fallback
-// 5. Cache-first for static assets with network refresh
+// EthioCosmos Service Worker
+// Strategy: fast app-shell startup plus explicit media caching only.
+// Official structured data is controlled by the app’s IndexedDB manifest.
 
 const CACHE_VERSION = 'v18';
 const STATIC_CACHE = `ethio-cosmos-static-${CACHE_VERSION}`;
@@ -350,24 +345,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 6. Media (videos, PDFs, audio): cache-first, network fallback
+  // 6. Media (videos, PDFs, audio): serve only explicit media-cache entries;
+  // ordinary online viewing must not silently create offline downloads.
   if (isMediaUrl(url)) {
     event.respondWith(
-      caches.match(request).then((cached) => {
+      caches.open(MEDIA_CACHE).then((cache) => cache.match(request)).then((cached) => {
         if (cached) return cached;
-
-        return fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(MEDIA_CACHE).then((cache) => cache.put(request, clone));
-            }
-            return response;
-          })
-          .catch(() => {
-            console.warn('[SW] Media not cached and offline:', url);
-            return new Response('Media unavailable offline', { status: 503 });
-          });
+        return fetch(request).catch(() => new Response('Media unavailable offline', { status: 503 }));
       })
     );
     return;
@@ -394,38 +378,9 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// ── Background Sync: Triggered when connection restored ──────────────────
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync event:', event.tag);
-  
-  if (event.tag === 'sync-all-content') {
-    event.waitUntil(
-      prefetchAllContent().then(() => {
-        console.log('[SW] Background sync completed');
-        // Notify clients
-        self.clients.matchAll().then((clients) => {
-          clients.forEach((client) => {
-            client.postMessage({
-              type: 'SYNC_COMPLETE',
-              message: 'All content synced successfully'
-            });
-          });
-        });
-      }).catch((err) => {
-        console.error('[SW] Background sync failed:', err);
-      })
-    );
-  }
-});
-
-// ── Prefetch all CMS content ─────────────────────────────────────────────
-async function prefetchAllContent() {
-  // The previous implementation used a placeholder Supabase URL and could
-  // cache responses without the caller's authentication scope. Content is
-  // now cached only when the app makes a real, scoped GET request.
-  console.log('[SW] Background content prefetch skipped; waiting for scoped app requests.');
-}
-
+// Legacy background-sync and PREFETCH_CONTENT messages are intentionally no-ops.
+// Reconnection never downloads new CMS content; the app refreshes only its
+// already selected records through an explicit authenticated path.
 // ── Message handler: Receive commands from clients ────────────────────────
 self.addEventListener('message', (event) => {
   const { type, payload } = event.data;
@@ -437,13 +392,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (type === 'PREFETCH_CONTENT') {
-    event.waitUntil(
-      prefetchAllContent().then(() => {
-        event.ports[0].postMessage({ success: true, message: 'Prefetch completed' });
-      }).catch((err) => {
-        event.ports[0].postMessage({ success: false, error: err.message });
-      })
-    );
+    event.ports[0]?.postMessage({ success: false, error: 'Broad offline prefetch is disabled.' });
   }
 
   if (type === 'CACHE_URLS') {

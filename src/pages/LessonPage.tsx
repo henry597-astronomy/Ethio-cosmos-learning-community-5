@@ -14,6 +14,7 @@ import LocalizedOfficialText from '@/components/LocalizedOfficialText';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SafeImage } from '@/components/SafeImage';
+import { isTopicOfflineReady } from '@/lib/offline-cache';
 import { useState, useEffect } from 'react';
 import {
   isBookmarked as checkIsBookmarked,
@@ -24,7 +25,7 @@ import {
 export default function LessonPage() {
   const { topicId, subtopicId } = useParams<{ topicId: string; subtopicId: string }>();
   const navigate = useNavigate();
-  const { t } = useAppLanguage();
+  const { t, language } = useAppLanguage();
   const topicsHook = useTopics();
   const { user } = useAuth();
   const { setActiveLesson } = useLessonTutorContext();
@@ -41,8 +42,10 @@ export default function LessonPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [offlineTopicReady, setOfflineTopicReady] = useState<boolean | null>(null);
 
   const topic = topics.find(t => t.id === topicId);
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   const currentSubtopic = subtopics.find(s => s.id === subtopicId);
   const currentIndex = subtopics.findIndex(s => s.id === subtopicId);
   
@@ -74,6 +77,18 @@ export default function LessonPage() {
 
     return () => setActiveLesson(null);
   }, [canUseLesson, currentSubtopic, lesson, premiumLoading, setActiveLesson, subtopicId, topic]);
+
+  useEffect(() => {
+    let active = true;
+    if (!user || !topicId) {
+      setOfflineTopicReady(false);
+      return undefined;
+    }
+    void isTopicOfflineReady(user.id, language, topicId).then((ready) => {
+      if (active) setOfflineTopicReady(ready);
+    });
+    return () => { active = false; };
+  }, [language, topicId, user]);
 
   // Check bookmark and progress status on mount
   useEffect(() => {
@@ -148,7 +163,7 @@ export default function LessonPage() {
     }
   };
 
-  if (topicsLoading || subtopicsLoading || lessonLoading || premiumLoading) {
+  if (topicsLoading || subtopicsLoading || lessonLoading || premiumLoading || (isOffline && offlineTopicReady === null)) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] text-white">
         {t('loadingLesson')}
@@ -157,6 +172,23 @@ export default function LessonPage() {
   }
 
   const lessonAccessAllowed = Boolean(topicId && subtopicId && canUseLesson(topicId, subtopicId));
+
+  if (isOffline && offlineTopicReady === false) {
+    return (
+      <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] px-4 text-white">
+        <div className="max-w-md rounded-xl border border-orange-500/30 bg-slate-900 p-6 text-center">
+          <h1 className="text-xl font-bold">{t('offlineTopicDownloadHint')}</h1>
+          <p className="mt-3 text-sm text-gray-400">{t('offlineMaterialDownloadHint')}</p>
+          <Link to={`/learning/${topicId}`} className="mt-5 inline-flex">
+            <Button className="bg-orange-500 text-white hover:bg-orange-600">
+              <ArrowLeft size={18} className="mr-2" />
+              {t('backToTopic')}
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (topicsError || subtopicsError || (lessonError && lessonAccessAllowed)) {
     return (

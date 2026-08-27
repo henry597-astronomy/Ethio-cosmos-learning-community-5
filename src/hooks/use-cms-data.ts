@@ -20,6 +20,35 @@ import type {
   Quiz, QuizQuestion, AboutContent, GroupedMaterials, MaterialGroup, MaterialType
 } from '@/types';
 
+const CMS_REFRESH_TIMEOUT_MS = 3500;
+
+function isNetworkAvailable() {
+  return typeof navigator === 'undefined' || navigator.onLine;
+}
+
+async function boundedRefresh<T>(request: Promise<T>): Promise<T> {
+  let timeoutId: number | undefined;
+  try {
+    return await Promise.race([
+      request,
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error('Network refresh timed out.')), CMS_REFRESH_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+  }
+}
+
+async function readCached<T>(key: string): Promise<T | null> {
+  try {
+    return await getValidatedOfflineData<T>(key);
+  } catch (error) {
+    console.warn(`Failed to read cached ${key}:`, error);
+    return null;
+  }
+}
+
 // --- Homepage Hooks ---
 export function useHomepageHero() {
   const [hero, setHero] = useState<{ 
@@ -34,39 +63,44 @@ export function useHomepageHero() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchHero = async () => {
+      const cachedData = await readCached<NonNullable<typeof hero>>('homepage_hero');
+      if (!cancelled && cachedData !== null) {
+        setHero(cachedData);
+        setError(null);
+        setLoading(false);
+      }
+      if (!isNetworkAvailable()) {
+        if (!cancelled && cachedData === null) setError('Homepage content is unavailable offline.');
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
       try {
-        setLoading(true);
-        const data = await getHomepageHero();
+        const data = await boundedRefresh(getHomepageHero());
         const finalData = data ?? {
-          heroTitle:    'Explore the Cosmos with Ethiopia',
+          heroTitle: 'Explore the Cosmos with Ethiopia',
           heroSubtitle: 'Join the EthioCosmos Learning Community — learn astronomy from Ethiopia to the universe',
           videoUrl: '',
           videoVisible: false,
           secondaryVideoUrl: '',
-          enableVideoSequence: false
+          enableVideoSequence: false,
         };
-        setHero(finalData);
-        // Cache for offline access
-        await cacheOfflineData('homepage_hero', finalData).catch(err => console.warn('Failed to cache hero:', err));
-      } catch (err) {
-        setError("Failed to load homepage hero.");
-        console.error(err);
-        // Try to load from offline cache if online fetch fails
-        try {
-          const cachedData = await getValidatedOfflineData<NonNullable<typeof hero>>('homepage_hero');
-          if (cachedData) {
-            setHero(cachedData);
-            setError(null);
-          }
-        } catch (cacheErr) {
-          console.warn('Failed to load cached hero:', cacheErr);
+        if (!cancelled) {
+          setHero(finalData);
+          setError(null);
         }
+        await cacheOfflineData('homepage_hero', finalData).catch((cacheErr) => console.warn('Failed to cache hero:', cacheErr));
+      } catch (err) {
+        console.error(err);
+        if (!cancelled && cachedData === null) setError('Failed to load homepage hero.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    fetchHero();
+    void fetchHero();
+    return () => { cancelled = true; };
   }, []);
 
   const saveHero = useCallback(async (newHero: { 
@@ -98,36 +132,40 @@ export function useHomepageFeatureCards() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchCards = async () => {
-      try {
-        setLoading(true);
-        const data = await getHomepageFeatureCards();
-        const finalData = data || [
-          { icon: '🔭', title: 'Astronomy Lessons',  description: 'Structured learning paths from basics to advanced topics'   },
-          { icon: '🌍', title: 'Ethiopian Context',  description: 'Explore the night sky from an Ethiopian perspective'         },
-          { icon: '🚀', title: 'Community Learning', description: 'Learn, discuss, and grow with fellow astronomy students'     },
-        ];
-        setFeatureCards(finalData);
-        // Cache for offline access
-        await cacheOfflineData('homepage_feature_cards', finalData).catch(err => console.warn('Failed to cache feature cards:', err));
-      } catch (err) {
-        setError("Failed to load feature cards.");
-        console.error(err);
-        // Try to load from offline cache if online fetch fails
-        try {
-          const cachedData = await getValidatedOfflineData<FeatureCard[]>('homepage_feature_cards');
-          if (cachedData) {
-            setFeatureCards(cachedData);
-            setError(null);
-          }
-        } catch (cacheErr) {
-          console.warn('Failed to load cached feature cards:', cacheErr);
-        }
-      } finally {
+      const cachedData = await readCached<FeatureCard[]>('homepage_feature_cards');
+      if (!cancelled && cachedData !== null) {
+        setFeatureCards(cachedData);
+        setError(null);
         setLoading(false);
       }
+      if (!isNetworkAvailable()) {
+        if (!cancelled && cachedData === null) setError('Homepage content is unavailable offline.');
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      try {
+        const data = await boundedRefresh(getHomepageFeatureCards());
+        const finalData = data || [
+          { icon: '🔭', title: 'Astronomy Lessons', description: 'Structured learning paths from basics to advanced topics' },
+          { icon: '🌍', title: 'Ethiopian Context', description: 'Explore the night sky from an Ethiopian perspective' },
+          { icon: '🚀', title: 'Community Learning', description: 'Learn, discuss, and grow with fellow astronomy students' },
+        ];
+        if (!cancelled) {
+          setFeatureCards(finalData);
+          setError(null);
+        }
+        await cacheOfflineData('homepage_feature_cards', finalData).catch((cacheErr) => console.warn('Failed to cache feature cards:', cacheErr));
+      } catch (err) {
+        console.error(err);
+        if (!cancelled && cachedData === null) setError('Failed to load feature cards.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
-    fetchCards();
+    void fetchCards();
+    return () => { cancelled = true; };
   }, []);
 
   const saveFeatureCards = useCallback(async (newCards: FeatureCard[]) => {
@@ -152,32 +190,36 @@ export function useHomepageFeaturedTopics() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchTopics = async () => {
-      try {
-        setLoading(true);
-        const data = await getHomepageFeaturedTopics();
-        const finalData = data || [];
-        setFeaturedTopics(finalData);
-        // Cache for offline access
-        await cacheOfflineData('homepage_featured_topics', finalData).catch(err => console.warn('Failed to cache featured topics:', err));
-      } catch (err) {
-        setError("Failed to load featured topics.");
-        console.error(err);
-        // Try to load from offline cache if online fetch fails
-        try {
-          const cachedData = await getValidatedOfflineData<FeaturedTopic[]>('homepage_featured_topics');
-          if (cachedData) {
-            setFeaturedTopics(cachedData);
-            setError(null);
-          }
-        } catch (cacheErr) {
-          console.warn('Failed to load cached featured topics:', cacheErr);
-        }
-      } finally {
+      const cachedData = await readCached<FeaturedTopic[]>('homepage_featured_topics');
+      if (!cancelled && cachedData !== null) {
+        setFeaturedTopics(cachedData);
+        setError(null);
         setLoading(false);
       }
+      if (!isNetworkAvailable()) {
+        if (!cancelled && cachedData === null) setError('Homepage content is unavailable offline.');
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      try {
+        const data = await boundedRefresh(getHomepageFeaturedTopics());
+        const finalData = data || [];
+        if (!cancelled) {
+          setFeaturedTopics(finalData);
+          setError(null);
+        }
+        await cacheOfflineData('homepage_featured_topics', finalData).catch((cacheErr) => console.warn('Failed to cache featured topics:', cacheErr));
+      } catch (err) {
+        console.error(err);
+        if (!cancelled && cachedData === null) setError('Failed to load featured topics.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
-    fetchTopics();
+    void fetchTopics();
+    return () => { cancelled = true; };
   }, []);
 
   const saveFeaturedTopics = useCallback(async (newTopics: FeaturedTopic[]) => {
@@ -203,33 +245,35 @@ export function useAboutContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchContent = async () => {
-      try {
-        setLoading(true);
-        const data = await getAboutContent();
-        setAboutContent(data);
-        if (data) {
-          // Cache for offline access
-          await cacheOfflineData('about_content', data).catch(err => console.warn('Failed to cache about content:', err));
-        }
-      } catch (err) {
-        setError("Failed to load about content.");
-        console.error(err);
-        // Try to load from offline cache if online fetch fails
-        try {
-          const cachedData = await getValidatedOfflineData<AboutContent>('about_content');
-          if (cachedData) {
-            setAboutContent(cachedData);
-            setError(null);
-          }
-        } catch (cacheErr) {
-          console.warn('Failed to load cached about content:', cacheErr);
-        }
-      } finally {
+      const cachedData = await readCached<AboutContent>('about_content');
+      if (!cancelled && cachedData !== null) {
+        setAboutContent(cachedData);
+        setError(null);
         setLoading(false);
       }
+      if (!isNetworkAvailable()) {
+        if (!cancelled && cachedData === null) setError('About content is unavailable offline.');
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      try {
+        const data = await boundedRefresh(getAboutContent());
+        if (!cancelled) {
+          setAboutContent(data);
+          setError(null);
+        }
+        if (data) await cacheOfflineData('about_content', data).catch((cacheErr) => console.warn('Failed to cache about content:', cacheErr));
+      } catch (err) {
+        console.error(err);
+        if (!cancelled && cachedData === null) setError('Failed to load about content.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
-    fetchContent();
+    void fetchContent();
+    return () => { cancelled = true; };
   }, []);
 
   const saveAboutContent = useCallback(async (newContent: AboutContent) => {
@@ -268,30 +312,36 @@ export function useMaterialsGalleryImages() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchImages = async () => {
-      try {
-        setLoading(true);
-        const data = await getMaterialsGalleryImages();
-        const finalData = data || [];
-        setGalleryImages(finalData);
-        await cacheOfflineData('materials_gallery_images', finalData).catch((cacheErr) => console.warn('Failed to cache gallery images:', cacheErr));
-      } catch (err) {
-        setError("Failed to load gallery images.");
-        console.error(err);
-        try {
-          const cachedData = await getValidatedOfflineData<GalleryImage[]>('materials_gallery_images');
-          if (cachedData) {
-            setGalleryImages(cachedData);
-            setError(null);
-          }
-        } catch (cacheErr) {
-          console.warn('Failed to load cached gallery images:', cacheErr);
-        }
-      } finally {
+      const cachedData = await readCached<GalleryImage[]>('materials_gallery_images');
+      if (!cancelled && cachedData !== null) {
+        setGalleryImages(cachedData);
+        setError(null);
         setLoading(false);
       }
+      if (!isNetworkAvailable()) {
+        if (!cancelled && cachedData === null) setError('Materials are unavailable offline.');
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      try {
+        const data = await boundedRefresh(getMaterialsGalleryImages());
+        const finalData = data || [];
+        if (!cancelled) {
+          setGalleryImages(finalData);
+          setError(null);
+        }
+        await cacheOfflineData('materials_gallery_images', finalData).catch((cacheErr) => console.warn('Failed to cache gallery images:', cacheErr));
+      } catch (err) {
+        console.error(err);
+        if (!cancelled && cachedData === null) setError('Failed to load gallery images.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
-    fetchImages();
+    void fetchImages();
+    return () => { cancelled = true; };
   }, []);
 
   const saveGalleryImages = useCallback(async (newImages: GalleryImage[]) => {
@@ -315,30 +365,36 @@ export function useMaterialsVideos() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchVideos = async () => {
-      try {
-        setLoading(true);
-        const data = await getMaterialsVideos();
-        const finalData = data || [];
-        setVideos(finalData);
-        await cacheOfflineData('materials_videos', finalData).catch((cacheErr) => console.warn('Failed to cache videos:', cacheErr));
-      } catch (err) {
-        setError("Failed to load videos.");
-        console.error(err);
-        try {
-          const cachedData = await getValidatedOfflineData<VideoItem[]>('materials_videos');
-          if (cachedData) {
-            setVideos(cachedData);
-            setError(null);
-          }
-        } catch (cacheErr) {
-          console.warn('Failed to load cached videos:', cacheErr);
-        }
-      } finally {
+      const cachedData = await readCached<VideoItem[]>('materials_videos');
+      if (!cancelled && cachedData !== null) {
+        setVideos(cachedData);
+        setError(null);
         setLoading(false);
       }
+      if (!isNetworkAvailable()) {
+        if (!cancelled && cachedData === null) setError('Materials are unavailable offline.');
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      try {
+        const data = await boundedRefresh(getMaterialsVideos());
+        const finalData = data || [];
+        if (!cancelled) {
+          setVideos(finalData);
+          setError(null);
+        }
+        await cacheOfflineData('materials_videos', finalData).catch((cacheErr) => console.warn('Failed to cache videos:', cacheErr));
+      } catch (err) {
+        console.error(err);
+        if (!cancelled && cachedData === null) setError('Failed to load videos.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
-    fetchVideos();
+    void fetchVideos();
+    return () => { cancelled = true; };
   }, []);
 
   const saveVideos = useCallback(async (newVideos: VideoItem[]) => {
@@ -362,30 +418,36 @@ export function useMaterialsPdfs() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchPdfs = async () => {
-      try {
-        setLoading(true);
-        const data = await getMaterialsPdfs();
-        const finalData = data || [];
-        setPdfs(finalData);
-        await cacheOfflineData('materials_pdfs', finalData).catch((cacheErr) => console.warn('Failed to cache PDFs:', cacheErr));
-      } catch (err) {
-        setError("Failed to load PDFs.");
-        console.error(err);
-        try {
-          const cachedData = await getValidatedOfflineData<PdfItem[]>('materials_pdfs');
-          if (cachedData) {
-            setPdfs(cachedData);
-            setError(null);
-          }
-        } catch (cacheErr) {
-          console.warn('Failed to load cached PDFs:', cacheErr);
-        }
-      } finally {
+      const cachedData = await readCached<PdfItem[]>('materials_pdfs');
+      if (!cancelled && cachedData !== null) {
+        setPdfs(cachedData);
+        setError(null);
         setLoading(false);
       }
+      if (!isNetworkAvailable()) {
+        if (!cancelled && cachedData === null) setError('Materials are unavailable offline.');
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      try {
+        const data = await boundedRefresh(getMaterialsPdfs());
+        const finalData = data || [];
+        if (!cancelled) {
+          setPdfs(finalData);
+          setError(null);
+        }
+        await cacheOfflineData('materials_pdfs', finalData).catch((cacheErr) => console.warn('Failed to cache PDFs:', cacheErr));
+      } catch (err) {
+        console.error(err);
+        if (!cancelled && cachedData === null) setError('Failed to load PDFs.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
-    fetchPdfs();
+    void fetchPdfs();
+    return () => { cancelled = true; };
   }, []);
 
   const savePdfs = useCallback(async (newPdfs: PdfItem[]) => {
@@ -419,24 +481,25 @@ export function useMaterialsGroups() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchGroups = useCallback(async () => {
+    const cachedData = await readCached<GroupedMaterials>('materials_groups');
+    if (cachedData !== null) {
+      setGrouped(cachedData);
+      setError(null);
+      setLoading(false);
+    }
+    if (!isNetworkAvailable()) {
+      if (cachedData === null) setError('Materials are unavailable offline.');
+      setLoading(false);
+      return;
+    }
     try {
-      setLoading(true);
-      const data = await getMaterialsGroups();
+      const data = await boundedRefresh(getMaterialsGroups());
       setGrouped(data);
       setError(null);
       await cacheOfflineData('materials_groups', data).catch((cacheErr) => console.warn('Failed to cache material groups:', cacheErr));
     } catch (err) {
-      setError('Failed to load material groups.');
       console.error(err);
-      try {
-        const cachedData = await getValidatedOfflineData<GroupedMaterials>('materials_groups');
-        if (cachedData) {
-          setGrouped(cachedData);
-          setError(null);
-        }
-      } catch (cacheErr) {
-        console.warn('Failed to load cached material groups:', cacheErr);
-      }
+      if (cachedData === null) setError('Failed to load material groups.');
     } finally {
       setLoading(false);
     }
@@ -502,25 +565,25 @@ export function useTopics() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchTopics = useCallback(async () => {
+    const cachedData = await readCached<Topic[]>('topics');
+    if (cachedData !== null) {
+      setTopics(cachedData);
+      setError(null);
+      setLoading(false);
+    }
+    if (!isNetworkAvailable()) {
+      if (cachedData === null) setError('Learning topics are unavailable offline.');
+      setLoading(false);
+      return;
+    }
     try {
-      setLoading(true);
-      const data = await getTopics();
+      const data = await boundedRefresh(getTopics());
       setTopics(data);
-      // Cache topics for offline access
-      await cacheOfflineData('topics', data).catch(err => console.warn('Failed to cache topics:', err));
+      setError(null);
+      await cacheOfflineData('topics', data).catch((cacheErr) => console.warn('Failed to cache topics:', cacheErr));
     } catch (err) {
-      setError("Failed to load topics.");
       console.error(err);
-      // Try to load from offline cache if online fetch fails
-      try {
-        const cachedData = await getValidatedOfflineData<Topic[]>('topics');
-        if (cachedData) {
-          setTopics(cachedData);
-          setError(null);
-        }
-      } catch (cacheErr) {
-        console.warn('Failed to load cached topics:', cacheErr);
-      }
+      if (cachedData === null) setError('Failed to load topics.');
     } finally {
       setLoading(false);
     }
@@ -580,26 +643,27 @@ export function useAllSubtopics() {
   useEffect(() => {
     let cancelled = false;
     const fetchAllSubtopics = async () => {
+      const cachedData = await readCached<Subtopic[]>('all_subtopics');
+      if (!cancelled && cachedData !== null) {
+        setSubtopics(cachedData);
+        setError(null);
+        setLoading(false);
+      }
+      if (!isNetworkAvailable()) {
+        if (!cancelled && cachedData === null) setError('Lessons are unavailable offline.');
+        if (!cancelled) setLoading(false);
+        return;
+      }
       try {
-        setLoading(true);
-        const data = await getAllSubtopics();
+        const data = await boundedRefresh(getAllSubtopics());
         if (!cancelled) {
           setSubtopics(data);
           setError(null);
         }
-        await cacheOfflineData('all_subtopics', data).catch(err => console.warn('Failed to cache all subtopics:', err));
+        await cacheOfflineData('all_subtopics', data).catch((cacheErr) => console.warn('Failed to cache all subtopics:', cacheErr));
       } catch (err) {
-        if (!cancelled) setError('Failed to load lessons for search.');
         console.error(err);
-        try {
-          const cachedData = await getValidatedOfflineData<Subtopic[]>('all_subtopics');
-          if (!cancelled && cachedData) {
-            setSubtopics(cachedData);
-            setError(null);
-          }
-        } catch (cacheErr) {
-          console.warn('Failed to load cached lessons:', cacheErr);
-        }
+        if (!cancelled && cachedData === null) setError('Failed to load lessons for search.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -622,27 +686,28 @@ export function useSubtopics(topicId: string | null) {
   const fetchSubtopics = useCallback(async () => {
     if (!topicId) {
       setSubtopics([]);
+      setLoading(false);
+      return;
+    }
+    const cachedData = await readCached<Subtopic[]>(`subtopics_${topicId}`);
+    if (cachedData !== null) {
+      setSubtopics(cachedData);
+      setError(null);
+      setLoading(false);
+    }
+    if (!isNetworkAvailable()) {
+      if (cachedData === null) setError('This topic must be downloaded before it works offline.');
+      setLoading(false);
       return;
     }
     try {
-      setLoading(true);
-      const data = await getSubtopicsByTopicId(topicId);
+      const data = await boundedRefresh(getSubtopicsByTopicId(topicId));
       setSubtopics(data);
-      // Cache for offline access
-      await cacheOfflineData(`subtopics_${topicId}`, data).catch(err => console.warn('Failed to cache subtopics:', err));
+      setError(null);
+      await cacheOfflineData(`subtopics_${topicId}`, data).catch((cacheErr) => console.warn('Failed to cache subtopics:', cacheErr));
     } catch (err) {
-      setError("Failed to load subtopics.");
       console.error(err);
-      // Try to load from offline cache if online fetch fails
-      try {
-        const cachedData = await getValidatedOfflineData<Subtopic[]>(`subtopics_${topicId}`);
-        if (cachedData) {
-          setSubtopics(cachedData);
-          setError(null);
-        }
-      } catch (cacheErr) {
-        console.warn('Failed to load cached subtopics:', cacheErr);
-      }
+      if (cachedData === null) setError('Failed to load subtopics.');
     } finally {
       setLoading(false);
     }
@@ -700,37 +765,40 @@ export function useLesson(subtopicId: string | null) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchLesson = async () => {
       if (!subtopicId) {
         setLesson(null);
+        setLoading(false);
+        return;
+      }
+      const cachedData = await readCached<Lesson>(`lesson_${subtopicId}`);
+      if (!cancelled && cachedData !== null) {
+        setLesson(cachedData);
+        setError(null);
+        setLoading(false);
+      }
+      if (!isNetworkAvailable()) {
+        if (!cancelled && cachedData === null) setError('This topic must be downloaded before its lessons work offline.');
+        if (!cancelled) setLoading(false);
         return;
       }
       try {
-        setLoading(true);
-        const data = await getLessonBySubtopicId(subtopicId);
-        setLesson(data);
-        if (data) {
-          // Cache for offline access
-          await cacheOfflineData(`lesson_${subtopicId}`, data).catch(err => console.warn('Failed to cache lesson:', err));
+        const data = await boundedRefresh(getLessonBySubtopicId(subtopicId));
+        if (!cancelled) {
+          setLesson(data);
+          setError(null);
         }
+        if (data) await cacheOfflineData(`lesson_${subtopicId}`, data).catch((cacheErr) => console.warn('Failed to cache lesson:', cacheErr));
       } catch (err) {
-        setError("Failed to load lesson.");
         console.error(err);
-        // Try to load from offline cache if online fetch fails
-        try {
-          const cachedData = await getValidatedOfflineData<Lesson>(`lesson_${subtopicId}`);
-          if (cachedData) {
-            setLesson(cachedData);
-            setError(null);
-          }
-        } catch (cacheErr) {
-          console.warn('Failed to load cached lesson:', cacheErr);
-        }
+        if (!cancelled && cachedData === null) setError('Failed to load lesson.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    fetchLesson();
+    void fetchLesson();
+    return () => { cancelled = true; };
   }, [subtopicId]);
 
   const saveLesson = useCallback(async (lessonData: Omit<Lesson, "id" | "created_at" | "updated_at"> & { subtopic_id: string }) => {

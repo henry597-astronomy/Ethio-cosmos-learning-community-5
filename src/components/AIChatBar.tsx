@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Send, Sparkles, X, MessageSquare, Loader2, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Brain, BookOpen, Check, Copy, Lightbulb, Loader2, Send, Sparkles, X, MessageSquare, Mic, MicOff, Volume2, VolumeX, WandSparkles } from 'lucide-react';
 import { getGroqChatCompletion, type Message, type TutorLanguage, type TutorMode } from '@/services/groq';
 import { useLessonTutorContext } from '@/context/LessonTutorContext';
 import { useAppLanguage } from '@/context/AppLanguageContext';
@@ -10,6 +10,12 @@ import { speakText, stopSpeech } from '@/services/speech';
 import { cn } from '@/lib/utils';
 import { usePremium } from '@/context/usePremium';
 import { PremiumRequiredDialog } from '@/components/PremiumRequiredMessage';
+import type { AppCopyKey } from '@/i18n/app-copy';
+
+const STARTER_PROMPTS: Record<TutorMode, AppCopyKey[]> = {
+  tutor: ['explainSimply', 'keyIdeas', 'realExample'],
+  quiz: ['startQuiz', 'giveHint', 'harderQuestion'],
+};
 
 export default function AIChatBar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +27,7 @@ export default function AIChatBar() {
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [premiumPromptOpen, setPremiumPromptOpen] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
   const [tutorMode, setTutorMode] = useState<TutorMode>('tutor');
   const { activeLesson } = useLessonTutorContext();
   const { language, languageName, t: translate } = useAppLanguage();
@@ -30,6 +37,7 @@ export default function AIChatBar() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
   
   // Draggable state
   const [position, setPosition] = useState({ x: window.innerWidth - 88, y: window.innerHeight - 88 });
@@ -221,8 +229,9 @@ export default function AIChatBar() {
     };
   }, [isDragging]);
 
-  const speakResponse = async (text: string) => {
-    if (!isSpeechEnabled) return;
+  const speakResponse = async (text: string, force = false) => {
+    if (!isSpeechEnabled && !force) return;
+    setVoiceError(null);
 
     try {
       await speakText(text);
@@ -230,6 +239,7 @@ export default function AIChatBar() {
       // Speech failure must never turn a successful AI response into a chat
       // failure. Keep the response visible and log the device-side cause.
       console.warn('AI voice output unavailable:', error);
+      setVoiceError(translate('voiceOutputUnavailable'));
     }
   };
 
@@ -239,7 +249,18 @@ export default function AIChatBar() {
     setMessages([]);
     setInput('');
     setVoiceError(null);
+    setCopiedMessageIndex(null);
     void stopSpeech();
+  };
+
+  const copyAnswer = async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedMessageIndex(index);
+      window.setTimeout(() => setCopiedMessageIndex((current) => current === index ? null : current), 1600);
+    } catch (error) {
+      console.warn('Could not copy tutor response:', error);
+    }
   };
 
   const requestPremiumAccess = () => {
@@ -477,33 +498,36 @@ export default function AIChatBar() {
           </div>
 
           {activeLesson && (
-            <div className="shrink-0 border-b border-white/10 bg-cyan-500/10 px-4 py-2 dark:border-white/10 light-theme:border-[#cbd5e1] light-theme:bg-cyan-50">
-              <div className="mb-2 truncate text-[11px] text-cyan-100 light-theme:text-cyan-900" title={activeLesson.lessonTitle}>
-                {translate('currentLesson')}: <span className="font-semibold">{activeLesson.lessonTitle}</span>
+            <div className="shrink-0 border-b border-white/10 bg-cyan-500/10 px-4 py-2.5 dark:border-white/10 light-theme:border-[#cbd5e1] light-theme:bg-cyan-50">
+              <div className="mb-2 flex items-center gap-2 text-[11px] text-cyan-100 light-theme:text-cyan-900" title={activeLesson.lessonTitle}>
+                <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{translate('currentLesson')}: <span className="font-semibold">{activeLesson.lessonTitle}</span></span>
               </div>
-                              <div className="flex gap-2" role="group" aria-label={translate('teacherMode')}>
-
+              <div className="flex items-center gap-2" role="group" aria-label={translate('teacherMode')}>
+                <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-200/70 light-theme:text-cyan-800/70">
+                  <Brain className="h-3.5 w-3.5" /> {translate('tutorMode')}
+                </span>
                 <button
                   type="button"
                   onClick={() => changeTutorMode('tutor')}
                   className={cn(
-                    'rounded-full px-3 py-1 text-[11px] font-medium transition-colors',
-                    tutorMode === 'tutor' ? 'bg-cyan-600 text-white' : 'bg-white/10 text-cyan-100 hover:bg-white/20 light-theme:bg-white light-theme:text-cyan-800',
+                    'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all active:scale-95',
+                    tutorMode === 'tutor' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-900/30' : 'bg-white/10 text-cyan-100 hover:bg-white/20 light-theme:bg-white light-theme:text-cyan-800',
                   )}
                   aria-pressed={tutorMode === 'tutor'}
                 >
-                  {translate('tutor')}
+                  <BookOpen className="h-3.5 w-3.5" /> {translate('tutor')}
                 </button>
                 <button
                   type="button"
                   onClick={() => changeTutorMode('quiz')}
                   className={cn(
-                    'rounded-full px-3 py-1 text-[11px] font-medium transition-colors',
-                    tutorMode === 'quiz' ? 'bg-orange-500 text-white' : 'bg-white/10 text-cyan-100 hover:bg-white/20 light-theme:bg-white light-theme:text-orange-800',
+                    'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all active:scale-95',
+                    tutorMode === 'quiz' ? 'bg-orange-500 text-white shadow-lg shadow-orange-900/30' : 'bg-white/10 text-cyan-100 hover:bg-white/20 light-theme:bg-white light-theme:text-orange-800',
                   )}
                   aria-pressed={tutorMode === 'quiz'}
                 >
-                  {translate('quizCoach')}
+                  <Lightbulb className="h-3.5 w-3.5" /> {translate('quizCoach')}
                 </button>
               </div>
             </div>
@@ -512,42 +536,107 @@ export default function AIChatBar() {
           {/* Messages */}
           <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             {messages.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
-                  <MessageSquare className="w-6 h-6 text-blue-400" />
+              <div className="flex h-full flex-col items-center justify-center p-5 text-center sm:p-6">
+                <div className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-500/20 via-blue-500/15 to-violet-500/20 shadow-lg shadow-cyan-950/30">
+                  <div className="absolute inset-2 rounded-xl border border-white/10" />
+                  <WandSparkles className="relative z-10 h-8 w-8 text-cyan-200" />
+                  <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-orange-300 shadow-[0_0_12px_rgba(253,186,116,0.9)]" />
                 </div>
-                <h4 className="text-white dark:text-white light-theme:text-[#0f172a] font-medium mb-1">
+                <h4 className="text-base font-bold text-white dark:text-white light-theme:text-[#0f172a]">
                   {activeLesson ? translate('teacherReady') : translate('welcome')}
                 </h4>
-                <p className="text-sm text-slate-400 dark:text-slate-400 light-theme:text-slate-600">
+                <p className="mt-1 max-w-[280px] text-xs leading-relaxed text-slate-400 dark:text-slate-400 light-theme:text-slate-600">
                   {activeLesson ? `${translate('askAboutLesson')} ${activeLesson.lessonTitle}` : translate('askAnything')}
                 </p>
-              </div>
-            )}
-            {messages.map((msg, i) => (
-              <div 
-                key={i} 
-                className={cn(
-                  "flex flex-col max-w-[85%]",
-                  msg.role === 'user' ? "ml-auto items-end" : "mr-auto items-start"
-                )}
-              >
-                <div 
-                  className={cn(
-                    "px-4 py-2 rounded-2xl text-sm shadow-md",
-                    msg.role === 'user' 
-                      ? "bg-blue-600 text-white rounded-tr-none shadow-blue-500/20" 
-                      : "bg-slate-800 dark:bg-slate-800 light-theme:bg-white text-white dark:text-white light-theme:text-[#0f172a] rounded-tl-none border border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] light-theme:shadow-md"
-                  )}
-                >
-                  {msg.content}
+                <div className="mt-5 flex w-full flex-wrap justify-center gap-2" aria-label={translate('tutorGuidance')}>
+                  {STARTER_PROMPTS[tutorMode].map((promptKey) => (
+                    <button
+                      key={promptKey}
+                      type="button"
+                      onClick={() => void submitMessage(translate(promptKey))}
+                      className="flex items-center gap-1.5 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-[11px] font-medium text-cyan-100 transition-all hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-400/20 active:translate-y-0 light-theme:border-cyan-700/20 light-theme:bg-cyan-100 light-theme:text-cyan-900"
+                    >
+                      <Sparkles className="h-3 w-3 shrink-0" />
+                      {translate(promptKey)}
+                    </button>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+            {messages.map((msg, i) => {
+              const isAssistant = msg.role === 'assistant';
+              return (
+                <div
+                  key={i}
+                  className={cn('flex max-w-[92%] flex-col', isAssistant ? 'mr-auto items-start' : 'ml-auto items-end')}
+                >
+                  <div
+                    className={cn(
+                      'rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-md',
+                      isAssistant
+                        ? 'rounded-tl-sm border border-white/10 bg-slate-800 text-white dark:bg-slate-800 light-theme:bg-white light-theme:text-[#0f172a] light-theme:shadow-md'
+                        : 'rounded-tr-sm bg-blue-600 text-white shadow-blue-500/20',
+                    )}
+                  >
+                    {isAssistant && (
+                      <div className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-300/80">
+                        <Sparkles className="h-3 w-3" /> {activeLesson ? translate('tutor') : translate('teacher')}
+                      </div>
+                    )}
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    {isAssistant && (
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/10 pt-2 light-theme:border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => void speakResponse(msg.content, true)}
+                          className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:text-cyan-100 light-theme:text-cyan-700 light-theme:hover:text-cyan-900"
+                          aria-label={translate('readTutorAloud')}
+                        >
+                          <Volume2 className="h-3 w-3" /> {translate('readAloud')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void copyAnswer(msg.content, i)}
+                          className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-300 transition-colors hover:bg-white/10 hover:text-white light-theme:text-slate-600 light-theme:hover:text-slate-900"
+                          aria-label={translate('copyAnswer')}
+                        >
+                          {copiedMessageIndex === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                          {copiedMessageIndex === i ? translate('answerCopied') : translate('copyAnswer')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void submitMessage(translate('simplifyAnswer'))}
+                          disabled={isLoading}
+                          className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-300 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50 light-theme:text-slate-600 light-theme:hover:text-slate-900"
+                          aria-label={translate('simplifyAnswer')}
+                        >
+                          <WandSparkles className="h-3 w-3" /> {translate('simplifyAnswer')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => inputRef.current?.focus()}
+                          className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] text-slate-300 transition-colors hover:bg-white/10 hover:text-white light-theme:text-slate-600 light-theme:hover:text-slate-900"
+                          aria-label={translate('askFollowUp')}
+                        >
+                          <MessageSquare className="h-3 w-3" /> {translate('askFollowUp')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
             {isLoading && (
-              <div className="flex items-start mr-auto">
-                <div className="bg-slate-800 dark:bg-slate-800 light-theme:bg-white text-slate-200 dark:text-slate-200 light-theme:text-[#0f172a] px-4 py-2 rounded-2xl rounded-tl-none border border-white/5 dark:border-white/5 light-theme:border-[#cbd5e1]">
-                  <Loader2 className="w-4 h-4 animate-spin" />
+              <div className="mr-auto flex items-start" role="status" aria-label={translate('tutorThinking')}>
+                <div className="rounded-2xl rounded-tl-sm border border-cyan-300/20 bg-slate-800 px-4 py-3 text-cyan-200 shadow-lg shadow-cyan-950/20 dark:bg-slate-800 light-theme:border-cyan-200 light-theme:bg-white">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-end gap-0.5" aria-hidden="true">
+                      <span className="h-2 w-1.5 animate-pulse rounded-full bg-cyan-300" />
+                      <span className="h-3.5 w-1.5 animate-pulse rounded-full bg-blue-400 [animation-delay:120ms]" />
+                      <span className="h-2.5 w-1.5 animate-pulse rounded-full bg-violet-400 [animation-delay:240ms]" />
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-300 light-theme:text-slate-600">{translate('tutorThinking')}</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -557,8 +646,18 @@ export default function AIChatBar() {
           {/* Input */}
           <form onSubmit={handleSubmit} className="shrink-0 p-3 sm:p-4 border-t border-white/10 dark:border-white/10 light-theme:border-[#cbd5e1] bg-white/5 dark:bg-white/5 light-theme:bg-slate-100">
             {(isRecording || isTranscribing || voiceError) && (
-              <div className="mb-2 text-[11px] text-slate-300 dark:text-slate-300 light-theme:text-slate-600" role="status">
-                {isRecording ? translate('listeningStatus') : isTranscribing ? translate('transcribingStatus') : voiceError}
+              <div className={cn(
+                'mb-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px]',
+                voiceError ? 'border-red-400/20 bg-red-500/10 text-red-200 light-theme:text-red-700' : 'border-violet-300/20 bg-violet-500/10 text-violet-100 light-theme:text-violet-800',
+              )} role="status">
+                {isRecording ? (
+                  <span className="flex items-center gap-0.5" aria-hidden="true">
+                    <span className="h-2 w-1 rounded-full bg-violet-300 animate-pulse" />
+                    <span className="h-4 w-1 rounded-full bg-fuchsia-300 animate-pulse [animation-delay:120ms]" />
+                    <span className="h-3 w-1 rounded-full bg-violet-300 animate-pulse [animation-delay:240ms]" />
+                  </span>
+                ) : isTranscribing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                <span>{isRecording ? translate('listeningStatus') : isTranscribing ? translate('transcribingStatus') : voiceError}</span>
               </div>
             )}
             <div className="flex gap-2">
@@ -569,13 +668,14 @@ export default function AIChatBar() {
                 disabled={isLoading || isTranscribing}
                 aria-label={isRecording ? translate('stopVoiceRecording') : translate('startVoiceRecording')}
                 className={cn(
-                  'text-white shrink-0',
-                  isRecording ? 'bg-red-600 hover:bg-red-500' : 'bg-violet-600 hover:bg-violet-500',
+                  'shrink-0 text-white transition-all active:scale-95',
+                  isRecording ? 'bg-red-600 shadow-lg shadow-red-900/30 hover:bg-red-500' : 'bg-violet-600 shadow-lg shadow-violet-900/30 hover:bg-violet-500',
                 )}
               >
                 {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
               <Input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={activeLesson && tutorMode === 'quiz' ? translate('answerOrHint') : activeLesson ? translate('askAboutLesson') : translate('askYourTeacher')}

@@ -72,7 +72,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.premium_features (key, name, description, is_premium)
 VALUES
   ('ai_tutor', 'Advanced AI Tutor', 'Extended lesson-aware tutoring and deeper explanations.', false),
-  ('offline_learning_packs', 'Complete Offline Learning Packs', 'Download full official lessons, quizzes, and materials for offline study.', false),
+  ('offline_learning_packs', 'Complete Offline Learning Packs', 'Download full official lessons, quizzes, and materials for offline study.', true),
   ('observatory_simulation', 'Observatory Simulation', 'The full source-faithful solar-system observatory experience.', false),
   ('advanced_learning_analytics', 'Advanced Learning Analytics', 'Detailed progress insights and learning recommendations.', false),
   ('premium_courses', 'Premium Course Paths', 'Specialized astronomy and space-science learning paths.', false)

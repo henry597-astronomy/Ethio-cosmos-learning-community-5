@@ -28,6 +28,7 @@ const files = Object.fromEntries(
     ['premiumAccessApi', 'api/premium/access.ts'],
     ['premiumCheckoutApi', 'api/premium/checkout.ts'],
     ['premiumMigration', 'supabase/premium_mode.sql'],
+    ['offlinePremiumMigration', 'supabase/offline_downloads_premium.sql'],
     ['premiumPlanPricing', 'supabase/premium_plan_pricing.sql'],
     ['manualPaymentMigration', 'supabase/manual_payment_instructions.sql'],
     ['paymentSubmissionMigration', 'supabase/premium_payment_submissions.sql'],
@@ -114,6 +115,7 @@ const checks = [
   ['New Shorts prefer R2 but preserve the legacy Supabase fallback', /createR2ShortUpload/.test(files.shortsFeed) && /isR2NotConfiguredError/.test(files.shortsFeed) && /supabase\.storage/.test(files.shortsFeed) && /finalizeR2ShortUpload/.test(files.shortsFeed)],
   ['R2 Shorts deletion is provider-aware and quota-accounted', /deleteR2Short/.test(files.shortsFeed) && /storage_provider === 'r2'/.test(files.shortsFeed) && /delete_short_r2_metadata/.test(files.r2Api) && /DeleteObjectCommand/.test(files.r2Api)],
   ['R2 metadata migration preserves legacy Supabase rows and hides server tables', /storage_provider TEXT NOT NULL DEFAULT 'supabase'/.test(files.r2Migration) && /CREATE TABLE IF NOT EXISTS public\.short_r2_usage/.test(files.r2Migration) && /CREATE TABLE IF NOT EXISTS public\.short_r2_uploads/.test(files.r2Migration) && /REVOKE ALL ON TABLE public\.short_r2_usage FROM PUBLIC, anon, authenticated/.test(files.r2Migration) && /GRANT EXECUTE ON FUNCTION public\.reserve_short_r2_upload/.test(files.r2Migration)],
+  ['Offline downloading is seeded as a Premium feature', /offline_learning_packs[\s\S]{0,300}true/.test(files.premiumMigration) && /UPDATE public\.premium_features[\s\S]{0,100}SET is_premium = true[\s\S]{0,100}WHERE key = 'offline_learning_packs'/.test(files.offlinePremiumMigration)],
 ];
 
 const failed = checks.filter(([, passed]) => !passed);

@@ -222,6 +222,10 @@ export type AppCopyKey =
   | 'voiceOutputUnavailable'
   | 'textAnswerAvailable'
   | 'readTutorAloud'
+  | 'copyAnswer'
+  | 'answerCopied'
+  | 'askFollowUp'
+  | 'simplifyAnswer'
   | 'tutorThinking'
   | 'muteTutorVoice'
   | 'enableTutorVoice'
@@ -587,6 +591,10 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     voiceOutputUnavailable: 'Voice output is unavailable on this device. The text answer is still available.',
     textAnswerAvailable: 'Responses remain available as text even when voice is muted.',
     readTutorAloud: 'Read the tutor response aloud',
+    copyAnswer: 'Copy answer',
+    answerCopied: 'Copied',
+    askFollowUp: 'Ask follow-up',
+    simplifyAnswer: 'Simplify',
     tutorThinking: 'Tutor is thinking',
     muteTutorVoice: 'Mute tutor voice',
     enableTutorVoice: 'Enable tutor voice',
@@ -919,6 +927,10 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     voiceOutputUnavailable: 'በዚህ መሣሪያ ላይ የድምፅ ማሰማት አይገኝም። መልሱን እንደ ጽሑፍ ማንበብ ይችላሉ።',
     textAnswerAvailable: 'ድምፅን ቢያጠፉም መልሱ እንደ ጽሑፍ ይታያል።',
     readTutorAloud: 'የአስተማሪውን መልስ በድምፅ ያንብቡ',
+    copyAnswer: 'መልሱን ቅዳ',
+    answerCopied: 'ተቅዷል',
+    askFollowUp: 'ተጨማሪ ጥያቄ ጠይቅ',
+    simplifyAnswer: 'በቀላሉ አብራራ',
     tutorThinking: 'አስተማሪው መልስ እያዘጋጀ ነው',
     muteTutorVoice: 'የአስተማሪውን ድምፅ ያጥፉ',
     enableTutorVoice: 'የአስተማሪውን ድምፅ ያብሩ',

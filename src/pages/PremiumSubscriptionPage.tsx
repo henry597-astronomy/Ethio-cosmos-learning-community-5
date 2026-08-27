@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import { ManualPaymentDetails } from '@/components/PremiumRequiredMessage';
+import PremiumPaymentSubmissionPanel from '@/components/PremiumPaymentSubmissionPanel';
 
 export default function PremiumSubscriptionPage() {
   const { t } = useAppLanguage();
@@ -37,6 +38,9 @@ export default function PremiumSubscriptionPage() {
           </div>
           <div className="mt-5">
             <ManualPaymentDetails />
+          </div>
+          <div className="mt-5">
+            <PremiumPaymentSubmissionPanel />
           </div>
           <Button
             type="button"

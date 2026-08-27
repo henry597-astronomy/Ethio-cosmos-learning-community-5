@@ -263,3 +263,15 @@ LEFT JOIN public.notification_preferences AS np ON np.user_id = p.id
 WHERE COALESCE(p.is_blocked, false) = false
   AND COALESCE(np.channel_posts_enabled, true) = true
 ON CONFLICT (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+
+
+-- Users may clean only their own durable notification rows. This does not remove
+-- source posts, preferences, or notifications belonging to another user.
+DROP POLICY IF EXISTS "Users can delete their own app notifications" ON public.app_notifications;
+CREATE POLICY "Users can delete their own app notifications"
+  ON public.app_notifications
+  FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+GRANT DELETE ON TABLE public.app_notifications TO authenticated;

@@ -11,6 +11,7 @@ import { getPublishedSpaceNews } from '@/services/space-news';
 import type { SpaceNews } from '@/types';
 
 const getUtcDateKey = () => new Date().toISOString().slice(0, 10);
+const HOME_BACKGROUND_VIDEO_URL = 'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/home-background-v1/Tiktok_1786697850931.mp4';
 
 declare global {
   interface Window {
@@ -27,6 +28,15 @@ export default function HomePage() {
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
   const navigate = useNavigate();
   const [dailyNews, setDailyNews] = useState<SpaceNews | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updateMotionPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    updateMotionPreference();
+    mediaQuery.addEventListener('change', updateMotionPreference);
+    return () => mediaQuery.removeEventListener('change', updateMotionPreference);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -160,8 +170,23 @@ export default function HomePage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="min-h-screen flex items-center relative overflow-hidden bg-[#0a0e1a]">
+        {!prefersReducedMotion && (
+          <video
+            className="absolute inset-0 h-full w-full object-cover opacity-35"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster="/images/hero-bg-new.jpg"
+            aria-hidden="true"
+          >
+            <source src={HOME_BACKGROUND_VIDEO_URL} type="video/mp4" />
+          </video>
+        )}
+
         {/* Absolute Logo Emblem background container stretched edge-to-edge across the screen area */}
-        <div className="absolute inset-0 pointer-events-none opacity-100">
+        <div className="absolute inset-0 pointer-events-none opacity-25">
           <img 
             src="/images/hero-bg-new.png" 
                         alt={t('logoEmblem')}

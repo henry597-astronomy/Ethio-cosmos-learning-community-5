@@ -59,7 +59,7 @@ function LearningPageContent() {
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder={t('searchTopics')}
             aria-label={t('searchTopics')}
-            className="h-10 w-full rounded-lg border border-white/15 bg-slate-900 pl-9 pr-9 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-orange-500/70 focus:ring-1 focus:ring-orange-500/40"
+            className="h-10 w-full rounded-lg border border-white/25 bg-slate-800/90 pl-9 pr-9 text-sm text-white caret-orange-300 outline-none transition-colors placeholder:text-gray-300 focus:border-orange-400/80 focus:ring-1 focus:ring-orange-500/50"
           />
           {searchQuery && (
             <button
@@ -153,7 +153,7 @@ function LearningPageContent() {
       </div>
       {/* Hero Section */}
       <section
-        className="relative py-24"
+        className="relative py-10 sm:py-14 md:py-24"
         style={{
           backgroundImage: `linear-gradient(to bottom, rgba(10, 14, 26, 0.8), rgba(5, 8, 16, 0.95)), url(/images/learning-hero.jpg)`,
           backgroundSize: 'cover',
@@ -164,10 +164,10 @@ function LearningPageContent() {
           <Badge className="mb-4 border-orange-500/30 bg-orange-500/20 text-orange-500">
             {t('learning')}
           </Badge>
-          <h1 className="mb-4 text-4xl font-bold text-white md:text-5xl">
+          <h1 className="mb-3 text-3xl font-bold text-white sm:mb-4 sm:text-4xl md:text-5xl">
             {t('exploreCosmos')}
           </h1>
-          <p className="mx-auto mb-6 max-w-2xl text-xl text-gray-300">
+          <p className="mx-auto mb-5 max-w-2xl text-base leading-7 text-gray-300 sm:mb-6 sm:text-lg sm:leading-8 md:text-xl">
             From the basics of stargazing to the mysteries of black holes,
             discover the wonders of astronomy through our structured lessons.
           </p>

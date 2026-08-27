@@ -6,6 +6,7 @@ import {
   getClientAddress,
   handleOptions,
 } from '../_lib/security.js';
+import { handleR2ShortsOperation, isR2Operation } from '../_lib/r2-shorts.js';
 
 const ALLOWED_INPUT_HOSTS = new Set([
   'tiktok.com',
@@ -34,6 +35,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST, OPTIONS');
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestBody = req.body && typeof req.body === 'object'
+    ? req.body as Record<string, unknown>
+    : {};
+  if (isR2Operation(requestBody.operation)) {
+    await handleR2ShortsOperation(req, res, requestBody.operation);
+    return;
   }
 
   const address = getClientAddress(req);

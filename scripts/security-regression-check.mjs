@@ -30,6 +30,10 @@ const files = Object.fromEntries(
     ['notificationMigration', 'supabase/app_notifications.sql'],
     ['announceApi', 'api/notifications/announce.ts'],
     ['notificationContext', 'src/context/NotificationContext.tsx'],
+    ['r2Api', 'api/_lib/r2-shorts.ts'],
+    ['r2Client', 'src/services/r2-shorts.ts'],
+    ['shortsFeed', 'src/components/ShortsFeed.tsx'],
+    ['r2Migration', 'supabase/shorts_r2.sql'],
   ].map(async ([key, path]) => [key, await readFile(path, 'utf8')]))
 );
 
@@ -69,6 +73,11 @@ const checks = [
   ['App notifications have own-row RLS and immutable content fields', /Users can read their own app notifications/.test(files.notificationMigration) && /Only notification read state can be changed/.test(files.notificationMigration) && /protect_app_notification_fields/.test(files.notificationMigration)],
   ['Channel posts create durable per-user notifications', /channel_posts_enabled/.test(files.notificationMigration) && /notify_channel_post/.test(files.notificationMigration) && /channel_post_notification_fanout/.test(files.notificationMigration) && /channel_post/.test(files.notificationMigration)],
   ['Notification permission is explicit rather than automatic at sign-in', !/Notification\.requestPermission\(\);/.test(files.notificationContext) && /requestBrowserNotificationPermission/.test(files.notificationContext)],
+  ['R2 Shorts API uses server-only credentials and active-Admin auth', /authenticateSupabaseRequest/.test(files.r2Api) && /is_active_admin/.test(files.r2Api) && /process\.env\.R2_SECRET_ACCESS_KEY/.test(files.r2Api) && /getSignedUrl/.test(files.r2Api) && !/R2_SECRET_ACCESS_KEY|R2_ACCESS_KEY_ID/.test(files.r2Client)],
+  ['R2 Shorts uploads enforce a bounded free-tier cap and verified object size', /HARD_FREE_TIER_CAP_BYTES/.test(files.r2Api) && /reserve_short_r2_upload/.test(files.r2Api) && /HeadObjectCommand/.test(files.r2Api) && /actualBytes/.test(files.r2Api) && /R2_QUOTA_REACHED/.test(files.r2Api)],
+  ['New Shorts prefer R2 but preserve the legacy Supabase fallback', /createR2ShortUpload/.test(files.shortsFeed) && /isR2NotConfiguredError/.test(files.shortsFeed) && /supabase\.storage/.test(files.shortsFeed) && /finalizeR2ShortUpload/.test(files.shortsFeed)],
+  ['R2 Shorts deletion is provider-aware and quota-accounted', /deleteR2Short/.test(files.shortsFeed) && /storage_provider === 'r2'/.test(files.shortsFeed) && /delete_short_r2_metadata/.test(files.r2Api) && /DeleteObjectCommand/.test(files.r2Api)],
+  ['R2 metadata migration preserves legacy Supabase rows and hides server tables', /storage_provider TEXT NOT NULL DEFAULT 'supabase'/.test(files.r2Migration) && /CREATE TABLE IF NOT EXISTS public\.short_r2_usage/.test(files.r2Migration) && /CREATE TABLE IF NOT EXISTS public\.short_r2_uploads/.test(files.r2Migration) && /REVOKE ALL ON TABLE public\.short_r2_usage FROM PUBLIC, anon, authenticated/.test(files.r2Migration) && /GRANT EXECUTE ON FUNCTION public\.reserve_short_r2_upload/.test(files.r2Migration)],
 ];
 
 const failed = checks.filter(([, passed]) => !passed);

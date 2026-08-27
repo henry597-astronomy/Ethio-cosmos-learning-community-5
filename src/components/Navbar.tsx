@@ -308,9 +308,6 @@ export default function Navbar() {
                                 <span className="text-[10px] text-gray-500">{option.helper}</span>
                               </button>
                             ))}
-                            <p className="px-2 pt-1 text-[10px] leading-relaxed text-gray-500">
-                              {translate('languageHelper')}
-                            </p>
                           </div>
                         )}
                       </div>

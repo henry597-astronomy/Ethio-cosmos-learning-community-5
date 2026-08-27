@@ -11,7 +11,7 @@ import { getPublishedSpaceNews } from '@/services/space-news';
 import type { SpaceNews } from '@/types';
 
 const getUtcDateKey = () => new Date().toISOString().slice(0, 10);
-const HOME_BACKGROUND_VIDEO_URL = 'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/home-background-v1/Tiktok_1786697850931.mp4';
+const HOME_BACKGROUND_VIDEO_URL = new URL('../assets/home-background.mp4', import.meta.url).href;
 
 declare global {
   interface Window {

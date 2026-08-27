@@ -6,6 +6,13 @@ import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX, Tras
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import {
+  cancelR2ShortUpload,
+  createR2ShortUpload,
+  deleteR2Short,
+  finalizeR2ShortUpload,
+  isR2NotConfiguredError,
+} from '@/services/r2-shorts';
 
 interface ShortsFeedProps {
   onClose: () => void;
@@ -331,6 +338,13 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
     setShowMenu(false);
     
     try {
+      if (short.storage_provider === 'r2') {
+        await deleteR2Short(short.id);
+        toast.success('Short video permanently deleted!');
+        onDelete(short.id);
+        return;
+      }
+
       // Uploaded files need storage cleanup; embedded social links only need DB cleanup.
       const storageMarker = '/storage/v1/object/public/shorts/';
       const storageIndex = short.video_url.indexOf(storageMarker);
@@ -709,6 +723,41 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
 
     try {
       setUploading(true);
+
+      // Prefer the bounded external R2 path when configured. The server issues
+      // a one-time URL, verifies the uploaded object, and writes the Shorts row
+      // atomically. If R2 is not configured yet, preserve the existing
+      // Supabase upload path so the feature does not break during setup.
+      try {
+        const r2Upload = await createR2ShortUpload(file.size, file.type);
+        let finalized = false;
+        try {
+          const uploadResponse = await fetch(r2Upload.upload_url, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+          });
+          if (!uploadResponse.ok) {
+            throw new Error(`External upload failed (HTTP ${uploadResponse.status}).`);
+          }
+
+          await finalizeR2ShortUpload(r2Upload.upload_id, file.size, 'New short');
+          finalized = true;
+          toast.success('Short uploaded successfully!');
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          await fetchShorts();
+          return;
+        } finally {
+          if (!finalized) {
+            await cancelR2ShortUpload(r2Upload.upload_id).catch((cancelError) => {
+              console.warn('Could not cancel unfinished R2 upload:', cancelError);
+            });
+          }
+        }
+      } catch (error) {
+        if (!isR2NotConfiguredError(error)) throw error;
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = fileName;
@@ -742,7 +791,7 @@ export default function ShortsFeed({ onClose }: ShortsFeedProps) {
 
       toast.success('Short uploaded successfully!');
       if (fileInputRef.current) fileInputRef.current.value = '';
-      fetchShorts();
+      await fetchShorts();
     } catch (error) {
       console.error('Error uploading short:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload short';

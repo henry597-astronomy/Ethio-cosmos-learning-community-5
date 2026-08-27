@@ -279,6 +279,9 @@ export interface Short {
   user_id: string;
   video_url: string;
   caption?: string;
+  storage_provider?: 'supabase' | 'r2' | null;
+  storage_key?: string | null;
+  video_size_bytes?: number | null;
   created_at: string;
   likes_count: number;
   is_active: boolean;

@@ -19,3 +19,6 @@ project(':capacitor-preferences').projectDir = new File('../node_modules/.pnpm/@
 
 include ':capacitor-screen-orientation'
 project(':capacitor-screen-orientation').projectDir = new File('../node_modules/.pnpm/@capacitor+screen-orientation@6.0.4_@capacitor+core@6.2.1/node_modules/@capacitor/screen-orientation/android')
+
+include ':capacitor-share'
+project(':capacitor-share').projectDir = new File('../node_modules/.pnpm/@capacitor+share@6.0.4_@capacitor+core@6.2.1/node_modules/@capacitor/share/android')

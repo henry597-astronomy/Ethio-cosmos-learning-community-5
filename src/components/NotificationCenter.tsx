@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bell, Check, CheckCheck, Settings2 } from 'lucide-react';
+import { Bell, Check, CheckCheck, Settings2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -27,6 +27,7 @@ export default function NotificationCenter() {
     unreadCount,
     markAsRead,
     markAllAsRead,
+    clearNotifications,
     savePreferences,
     requestBrowserNotificationPermission,
     requestNativeNotificationPermission,
@@ -34,6 +35,7 @@ export default function NotificationCenter() {
   const { language, t } = useAppLanguage();
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const unreadNotifications = useMemo(
     () => notifications.filter((notification) => !notification.read_at).length,
@@ -137,6 +139,30 @@ export default function NotificationCenter() {
               >
                 <CheckCheck size={14} className="mr-1" />
                 <span className="hidden sm:inline">{t('markAllRead')}</span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={notifications.length === 0 || clearing}
+                aria-label={t('clearNotifications')}
+                title={t('clearNotifications')}
+                onClick={async () => {
+                  if (!window.confirm(t('clearNotificationsConfirm'))) return;
+                  setClearing(true);
+                  try {
+                    await clearNotifications();
+                    toast.success(t('notificationsCleared'));
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : t('notificationClearError'));
+                  } finally {
+                    setClearing(false);
+                  }
+                }}
+                className="h-8 shrink-0 px-2 text-xs text-red-300 hover:bg-red-500/10 hover:text-red-200"
+              >
+                <Trash2 size={14} className="mr-1" />
+                <span className="hidden sm:inline">{clearing ? t('clearingNotifications') : t('clearNotifications')}</span>
               </Button>
               <Button
                 type="button"

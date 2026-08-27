@@ -32,6 +32,9 @@ importers:
       '@capacitor/screen-orientation':
         specifier: ^6.0.4
         version: 6.0.4(@capacitor/core@6.2.1)
+      '@capacitor/share':
+        specifier: ^6.0.4
+        version: 6.0.4(@capacitor/core@6.2.1)
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.74.0(react@19.2.5))
@@ -480,6 +483,11 @@ packages:
 
   '@capacitor/screen-orientation@6.0.4':
     resolution: {integrity: sha512-BKuGqUGvN7hSEmotI7m8UlGRRBGd9YpAzlnQAXp9VNvKkinSkreMHPrEOiR/sG3QX/vR/BJ190tGQiICmylcTg==}
+    peerDependencies:
+      '@capacitor/core': ^6.0.0
+
+  '@capacitor/share@6.0.4':
+    resolution: {integrity: sha512-Ij8C3as4n6L+SUj3M1ko+DGIsrDw2VTkn5Y/pQnFRI9dRk6YoSpGKLN54yOyN7ew3N9bVa8Rko+dFwdcNg7ESA==}
     peerDependencies:
       '@capacitor/core': ^6.0.0
 
@@ -4163,6 +4171,10 @@ snapshots:
       '@capacitor/core': 6.2.1
 
   '@capacitor/screen-orientation@6.0.4(@capacitor/core@6.2.1)':
+    dependencies:
+      '@capacitor/core': 6.2.1
+
+  '@capacitor/share@6.0.4(@capacitor/core@6.2.1)':
     dependencies:
       '@capacitor/core': 6.2.1
 

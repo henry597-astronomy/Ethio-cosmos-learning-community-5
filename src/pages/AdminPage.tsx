@@ -33,6 +33,7 @@ import type {
 } from '@/types';
 import { toast } from 'sonner';
 import PremiumAdminPanel from '@/components/PremiumAdminPanel';
+import PremiumPaymentAdminPanel from '@/components/PremiumPaymentAdminPanel';
 import ClassroomAdminPanel from '@/components/ClassroomAdminPanel';
 import AdminAnnouncementsPanel from '@/components/AdminAnnouncementsPanel';
 
@@ -388,8 +389,8 @@ export default function AdminPage() {
   if (!user) return null;
 
   // Define which tabs are available for regular admins vs super admin
-  const regularAdminTabs = ['home', 'lessons', 'classrooms', 'announcements', 'space-news', 'analytics', 'premium'];
-  const allTabs = ['home', 'homepage', 'topics', 'subtopics', 'lessons', 'classrooms', 'announcements', 'space-news', 'about', 'materials', 'quizzes', 'users', 'analytics', 'premium'];
+  const regularAdminTabs = ['home', 'lessons', 'classrooms', 'announcements', 'space-news', 'analytics', 'premium', 'payments'];
+  const allTabs = ['home', 'homepage', 'topics', 'subtopics', 'lessons', 'classrooms', 'announcements', 'space-news', 'about', 'materials', 'quizzes', 'users', 'analytics', 'premium', 'payments'];
   const availableTabs = isSuperAdmin ? allTabs : regularAdminTabs;
 
   // If user tries to access a restricted tab, reset to first available tab
@@ -2196,6 +2197,11 @@ export default function AdminPage() {
           {/* ── PREMIUM TAB ──────────────────────────────────────────── */}
           <TabsContent value="premium" className="space-y-4">
             <PremiumAdminPanel adminId={user.id} />
+          </TabsContent>
+
+          {/* ── PAYMENT SUBMISSIONS TAB ───────────────────────────────── */}
+          <TabsContent value="payments" className="space-y-4">
+            <PremiumPaymentAdminPanel adminId={user.id} />
           </TabsContent>
 
           {/* ── USERS TAB ─────────────────────────────────────────────── */}

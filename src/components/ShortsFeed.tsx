@@ -3,6 +3,8 @@ import { supabase } from '@/supabase';
 import type { Short } from '@/types';
 import { getEmbedUrl, getVideoType, resolveVideoUrl } from '@/lib/video-utils';
 import { X, Loader, Heart, MessageCircle, Share2, Upload, Volume2, VolumeX, Trash2, MoreVertical, Link } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -206,21 +208,15 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
 
     if (isLikeSaving) return;
 
-    let interactionUserId: string;
-    try {
-      interactionUserId = await ensureInteractionUser();
-    } catch (error) {
-      console.error('Could not verify Shorts interaction user:', error);
-      toast.info('Sign in to like Shorts.');
-      return;
-    }
-
+    // Update the visible state immediately, then reconcile with Supabase.
+    // Any authentication or persistence failure restores the previous state.
     const nextLiked = !isLiked;
     setIsLiked(nextLiked);
     setLikeCount((current) => Math.max(0, current + (nextLiked ? 1 : -1)));
     setIsLikeSaving(true);
 
     try {
+      const interactionUserId = await ensureInteractionUser();
       const result = nextLiked
         ? await supabase.from('short_likes').insert({ short_id: short.id, user_id: interactionUserId })
         : await supabase
@@ -233,8 +229,12 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
     } catch (error) {
       setIsLiked(!nextLiked);
       setLikeCount((current) => Math.max(0, current + (nextLiked ? -1 : 1)));
-      console.error('Error saving Short like:', error);
-      toast.error('Could not save your like. Please try again.');
+      if (error instanceof Error && error.message.includes('sign in')) {
+        toast.info('Sign in to like Shorts.');
+      } else {
+        console.error('Error saving Short like:', error);
+        toast.error('Could not save your like. Please try again.');
+      }
     } finally {
       setIsLikeSaving(false);
     }
@@ -308,7 +308,14 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
     };
 
     try {
-      if (navigator.share) {
+      if (Capacitor.isNativePlatform()) {
+        await Share.share({
+          title: shareData.title,
+          text: shareData.text,
+          url: shareData.url,
+          dialogTitle: 'Share Short',
+        });
+      } else if (navigator.share) {
         await navigator.share(shareData);
       } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareUrl);
@@ -318,6 +325,7 @@ function ShortVideo({ short, isMuted, onMuteToggle, isAdmin, onDelete }: ShortVi
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (error instanceof Error && /cancel/i.test(error.message)) return;
       console.error('Error sharing Short:', error);
       toast.error('Could not share this Short.');
     }

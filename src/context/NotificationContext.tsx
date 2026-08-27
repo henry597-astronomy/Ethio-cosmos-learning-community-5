@@ -25,6 +25,7 @@ interface NotificationContextType {
   refreshNotifications: () => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  clearNotifications: () => Promise<void>;
   markChannelPostNotificationsAsRead: () => Promise<void>;
   savePreferences: (changes: Partial<Omit<NotificationPreferences, 'user_id' | 'updated_at'>>) => Promise<void>;
   requestBrowserNotificationPermission: () => Promise<boolean>;
@@ -230,6 +231,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [notifications, unreadNotificationCount, user?.id]);
 
+  const clearNotifications = useCallback(async () => {
+    if (!user?.id || notifications.length === 0) return;
+    setNotifications([]);
+    const { error } = await supabase
+      .from('app_notifications')
+      .delete()
+      .eq('user_id', user.id);
+    if (error) {
+      await refreshNotifications();
+      throw error;
+    }
+  }, [notifications.length, refreshNotifications, user?.id]);
+
   const markChannelPostNotificationsAsRead = useCallback(async () => {
     if (!user?.id) return;
     const readAt = new Date().toISOString();
@@ -307,6 +321,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         refreshNotifications,
         markAsRead,
         markAllAsRead,
+        clearNotifications,
         markChannelPostNotificationsAsRead,
         savePreferences,
         requestBrowserNotificationPermission,

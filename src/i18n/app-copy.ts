@@ -304,9 +304,45 @@ export type AppCopyKey =
   | 'manualPaymentSaved'
   | 'manualPaymentSaving'
   | 'manualPaymentPending'
+  | 'paymentSubmissionTitle'
+  | 'paymentSubmissionDescription'
+  | 'paymentSubmissionRequiresSignIn'
+  | 'paymentSubmissionSignIn'
+  | 'paymentSubmissionNoSecrets'
+  | 'paymentSubmissionPlanLabel'
+  | 'paymentSubmissionNoPlan'
+  | 'paymentSubmissionAmountLabel'
+  | 'paymentSubmissionMethodLabel'
+  | 'paymentSubmissionReferenceLabel'
+  | 'paymentSubmissionNoteLabel'
+  | 'paymentSubmissionNotePlaceholder'
+  | 'paymentSubmissionProofLabel'
+  | 'paymentSubmissionProofHint'
+  | 'paymentSubmissionProofAttached'
+  | 'paymentSubmissionProofTypeError'
+  | 'paymentSubmissionProofSizeError'
+  | 'paymentSubmissionAmountError'
+  | 'paymentSubmissionRequiredError'
+  | 'paymentSubmissionLengthError'
+  | 'paymentSubmissionAlreadyPending'
+  | 'paymentSubmissionError'
+  | 'paymentSubmissionSubmitted'
+  | 'paymentSubmissionSending'
+  | 'paymentSubmissionSend'
+  | 'paymentSubmissionStatus'
+  | 'paymentSubmissionNoSubmissions'
+  | 'paymentSubmissionPending'
+  | 'paymentSubmissionApproved'
+  | 'paymentSubmissionRejected'
+  | 'paymentSubmissionLoadError'
   | 'backToLearning'
   | 'close'
   | 'notifications'
+  | 'clearNotifications'
+  | 'clearNotificationsConfirm'
+  | 'notificationsCleared'
+  | 'notificationClearError'
+  | 'clearingNotifications'
   | 'notificationSettings'
   | 'notificationPermissionHelp'
   | 'classroomReminders'
@@ -676,8 +712,44 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     manualPaymentSaved: 'Payment details saved.',
     manualPaymentSaving: 'Saving…',
     manualPaymentPending: 'After you pay, send the transaction reference to an administrator. Premium is activated only after the payment is verified.',
+    paymentSubmissionTitle: 'Send payment proof',
+    paymentSubmissionDescription: 'Send your transaction details and an optional screenshot or PDF privately to the administrator for manual verification.',
+    paymentSubmissionRequiresSignIn: 'Sign in before sending payment information so the administrator can match it to your account.',
+    paymentSubmissionSignIn: 'Sign in',
+    paymentSubmissionNoSecrets: 'Never upload or write a PIN, password, OTP, card number, CVV/CVC, or login information. Send only the transaction reference and proof of payment.',
+    paymentSubmissionPlanLabel: 'Premium plan',
+    paymentSubmissionNoPlan: 'General Premium access',
+    paymentSubmissionAmountLabel: 'Amount paid (ETB)',
+    paymentSubmissionMethodLabel: 'Payment method',
+    paymentSubmissionReferenceLabel: 'Transaction/reference number',
+    paymentSubmissionNoteLabel: 'Message to admin (optional)',
+    paymentSubmissionNotePlaceholder: 'Add any helpful payment context.',
+    paymentSubmissionProofLabel: 'Payment proof (optional)',
+    paymentSubmissionProofHint: 'JPEG, PNG, WebP, or PDF; maximum 10 MB.',
+    paymentSubmissionProofAttached: 'Private proof attached.',
+    paymentSubmissionProofTypeError: 'Choose a JPEG, PNG, WebP, or PDF file.',
+    paymentSubmissionProofSizeError: 'The proof file must be no larger than 10 MB.',
+    paymentSubmissionAmountError: 'Enter a valid amount greater than zero.',
+    paymentSubmissionRequiredError: 'Enter the payment method and transaction/reference number.',
+    paymentSubmissionLengthError: 'One or more fields are longer than the allowed limit.',
+    paymentSubmissionAlreadyPending: 'You already have a payment submission pending review. Wait for the administrator before sending another.',
+    paymentSubmissionError: 'Could not send the payment proof. Please try again.',
+    paymentSubmissionSubmitted: 'Payment proof sent. The administrator will verify it manually.',
+    paymentSubmissionSending: 'Sending…',
+    paymentSubmissionSend: 'Send payment proof',
+    paymentSubmissionStatus: 'Your submission history',
+    paymentSubmissionNoSubmissions: 'You have not sent payment proof yet.',
+    paymentSubmissionPending: 'Pending review',
+    paymentSubmissionApproved: 'Evidence approved',
+    paymentSubmissionRejected: 'Evidence rejected',
+    paymentSubmissionLoadError: 'Could not load payment submissions.',
     backToLearning: 'Back to learning',
     close: 'Close',
+    clearNotifications: 'Clear notifications',
+    clearNotificationsConfirm: 'Clear all notifications for this account? This does not delete posts or other users’ notifications.',
+    notificationsCleared: 'Notifications cleared.',
+    notificationClearError: 'Could not clear notifications.',
+    clearingNotifications: 'Clearing…',
   },
   am: {
     home: 'መነሻ ገጽ',
@@ -1015,8 +1087,44 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     manualPaymentSaved: 'የክፍያ መረጃው ተቀምጧል።',
     manualPaymentSaving: 'በማስቀመጥ ላይ…',
     manualPaymentPending: 'ከከፈሉ በኋላ የግብይቱን ማጣቀሻ ለአስተዳዳሪ ያስገቡ። Premium የሚነቃው ክፍያው ከተረጋገጠ በኋላ ብቻ ነው።',
+    paymentSubmissionTitle: 'የክፍያ ማረጋገጫ ይላኩ',
+    paymentSubmissionDescription: 'ለእጅ ማረጋገጫ የግብይት መረጃዎንና ከፈለጉ የስክሪንሾት ወይም PDF ፋይልን በግል ለአስተዳዳሪ ይላኩ።',
+    paymentSubmissionRequiresSignIn: 'የክፍያ መረጃው ከመለያዎ ጋር እንዲዛመድ ከመላክዎ በፊት ይግቡ።',
+    paymentSubmissionSignIn: 'ግባ',
+    paymentSubmissionNoSecrets: 'PIN፣ የይለፍ ቃል፣ OTP፣ የካርድ ቁጥር፣ CVV/CVC ወይም የመግቢያ መረጃ በፍጹም አይላኩ። የግብይት ማጣቀሻና የክፍያ ማረጋገጫ ብቻ ይላኩ።',
+    paymentSubmissionPlanLabel: 'የPremium ዕቅድ',
+    paymentSubmissionNoPlan: 'አጠቃላይ Premium መዳረሻ',
+    paymentSubmissionAmountLabel: 'የተከፈለው መጠን (ብር)',
+    paymentSubmissionMethodLabel: 'የክፍያ ዘዴ',
+    paymentSubmissionReferenceLabel: 'የግብይት/ማጣቀሻ ቁጥር',
+    paymentSubmissionNoteLabel: 'ለአስተዳዳሪ መልዕክት (ከፈለጉ)',
+    paymentSubmissionNotePlaceholder: 'ስለ ክፍያው ሊረዳ የሚችል መረጃ ይጨምሩ።',
+    paymentSubmissionProofLabel: 'የክፍያ ማረጋገጫ (ከፈለጉ)',
+    paymentSubmissionProofHint: 'JPEG፣ PNG፣ WebP ወይም PDF፤ ከፍተኛው 10 MB።',
+    paymentSubmissionProofAttached: 'የግል ማረጋገጫ ተያይዟል።',
+    paymentSubmissionProofTypeError: 'JPEG፣ PNG፣ WebP ወይም PDF ፋይል ይምረጡ።',
+    paymentSubmissionProofSizeError: 'የማረጋገጫ ፋይሉ ከ10 MB መብለጥ የለበትም።',
+    paymentSubmissionAmountError: 'ከዜሮ በላይ የሆነ ትክክለኛ መጠን ያስገቡ።',
+    paymentSubmissionRequiredError: 'የክፍያ ዘዴውንና የግብይት/ማጣቀሻ ቁጥሩን ያስገቡ።',
+    paymentSubmissionLengthError: 'አንድ ወይም ከዚያ በላይ መስኮች ከሚፈቀደው ርዝመት በላይ ናቸው።',
+    paymentSubmissionAlreadyPending: 'አንድ የክፍያ ማረጋገጫ እየተገመገመ ነው። ሌላ ከመላክዎ በፊት አስተዳዳሪውን ይጠብቁ።',
+    paymentSubmissionError: 'የክፍያ ማረጋገጫውን መላክ አልተቻለም። እንደገና ይሞክሩ።',
+    paymentSubmissionSubmitted: 'የክፍያ ማረጋገጫው ተልኳል። አስተዳዳሪው በእጅ ያረጋግጠዋል።',
+    paymentSubmissionSending: 'በመላክ ላይ…',
+    paymentSubmissionSend: 'የክፍያ ማረጋገጫ ላክ',
+    paymentSubmissionStatus: 'የላኳቸው ማረጋገጫዎች',
+    paymentSubmissionNoSubmissions: 'እስካሁን የክፍያ ማረጋገጫ አልላኩም።',
+    paymentSubmissionPending: 'እየተገመገመ ነው',
+    paymentSubmissionApproved: 'ማረጋገጫው ጸድቋል',
+    paymentSubmissionRejected: 'ማረጋገጫው ውድቅ ተደርጓል',
+    paymentSubmissionLoadError: 'የክፍያ ማረጋገጫዎችን መጫን አልተቻለም።',
     backToLearning: 'ወደ ትምህርቶች ተመለስ',
     close: 'ዝጋ',
+    clearNotifications: 'ማሳወቂያዎችን አጽዳ',
+    clearNotificationsConfirm: 'ለዚህ መለያ ያሉትን ማሳወቂያዎች በሙሉ ያጽዱ? ይህ ጽሑፎችን ወይም የሌሎች ተጠቃሚዎችን ማሳወቂያዎች አይሰርዝም።',
+    notificationsCleared: 'ማሳወቂያዎቹ ጸድተዋል።',
+    notificationClearError: 'ማሳወቂያዎችን ማጽዳት አልተቻለም።',
+    clearingNotifications: 'በማጽዳት ላይ…',
   },
 };
 

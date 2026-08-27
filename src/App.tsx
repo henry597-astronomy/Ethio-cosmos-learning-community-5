@@ -31,6 +31,7 @@ import AdminPage from '@/pages/AdminPage';
 import TestsPage from '@/pages/TestsPage';
 import BookmarksPage from '@/pages/BookmarksPage';
 import ProgressPage from '@/pages/ProgressPage';
+import PremiumSubscriptionPage from '@/pages/PremiumSubscriptionPage';
 const SolarSystemPage = lazy(() => import('@/pages/SolarSystemPage'));
 
 const GRADIENT_THEME_BACKGROUNDS: Record<string, string> = {
@@ -63,6 +64,7 @@ function AppRoutes() {
           {/* Public content routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/subscribe" element={<PremiumSubscriptionPage />} />
           
           {/* Protected content routes - require login check and block status check */}
           <Route path="/learning" element={<ProtectedRoute><LearningPage /></ProtectedRoute>} />

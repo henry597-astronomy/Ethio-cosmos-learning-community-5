@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/supabase';
 
 // Current app version matching the latest build
-const CURRENT_APP_VERSION = 49; // v1.10.20 Admin-managed manual payment receiver
+const CURRENT_APP_VERSION = 50; // v1.10.21 R2 Shorts external storage
 
 export default function AppVersionCheck({ children }: { children: React.ReactNode }) {
   const [updateRequired, setUpdateRequired] = useState(false);

@@ -17,6 +17,9 @@ EthioCosmos is built and maintained by the EthioCosmos Learning Community projec
 - About: information about the EthioCosmos project and community.
 - Subscription: displays current premium access information and manual payment/submission workflows when enabled by the administrator.
 
+## Visual and interaction cues
+The visual style is a dark cosmic interface with deep navy/black backgrounds, orange highlights, astronomy imagery, responsive cards, rounded panels, and a mobile bottom task bar. The Home page uses a static astronomy background image, not a background video. The top navigation leads to the main public and signed-in areas. Learning and materials are presented as browseable cards and grouped sections; Progress is presented as a Mission Control-style dashboard with progress cards, skill constellation visuals, and achievement elements. These visual descriptions supplement the live page and its images; the live interface is the source of truth for current labels and layout.
+
 ## Access rules
 Public pages can be browsed without signing in. Learning, materials, progress, chat, tests, bookmarks, and other protected features may require an account. Premium-only capabilities are explicitly marked in the interface. Offline lesson and material downloads are user-initiated and are not downloaded automatically in the background.
 

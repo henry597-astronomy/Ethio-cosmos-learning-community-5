@@ -3,6 +3,9 @@
 ## Overview
 EthioCosmos is an astronomy learning community focused on accessible space science education from Ethiopia to the universe. The website provides public information and learning tools, while signed-in users can access protected learning content and user features.
 
+## Project identity and build
+EthioCosmos is built and maintained by the EthioCosmos Learning Community project team. The public source repository is owned by the project's GitHub organization/account at `henry597-astronomy/Ethio-cosmos-learning-community-5`. The current website source includes the silent-refresh and caching release identified as version 1.10.32 (Android version code 61). The website is deployed through the linked Vercel project `ethio-cosmos-learning-community-5`.
+
 ## Main website areas
 - Home: astronomy introduction, featured learning content, and space news.
 - Learning: astronomy topics, subtopics, and lessons.
@@ -22,6 +25,8 @@ The website and Android app use cached content with silent stale-while-revalidat
 
 ## Android app
 The site offers the official EthioCosmos Android APK through the visible “Download APK” action. This is a direct Android APK download, not a PWA installation. The website does not advertise or provide a PWA install flow.
+
+The current APK is the verified `EthioCosmos v1.10.32 — Silent Refresh` build. It includes cached lesson/material rendering, silent background refresh, CMS/news request deduplication, and reduced aggressive entitlement polling. Its Android package is `com.ethiocosmos.learning`, version code `61`, and target SDK `34`. The APK is distributed through the website endpoint `/api/download/apk` and the repository's GitHub release `v1.10.32`.
 
 ## Important limitations
 Content, classroom availability, premium access, news, and community posts depend on the service's current data and account permissions. Do not infer that a lesson, classroom, premium entitlement, payment approval, or live stream exists unless the website displays it for the current user.

@@ -1,0 +1,32 @@
+# EthioCosmos Learning Community
+
+## Overview
+EthioCosmos is an astronomy learning community focused on accessible space science education from Ethiopia to the universe. The website provides public information and learning tools, while signed-in users can access protected learning content and user features.
+
+## Main website areas
+- Home: astronomy introduction, featured learning content, and space news.
+- Learning: astronomy topics, subtopics, and lessons.
+- Materials: organized photo galleries, videos, and documents/PDF resources.
+- Progress: a Mission Control dashboard for learning progress, achievements, and skill development.
+- AI Tutor: an astronomy-focused tutor for questions and guided learning.
+- Chat/Channels: community discussion and posts.
+- Join Stream: available classrooms and scheduled live classroom sessions when provided by the service.
+- About: information about the EthioCosmos project and community.
+- Subscription: displays current premium access information and manual payment/submission workflows when enabled by the administrator.
+
+## Access rules
+Public pages can be browsed without signing in. Learning, materials, progress, chat, tests, bookmarks, and other protected features may require an account. Premium-only capabilities are explicitly marked in the interface. Offline lesson and material downloads are user-initiated and are not downloaded automatically in the background.
+
+## Current app behavior
+The website and Android app use cached content with silent stale-while-revalidate updates. Previously visited lessons and materials should remain visible while background refreshes complete. The app avoids the previous aggressive 20-second premium polling loop and deduplicates concurrent CMS/news requests to reduce blinking, data usage, CPU work, and battery drain.
+
+## Android app
+The site offers the official EthioCosmos Android APK through the visible “Download APK” action. This is a direct Android APK download, not a PWA installation. The website does not advertise or provide a PWA install flow.
+
+## Important limitations
+Content, classroom availability, premium access, news, and community posts depend on the service's current data and account permissions. Do not infer that a lesson, classroom, premium entitlement, payment approval, or live stream exists unless the website displays it for the current user.
+
+## Canonical links
+- Website: https://ethiocosmos-learning-community.vercel.app/
+- APK download: https://ethiocosmos-learning-community.vercel.app/api/download/apk
+- Source repository: https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5

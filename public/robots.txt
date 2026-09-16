@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /founder
+Allow: /founder.html
+Disallow: /api/
+
+Sitemap: https://ethio-cosmos-learning-community-5.vercel.app/sitemap.xml

@@ -15,6 +15,7 @@
   "rewrites": [
     { "source": "/api/groq", "destination": "/api/groq/chat" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/founder", "destination": "/founder.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -3,8 +3,42 @@ import type { SpaceNews } from '@/types';
 
 const SPACE_NEWS_FIELDS = 'id, external_id, title, summary, full_explanation, fun_fact, image_url, source_name, source_url, category, published_date, ai_generated, status, created_at, updated_at';
 
+type NewsCacheEntry = {
+  items: SpaceNews[];
+  storedAt: number;
+};
+
+const publishedNewsCache = new Map<string, NewsCacheEntry>();
+const publishedNewsInFlight = new Map<string, Promise<SpaceNews[]>>();
+
+function getNewsCacheKey(limit: number, utcDate?: string) {
+  return `${limit}:${utcDate ?? 'latest'}`;
+}
+
+export function getCachedPublishedSpaceNews(limit = 12, utcDate?: string): SpaceNews[] | null {
+  return publishedNewsCache.get(getNewsCacheKey(limit, utcDate))?.items ?? null;
+}
+
+function cachePublishedSpaceNews(limit: number, utcDate: string | undefined, items: SpaceNews[]) {
+  publishedNewsCache.set(getNewsCacheKey(limit, utcDate), { items, storedAt: Date.now() });
+}
+
 export async function getPublishedSpaceNews(limit = 12, utcDate?: string): Promise<SpaceNews[]> {
-  let query = supabase
+  const cacheKey = getNewsCacheKey(limit, utcDate);
+  const existing = publishedNewsInFlight.get(cacheKey);
+  if (existing) return existing;
+
+  const request = loadPublishedSpaceNews(limit, utcDate);
+  publishedNewsInFlight.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    if (publishedNewsInFlight.get(cacheKey) === request) publishedNewsInFlight.delete(cacheKey);
+  }
+}
+
+async function loadPublishedSpaceNews(limit: number, utcDate?: string): Promise<SpaceNews[]> {
+  const query = supabase
     .from('space_news')
     .select(SPACE_NEWS_FIELDS)
     .eq('status', 'published');
@@ -19,7 +53,9 @@ export async function getPublishedSpaceNews(limit = 12, utcDate?: string): Promi
       .limit(limit);
 
     if (!dateError && dateFiltered && dateFiltered.length > 0) {
-      return dateFiltered as SpaceNews[];
+      const items = dateFiltered as SpaceNews[];
+      cachePublishedSpaceNews(limit, utcDate, items);
+      return items;
     }
   }
 
@@ -36,7 +72,9 @@ export async function getPublishedSpaceNews(limit = 12, utcDate?: string): Promi
     return [];
   }
 
-  return (data as SpaceNews[]) ?? [];
+  const items = (data as SpaceNews[]) ?? [];
+  cachePublishedSpaceNews(limit, utcDate, items);
+  return items;
 }
 
 export async function getLatestPublishedSpaceNews(): Promise<SpaceNews | null> {
@@ -51,4 +89,3 @@ export function getTwoHourSlotIndex(itemCount: number, timestamp = Date.now()): 
 }
 
 export { SPACE_NEWS_FIELDS };
-

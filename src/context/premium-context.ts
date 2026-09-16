@@ -40,6 +40,7 @@ export type PremiumEntitlement = {
 
 export type PremiumContextValue = {
   loading: boolean;
+  hasInitialized: boolean;
   globalEnabled: boolean;
   manualPayment: PremiumSettings;
   hasManualPaymentDetails: boolean;

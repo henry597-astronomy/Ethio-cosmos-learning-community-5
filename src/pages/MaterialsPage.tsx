@@ -172,7 +172,7 @@ export default function MaterialsPage() {
     return result;
   }, [sections, viewTab, activeGroup, searchQuery]);
 
-  if (loading) {
+  if (loading && sections.length === 0) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#050810] text-gray-400">
         {t('loading')}

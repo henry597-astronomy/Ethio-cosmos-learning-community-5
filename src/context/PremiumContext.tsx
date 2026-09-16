@@ -45,6 +45,7 @@ function getPremiumSnapshotKey(userId: string | undefined) {
 export function PremiumProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const [globalEnabled, setGlobalEnabled] = useState(true);
   const [manualPayment, setManualPayment] = useState<PremiumSettings>(EMPTY_MANUAL_PAYMENT);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -57,6 +58,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   const [entitlements, setEntitlements] = useState<PremiumEntitlement[]>([]);
 
   useEffect(() => {
+    setLoading(true);
+    setHasInitialized(false);
     setGlobalEnabled(true);
     setManualPayment(EMPTY_MANUAL_PAYMENT);
     setFeatures([]);
@@ -71,6 +74,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       const raw = window.localStorage.getItem(getPremiumSnapshotKey(user?.id));
       if (!raw) {
         setLoading(false);
+        setHasInitialized(true);
         return;
       }
       const snapshot = JSON.parse(raw) as PremiumSnapshot;
@@ -85,9 +89,11 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       setFeaturesLoaded(true);
       setContentFlagsLoaded(true);
       setLoading(false);
+      setHasInitialized(true);
     } catch (error) {
       console.warn('Premium offline snapshot unavailable:', error);
       setLoading(false);
+      setHasInitialized(true);
     }
   }, [user?.id]);
 
@@ -96,7 +102,6 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    setLoading(true);
     try {
       const [settingsResult, featuresResult, topicsResult, subtopicsResult, lessonFlagsResult, entitlementsResult] = await Promise.all([
         supabase.from('premium_settings').select('id, is_enabled, manual_payment_enabled, manual_payment_method, manual_payment_receiver_name, manual_payment_account, manual_payment_instructions').eq('id', 'global').maybeSingle(),
@@ -143,6 +148,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       }
     } finally {
       setLoading(false);
+      setHasInitialized(true);
     }
   }, [user]);
 
@@ -154,17 +160,23 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user?.id) return undefined;
 
+    // Premium access changes are infrequent. Refresh once when the app returns
+    // to the foreground, but never poll every few seconds while browsing.
+    let lastRefreshAt = 0;
     const refreshWhenVisible = () => {
-      if (document.visibilityState === 'visible') void refresh();
+      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - lastRefreshAt < 60_000) return;
+      lastRefreshAt = now;
+      void refresh();
     };
-    const refreshOnFocus = () => { void refresh(); };
-    const interval = window.setInterval(refreshWhenVisible, 20_000);
+    const interval = window.setInterval(refreshWhenVisible, 15 * 60 * 1000);
 
-    window.addEventListener('focus', refreshOnFocus);
+    window.addEventListener('focus', refreshWhenVisible);
     document.addEventListener('visibilitychange', refreshWhenVisible);
     return () => {
       window.clearInterval(interval);
-      window.removeEventListener('focus', refreshOnFocus);
+      window.removeEventListener('focus', refreshWhenVisible);
       document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, [refresh, user?.id]);
@@ -218,6 +230,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     loading,
+    hasInitialized,
     globalEnabled,
     manualPayment,
     hasManualPaymentDetails,
@@ -238,6 +251,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     refresh,
   }), [
     loading,
+    hasInitialized,
     globalEnabled,
     manualPayment,
     hasManualPaymentDetails,

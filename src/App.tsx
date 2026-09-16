@@ -52,7 +52,7 @@ function AppRoutes() {
     <AppVersionCheck>
       <div className={`h-screen w-full flex flex-col overflow-hidden transition-colors duration-300 ${
         theme === 'light' ? 'bg-[#f1f5f9] text-[#0f172a]' : 'bg-[#0a0e1a] text-white'
-      }`} style={{ background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
+        }`} style={{ background: gradientBackground, backgroundAttachment: gradientBackground ? 'fixed' : undefined }}>
         {!isSolarSystemRoute && <Navbar />}
         {!isSolarSystemRoute && <InstallPrompt />}
         {!isSolarSystemRoute && <AppUpdatePrompt />}

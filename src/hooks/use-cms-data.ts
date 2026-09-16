@@ -21,28 +21,59 @@ import type {
 } from '@/types';
 
 const CMS_REFRESH_TIMEOUT_MS = 3500;
+const cmsMemoryCache = new Map<string, unknown>();
+const cmsInFlight = new Map<string, Promise<unknown>>();
+
+function readMemoryCached<T>(key: string): T | null {
+  return (cmsMemoryCache.get(key) as T | undefined) ?? null;
+}
+
+function hasMemoryCache(key: string): boolean {
+  return cmsMemoryCache.has(key);
+}
+
+async function writeCached<T>(key: string, value: T): Promise<void> {
+  cmsMemoryCache.set(key, value);
+  await cacheOfflineData(key, value);
+}
+
 
 function isNetworkAvailable() {
   return typeof navigator === 'undefined' || navigator.onLine;
 }
 
-async function boundedRefresh<T>(request: Promise<T>): Promise<T> {
-  let timeoutId: number | undefined;
+async function boundedRefresh<T>(cacheKey: string, requestFactory: () => Promise<T>): Promise<T> {
+  const existing = cmsInFlight.get(cacheKey) as Promise<T> | undefined;
+  if (existing) return existing;
+
+  const request = (async () => {
+    let timeoutId: number | undefined;
+    try {
+      return await Promise.race([
+        requestFactory(),
+        new Promise<T>((_, reject) => {
+          timeoutId = window.setTimeout(() => reject(new Error('Network refresh timed out.')), CMS_REFRESH_TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    }
+  })();
+  cmsInFlight.set(cacheKey, request);
   try {
-    return await Promise.race([
-      request,
-      new Promise<T>((_, reject) => {
-        timeoutId = window.setTimeout(() => reject(new Error('Network refresh timed out.')), CMS_REFRESH_TIMEOUT_MS);
-      }),
-    ]);
+    return await request;
   } finally {
-    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    if (cmsInFlight.get(cacheKey) === request) cmsInFlight.delete(cacheKey);
   }
 }
 
 async function readCached<T>(key: string): Promise<T | null> {
+  const memoryData = readMemoryCached<T>(key);
+  if (memoryData !== null) return memoryData;
   try {
-    return await getValidatedOfflineData<T>(key);
+    const persistedData = await getValidatedOfflineData<T>(key);
+    if (persistedData !== null) cmsMemoryCache.set(key, persistedData);
+    return persistedData;
   } catch (error) {
     console.warn(`Failed to read cached ${key}:`, error);
     return null;
@@ -50,16 +81,18 @@ async function readCached<T>(key: string): Promise<T | null> {
 }
 
 // --- Homepage Hooks ---
+type HomepageHeroData = {
+  heroTitle: string;
+  heroSubtitle: string;
+  videoUrl?: string;
+  videoVisible?: boolean;
+  secondaryVideoUrl?: string;
+  enableVideoSequence?: boolean;
+};
+
 export function useHomepageHero() {
-  const [hero, setHero] = useState<{ 
-    heroTitle: string; 
-    heroSubtitle: string; 
-    videoUrl?: string; 
-    videoVisible?: boolean;
-    secondaryVideoUrl?: string;
-    enableVideoSequence?: boolean;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [hero, setHero] = useState<HomepageHeroData | null>(() => readMemoryCached<HomepageHeroData>('homepage_hero'));
+  const [loading, setLoading] = useState(() => !hasMemoryCache('homepage_hero'));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,7 +111,7 @@ export function useHomepageHero() {
       }
 
       try {
-        const data = await boundedRefresh(getHomepageHero());
+        const data = await boundedRefresh('homepage_hero', () => getHomepageHero());
         const finalData = data ?? {
           heroTitle: 'Explore the Cosmos with Ethiopia',
           heroSubtitle: 'Join the EthioCosmos Learning Community — learn astronomy from Ethiopia to the universe',
@@ -91,7 +124,7 @@ export function useHomepageHero() {
           setHero(finalData);
           setError(null);
         }
-        await cacheOfflineData('homepage_hero', finalData).catch((cacheErr) => console.warn('Failed to cache hero:', cacheErr));
+        await writeCached('homepage_hero', finalData).catch((cacheErr) => console.warn('Failed to cache hero:', cacheErr));
       } catch (err) {
         console.error(err);
         if (!cancelled && cachedData === null) setError('Failed to load homepage hero.');
@@ -103,19 +136,12 @@ export function useHomepageHero() {
     return () => { cancelled = true; };
   }, []);
 
-  const saveHero = useCallback(async (newHero: { 
-    heroTitle: string; 
-    heroSubtitle: string; 
-    videoUrl?: string; 
-    videoVisible?: boolean;
-    secondaryVideoUrl?: string;
-    enableVideoSequence?: boolean;
-  }) => {
+  const saveHero = useCallback(async (newHero: HomepageHeroData) => {
     try {
       await updateHomepageHero(newHero);
       setHero(newHero);
       setError(null);
-      await cacheOfflineData('homepage_hero', newHero);
+      await writeCached('homepage_hero', newHero);
     } catch (err) {
       setError("Failed to save homepage hero.");
       console.error(err);
@@ -127,8 +153,8 @@ export function useHomepageHero() {
 }
 
 export function useHomepageFeatureCards() {
-  const [featureCards, setFeatureCards] = useState<FeatureCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [featureCards, setFeatureCards] = useState<FeatureCard[]>(() => readMemoryCached<FeatureCard[]>('homepage_feature_cards') ?? []);
+  const [loading, setLoading] = useState(() => !hasMemoryCache('homepage_feature_cards'));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -146,7 +172,7 @@ export function useHomepageFeatureCards() {
         return;
       }
       try {
-        const data = await boundedRefresh(getHomepageFeatureCards());
+        const data = await boundedRefresh('homepage_feature_cards', () => getHomepageFeatureCards());
         const finalData = data || [
           { icon: '🔭', title: 'Astronomy Lessons', description: 'Structured learning paths from basics to advanced topics' },
           { icon: '🌍', title: 'Ethiopian Context', description: 'Explore the night sky from an Ethiopian perspective' },
@@ -156,7 +182,7 @@ export function useHomepageFeatureCards() {
           setFeatureCards(finalData);
           setError(null);
         }
-        await cacheOfflineData('homepage_feature_cards', finalData).catch((cacheErr) => console.warn('Failed to cache feature cards:', cacheErr));
+        await writeCached('homepage_feature_cards', finalData).catch((cacheErr) => console.warn('Failed to cache feature cards:', cacheErr));
       } catch (err) {
         console.error(err);
         if (!cancelled && cachedData === null) setError('Failed to load feature cards.');
@@ -173,7 +199,7 @@ export function useHomepageFeatureCards() {
       await updateHomepageFeatureCards(newCards);
       setFeatureCards(newCards);
       setError(null);
-      await cacheOfflineData('homepage_feature_cards', newCards);
+      await writeCached('homepage_feature_cards', newCards);
     } catch (err) {
       setError("Failed to save feature cards.");
       console.error(err);
@@ -185,8 +211,8 @@ export function useHomepageFeatureCards() {
 }
 
 export function useHomepageFeaturedTopics() {
-  const [featuredTopics, setFeaturedTopics] = useState<FeaturedTopic[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [featuredTopics, setFeaturedTopics] = useState<FeaturedTopic[]>(() => readMemoryCached<FeaturedTopic[]>('homepage_featured_topics') ?? []);
+  const [loading, setLoading] = useState(() => !hasMemoryCache('homepage_featured_topics'));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -204,13 +230,13 @@ export function useHomepageFeaturedTopics() {
         return;
       }
       try {
-        const data = await boundedRefresh(getHomepageFeaturedTopics());
+        const data = await boundedRefresh('homepage_featured_topics', () => getHomepageFeaturedTopics());
         const finalData = data || [];
         if (!cancelled) {
           setFeaturedTopics(finalData);
           setError(null);
         }
-        await cacheOfflineData('homepage_featured_topics', finalData).catch((cacheErr) => console.warn('Failed to cache featured topics:', cacheErr));
+        await writeCached('homepage_featured_topics', finalData).catch((cacheErr) => console.warn('Failed to cache featured topics:', cacheErr));
       } catch (err) {
         console.error(err);
         if (!cancelled && cachedData === null) setError('Failed to load featured topics.');
@@ -227,7 +253,7 @@ export function useHomepageFeaturedTopics() {
       await updateHomepageFeaturedTopics(newTopics);
       setFeaturedTopics(newTopics);
       setError(null);
-      await cacheOfflineData('homepage_featured_topics', newTopics);
+      await writeCached('homepage_featured_topics', newTopics);
     } catch (err) {
       setError("Failed to save featured topics.");
       console.error(err);
@@ -240,8 +266,8 @@ export function useHomepageFeaturedTopics() {
 
 // --- About Page Hooks ---
 export function useAboutContent() {
-  const [aboutContent, setAboutContent] = useState<AboutContent | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [aboutContent, setAboutContent] = useState<AboutContent | null>(() => readMemoryCached<AboutContent>('about_content'));
+  const [loading, setLoading] = useState(() => !hasMemoryCache('about_content'));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -259,12 +285,12 @@ export function useAboutContent() {
         return;
       }
       try {
-        const data = await boundedRefresh(getAboutContent());
+        const data = await boundedRefresh('about_content', () => getAboutContent());
         if (!cancelled) {
           setAboutContent(data);
           setError(null);
         }
-        if (data) await cacheOfflineData('about_content', data).catch((cacheErr) => console.warn('Failed to cache about content:', cacheErr));
+        if (data) await writeCached('about_content', data).catch((cacheErr) => console.warn('Failed to cache about content:', cacheErr));
       } catch (err) {
         console.error(err);
         if (!cancelled && cachedData === null) setError('Failed to load about content.');
@@ -294,7 +320,7 @@ export function useAboutContent() {
       await updateAboutContent(mergedContent);
       setAboutContent(mergedContent);
       setError(null);
-      await cacheOfflineData('about_content', mergedContent);
+      await writeCached('about_content', mergedContent);
     } catch (err) {
       setError("Failed to save about content.");
       console.error(err);
@@ -307,8 +333,8 @@ export function useAboutContent() {
 
 // --- Materials Hooks ---
 export function useMaterialsGalleryImages() {
-  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>(() => readMemoryCached<GalleryImage[]>('materials_gallery_images') ?? []);
+  const [loading, setLoading] = useState(() => !hasMemoryCache('materials_gallery_images'));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -326,13 +352,13 @@ export function useMaterialsGalleryImages() {
         return;
       }
       try {
-        const data = await boundedRefresh(getMaterialsGalleryImages());
+        const data = await boundedRefresh('materials_gallery_images', () => getMaterialsGalleryImages());
         const finalData = data || [];
         if (!cancelled) {
           setGalleryImages(finalData);
           setError(null);
         }
-        await cacheOfflineData('materials_gallery_images', finalData).catch((cacheErr) => console.warn('Failed to cache gallery images:', cacheErr));
+        await writeCached('materials_gallery_images', finalData).catch((cacheErr) => console.warn('Failed to cache gallery images:', cacheErr));
       } catch (err) {
         console.error(err);
         if (!cancelled && cachedData === null) setError('Failed to load gallery images.');
@@ -360,8 +386,8 @@ export function useMaterialsGalleryImages() {
 }
 
 export function useMaterialsVideos() {
-  const [videos, setVideos] = useState<VideoItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [videos, setVideos] = useState<VideoItem[]>(() => readMemoryCached<VideoItem[]>('materials_videos') ?? []);
+  const [loading, setLoading] = useState(() => !hasMemoryCache('materials_videos'));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -379,13 +405,13 @@ export function useMaterialsVideos() {
         return;
       }
       try {
-        const data = await boundedRefresh(getMaterialsVideos());
+        const data = await boundedRefresh('materials_videos', () => getMaterialsVideos());
         const finalData = data || [];
         if (!cancelled) {
           setVideos(finalData);
           setError(null);
         }
-        await cacheOfflineData('materials_videos', finalData).catch((cacheErr) => console.warn('Failed to cache videos:', cacheErr));
+        await writeCached('materials_videos', finalData).catch((cacheErr) => console.warn('Failed to cache videos:', cacheErr));
       } catch (err) {
         console.error(err);
         if (!cancelled && cachedData === null) setError('Failed to load videos.');
@@ -413,8 +439,8 @@ export function useMaterialsVideos() {
 }
 
 export function useMaterialsPdfs() {
-  const [pdfs, setPdfs] = useState<PdfItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pdfs, setPdfs] = useState<PdfItem[]>(() => readMemoryCached<PdfItem[]>('materials_pdfs') ?? []);
+  const [loading, setLoading] = useState(() => !hasMemoryCache('materials_pdfs'));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -432,13 +458,13 @@ export function useMaterialsPdfs() {
         return;
       }
       try {
-        const data = await boundedRefresh(getMaterialsPdfs());
+        const data = await boundedRefresh('materials_pdfs', () => getMaterialsPdfs());
         const finalData = data || [];
         if (!cancelled) {
           setPdfs(finalData);
           setError(null);
         }
-        await cacheOfflineData('materials_pdfs', finalData).catch((cacheErr) => console.warn('Failed to cache PDFs:', cacheErr));
+        await writeCached('materials_pdfs', finalData).catch((cacheErr) => console.warn('Failed to cache PDFs:', cacheErr));
       } catch (err) {
         console.error(err);
         if (!cancelled && cachedData === null) setError('Failed to load PDFs.');
@@ -471,13 +497,13 @@ export function useMaterialsPdfs() {
 // append-only helpers, so adding a new group or new materials never removes
 // existing content.
 export function useMaterialsGroups() {
-  const [grouped, setGrouped] = useState<GroupedMaterials>({
+  const [grouped, setGrouped] = useState<GroupedMaterials>(() => readMemoryCached<GroupedMaterials>('materials_groups') ?? {
     groups: [],
     gallery: [],
     videos: [],
     pdfs: [],
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !hasMemoryCache('materials_groups'));
   const [error, setError] = useState<string | null>(null);
 
   const fetchGroups = useCallback(async () => {
@@ -493,10 +519,10 @@ export function useMaterialsGroups() {
       return;
     }
     try {
-      const data = await boundedRefresh(getMaterialsGroups());
+      const data = await boundedRefresh('materials_groups', () => getMaterialsGroups());
       setGrouped(data);
       setError(null);
-      await cacheOfflineData('materials_groups', data).catch((cacheErr) => console.warn('Failed to cache material groups:', cacheErr));
+      await writeCached('materials_groups', data).catch((cacheErr) => console.warn('Failed to cache material groups:', cacheErr));
     } catch (err) {
       console.error(err);
       if (cachedData === null) setError('Failed to load material groups.');
@@ -560,8 +586,8 @@ export function useMaterialsGroups() {
 
 // --- Topics Hooks ---
 export function useTopics() {
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [topics, setTopics] = useState<Topic[]>(() => readMemoryCached<Topic[]>('topics') ?? []);
+  const [loading, setLoading] = useState(() => !hasMemoryCache('topics'));
   const [error, setError] = useState<string | null>(null);
 
   const fetchTopics = useCallback(async () => {
@@ -577,10 +603,10 @@ export function useTopics() {
       return;
     }
     try {
-      const data = await boundedRefresh(getTopics());
+      const data = await boundedRefresh('topics', () => getTopics());
       setTopics(data);
       setError(null);
-      await cacheOfflineData('topics', data).catch((cacheErr) => console.warn('Failed to cache topics:', cacheErr));
+      await writeCached('topics', data).catch((cacheErr) => console.warn('Failed to cache topics:', cacheErr));
     } catch (err) {
       console.error(err);
       if (cachedData === null) setError('Failed to load topics.');
@@ -636,8 +662,8 @@ export function useTopics() {
 
 // --- Subtopics Hooks ---
 export function useAllSubtopics() {
-  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [subtopics, setSubtopics] = useState<Subtopic[]>(() => readMemoryCached<Subtopic[]>('all_subtopics') ?? []);
+  const [loading, setLoading] = useState(() => !hasMemoryCache('all_subtopics'));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -655,12 +681,12 @@ export function useAllSubtopics() {
         return;
       }
       try {
-        const data = await boundedRefresh(getAllSubtopics());
+        const data = await boundedRefresh('all_subtopics', () => getAllSubtopics());
         if (!cancelled) {
           setSubtopics(data);
           setError(null);
         }
-        await cacheOfflineData('all_subtopics', data).catch((cacheErr) => console.warn('Failed to cache all subtopics:', cacheErr));
+        await writeCached('all_subtopics', data).catch((cacheErr) => console.warn('Failed to cache all subtopics:', cacheErr));
       } catch (err) {
         console.error(err);
         if (!cancelled && cachedData === null) setError('Failed to load lessons for search.');
@@ -679,7 +705,7 @@ export function useAllSubtopics() {
 }
 
 export function useSubtopics(topicId: string | null) {
-  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
+  const [subtopics, setSubtopics] = useState<Subtopic[]>(() => topicId ? readMemoryCached<Subtopic[]>(`subtopics_${topicId}`) ?? [] : []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -701,10 +727,10 @@ export function useSubtopics(topicId: string | null) {
       return;
     }
     try {
-      const data = await boundedRefresh(getSubtopicsByTopicId(topicId));
+      const data = await boundedRefresh(`subtopics_${topicId}`, () => getSubtopicsByTopicId(topicId));
       setSubtopics(data);
       setError(null);
-      await cacheOfflineData(`subtopics_${topicId}`, data).catch((cacheErr) => console.warn('Failed to cache subtopics:', cacheErr));
+      await writeCached(`subtopics_${topicId}`, data).catch((cacheErr) => console.warn('Failed to cache subtopics:', cacheErr));
     } catch (err) {
       console.error(err);
       if (cachedData === null) setError('Failed to load subtopics.');
@@ -760,7 +786,7 @@ export function useSubtopics(topicId: string | null) {
 
 // --- Lesson Hooks ---
 export function useLesson(subtopicId: string | null) {
-  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [lesson, setLesson] = useState<Lesson | null>(() => subtopicId ? readMemoryCached<Lesson>(`lesson_${subtopicId}`) : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -784,12 +810,12 @@ export function useLesson(subtopicId: string | null) {
         return;
       }
       try {
-        const data = await boundedRefresh(getLessonBySubtopicId(subtopicId));
+        const data = await boundedRefresh(`lesson_${subtopicId}`, () => getLessonBySubtopicId(subtopicId));
         if (!cancelled) {
           setLesson(data);
           setError(null);
         }
-        if (data) await cacheOfflineData(`lesson_${subtopicId}`, data).catch((cacheErr) => console.warn('Failed to cache lesson:', cacheErr));
+        if (data) await writeCached(`lesson_${subtopicId}`, data).catch((cacheErr) => console.warn('Failed to cache lesson:', cacheErr));
       } catch (err) {
         console.error(err);
         if (!cancelled && cachedData === null) setError('Failed to load lesson.');
@@ -811,7 +837,7 @@ export function useLesson(subtopicId: string | null) {
       }
       if (savedLesson) {
         setLesson(savedLesson);
-        await cacheOfflineData(`lesson_${subtopicId}`, savedLesson);
+        await writeCached(`lesson_${subtopicId}`, savedLesson);
       }
       setError(null);
     } catch (err) {
@@ -826,8 +852,8 @@ export function useLesson(subtopicId: string | null) {
 
 // --- Quiz Hooks ---
 export function useQuizzes() {
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [quizzes, setQuizzes] = useState<Quiz[]>(() => readMemoryCached<Quiz[]>('quizzes') ?? []);
+  const [loading, setLoading] = useState(() => !hasMemoryCache('quizzes'));
   const [error, setError] = useState<string | null>(null);
 
   const fetchQuizzes = useCallback(async () => {
@@ -835,7 +861,7 @@ export function useQuizzes() {
       setLoading(true);
       const data = await getQuizzes();
       setQuizzes(data);
-      await cacheOfflineData('quizzes', data).catch((cacheErr) => console.warn('Failed to cache quizzes:', cacheErr));
+      await writeCached('quizzes', data).catch((cacheErr) => console.warn('Failed to cache quizzes:', cacheErr));
     } catch (err) {
       setError("Failed to load quizzes.");
       console.error(err);
@@ -900,7 +926,7 @@ export function useQuizzes() {
 
 // --- Quiz Question Hooks ---
 export function useQuizQuestions(quizId: string | null) {
-  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(() => quizId ? readMemoryCached<QuizQuestion[]>(`quiz_questions_${quizId}`) ?? [] : []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -913,7 +939,7 @@ export function useQuizQuestions(quizId: string | null) {
       setLoading(true);
       const data = await getQuizQuestionsByQuizId(quizId);
       setQuizQuestions(data);
-      await cacheOfflineData(`quiz_questions_${quizId}`, data).catch((cacheErr) => console.warn('Failed to cache quiz questions:', cacheErr));
+      await writeCached(`quiz_questions_${quizId}`, data).catch((cacheErr) => console.warn('Failed to cache quiz questions:', cacheErr));
     } catch (err) {
       setError("Failed to load quiz questions.");
       console.error(err);

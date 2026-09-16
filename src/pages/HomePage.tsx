@@ -7,11 +7,11 @@ import { useHomepageHero, useHomepageFeatureCards, useHomepageFeaturedTopics } f
 import { Button } from '@/components/ui/button';
 import { getVideoType, getEmbedUrl } from '@/lib/video-utils';
 import { AlertCircle, ExternalLink } from 'lucide-react';
-import { getPublishedSpaceNews } from '@/services/space-news';
+import { getCachedPublishedSpaceNews, getPublishedSpaceNews } from '@/services/space-news';
 import type { SpaceNews } from '@/types';
 
 const getUtcDateKey = () => new Date().toISOString().slice(0, 10);
-const HOME_BACKGROUND_VIDEO_URL = new URL('../assets/home-background.mp4', import.meta.url).href;
+const HOME_BACKGROUND_IMAGE_URL = new URL('../assets/home-background.jpg', import.meta.url).href;
 
 declare global {
   interface Window {
@@ -27,33 +27,25 @@ export default function HomePage() {
   const homepageFeatureCards = useHomepageFeatureCards();
   const homepageFeaturedTopics = useHomepageFeaturedTopics();
   const navigate = useNavigate();
-  const [dailyNews, setDailyNews] = useState<SpaceNews | null>(null);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const updateMotionPreference = () => setPrefersReducedMotion(mediaQuery.matches);
-    updateMotionPreference();
-    mediaQuery.addEventListener('change', updateMotionPreference);
-    return () => mediaQuery.removeEventListener('change', updateMotionPreference);
-  }, []);
-
+  const newsDateKey = getUtcDateKey();
+  const cachedNews = getCachedPublishedSpaceNews(1, newsDateKey);
+  const [dailyNews, setDailyNews] = useState<SpaceNews | null>(cachedNews?.[0] ?? null);
   useEffect(() => {
     let active = true;
     const loadNews = async () => {
-      const items = await getPublishedSpaceNews(1, getUtcDateKey());
+      const items = await getPublishedSpaceNews(1, newsDateKey);
       if (active) {
         setDailyNews(items[0] ?? null);
       }
     };
 
-    loadNews();
-    const refreshTimer = window.setInterval(loadNews, 15 * 60 * 1000);
+    void loadNews();
+    const refreshTimer = window.setInterval(() => { void loadNews(); }, 15 * 60 * 1000);
     return () => {
       active = false;
       window.clearInterval(refreshTimer);
     };
-  }, []);
+  }, [newsDateKey]);
 
   // Video sequencing state
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
@@ -170,33 +162,18 @@ export default function HomePage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="min-h-screen flex items-center relative overflow-hidden bg-[#0a0e1a]">
-        {!prefersReducedMotion && (
-          <video
-            className="absolute inset-0 h-full w-full object-cover opacity-35"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            poster="/images/hero-bg-new.jpg"
-            aria-hidden="true"
-          >
-            <source src={HOME_BACKGROUND_VIDEO_URL} type="video/mp4" />
-          </video>
-        )}
+        <img
+          src={HOME_BACKGROUND_IMAGE_URL}
+          className="absolute inset-0 h-full w-full object-cover opacity-35"
+          alt=""
+          aria-hidden="true"
+        />
 
-        {/* Absolute Logo Emblem background container stretched edge-to-edge across the screen area */}
-        <div className="absolute inset-0 pointer-events-none opacity-25">
-          <img 
-            src="/images/hero-bg-new.png" 
-                        alt={t('logoEmblem')}
-            className="w-full h-full object-fill"
-          />
-        </div>
+
 
         {/* Soft uniform dark overlay to tone down brightness across all corners without hiding the background */}
         <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-24 relative z-10 w-full">
           {dailyNews && (
             <article className="mb-6 max-w-5xl mx-auto overflow-hidden rounded-xl border border-orange-300/30 bg-[#0b1222]/90 shadow-2xl backdrop-blur-sm">

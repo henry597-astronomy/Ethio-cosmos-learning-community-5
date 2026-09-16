@@ -163,7 +163,12 @@ export default function LessonPage() {
     }
   };
 
-  if (topicsLoading || subtopicsLoading || lessonLoading || premiumLoading || (isOffline && offlineTopicReady === null)) {
+  const hasCachedLessonView = Boolean(topic && currentSubtopic && lesson);
+  if ((topicsLoading && topics.length === 0)
+    || (subtopicsLoading && subtopics.length === 0)
+    || (lessonLoading && !lesson)
+    || (premiumLoading && !hasCachedLessonView)
+    || (isOffline && offlineTopicReady === null && !hasCachedLessonView)) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center bg-[#0a0e1a] text-white">
         {t('loadingLesson')}

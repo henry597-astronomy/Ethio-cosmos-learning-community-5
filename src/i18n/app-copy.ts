@@ -23,6 +23,17 @@ export type AppCopyKey =
   | 'whoWeAreFallback2'
   | 'yourProgress'
   | 'trackJourney'
+  | 'missionControl'
+  | 'journeyStatus'
+  | 'continueMission'
+  | 'missionReady'
+  | 'focusTopic'
+  | 'weeklyMission'
+  | 'skillConstellation'
+  | 'recentActivity'
+  | 'noRecentActivity'
+  | 'lessonsToGo'
+  | 'mastery'
   | 'lessonsCompleted'
   | 'overallProgress'
   | 'achievements'
@@ -42,6 +53,7 @@ export type AppCopyKey =
   | 'removeBookmark'
   | 'loadingBookmarks'
   | 'loadingProgress'
+  | 'updating'
   | 'progressLoadError'
   | 'signIn'
   | 'joinStream'
@@ -406,6 +418,17 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     whoWeAreFallback2: 'We combine modern educational techniques with Ethiopia\'s rich astronomical heritage to create a unique learning experience that honors both science and culture.',
     yourProgress: 'Your Progress',
     trackJourney: 'Track your journey through the cosmos',
+    missionControl: 'Mission Control',
+    journeyStatus: 'Your cosmic learning status',
+    continueMission: 'Continue mission',
+    missionReady: 'Your next discovery is ready',
+    focusTopic: 'Focus topic',
+    weeklyMission: 'Weekly mission',
+    skillConstellation: 'Skill constellation',
+    recentActivity: 'Recent activity',
+    noRecentActivity: 'Your recent discoveries will appear here.',
+    lessonsToGo: 'lessons to go',
+    mastery: 'Mastery',
     lessonsCompleted: 'Lessons Completed',
     overallProgress: 'Overall Progress',
     achievements: 'Achievements',
@@ -425,6 +448,7 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     removeBookmark: 'Remove bookmark',
     loadingBookmarks: 'Loading bookmarks...',
     loadingProgress: 'Loading your progress...',
+    updating: 'Updating quietly…',
     progressLoadError: 'Failed to load progress. Please try again.',
     signIn: 'Sign In',
     joinStream: 'Join Stream',
@@ -788,6 +812,17 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     whoWeAreFallback2: 'ዘመናዊ የትምህርት ዘዴዎችን ከኢትዮጵያ የበለጸገ የሥነ ፈለክ ቅርስ ጋር በማጣመር ሳይንስንና ባህልን የሚያከብር ልዩ የመማሪያ ልምድ እንፈጥራለን።',
     yourProgress: 'የእርስዎ የመማር እድገት',
     trackJourney: 'በኮስሞስ ውስጥ ያለዎትን የመማር ጉዞ ይከታተሉ',
+    missionControl: 'የተልዕኮ መቆጣጠሪያ',
+    journeyStatus: 'የመማር ጉዞዎ ሁኔታ',
+    continueMission: 'ተልዕኮውን ይቀጥሉ',
+    missionReady: 'ቀጣዩ ግኝትዎ ዝግጁ ነው',
+    focusTopic: 'የሚያተኩሩበት ርዕስ',
+    weeklyMission: 'የሳምንቱ ተልዕኮ',
+    skillConstellation: 'የክህሎት ህብረ ከዋክብት',
+    recentActivity: 'የቅርብ ጊዜ እንቅስቃሴ',
+    noRecentActivity: 'የቅርብ ጊዜ ግኝቶችዎ እዚህ ይታያሉ።',
+    lessonsToGo: 'የቀሩ ትምህርቶች',
+    mastery: 'የችሎታ ደረጃ',
     lessonsCompleted: 'የተጠናቀቁ ትምህርቶች',
     overallProgress: 'አጠቃላይ የመማር እድገት',
     achievements: 'ያገኙዋቸው ስኬቶች',
@@ -807,6 +842,7 @@ const COPY: Record<AppLanguage, Record<AppCopyKey, string>> = {
     removeBookmark: 'ከዕልባቶች ያስወግዱ',
     loadingBookmarks: 'ዕልባቶች በመጫን ላይ...',
     loadingProgress: 'የእርስዎ እድገት በመጫን ላይ ነው...',
+    updating: 'በጸጥታ እየተዘመነ ነው…',
     progressLoadError: 'እድገትን መጫን አልተቻለም። እባክዎ እንደገና ይሞክሩ።',
     signIn: 'ይግቡ',
     joinStream: 'ወደ ቀጥታ ስርጭት ይቀላቀሉ',

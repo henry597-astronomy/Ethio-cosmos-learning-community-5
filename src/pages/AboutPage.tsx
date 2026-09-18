@@ -160,12 +160,12 @@ export default function AboutPage() {
                               <span className="text-4xl" aria-hidden="true">👤</span>
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-transparent" />
-                          <div className="absolute inset-x-0 bottom-0 p-3 text-left">
-                            <h4 className="truncate text-sm font-bold text-white group-hover:text-orange-300 transition-colors">
+                          <div className="absolute inset-x-0 bottom-0 min-h-[38%] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
+                          <div className="absolute inset-x-0 bottom-0 p-4 pt-12 text-left">
+                            <h4 className="break-words text-base font-bold leading-tight text-white group-hover:text-orange-300 transition-colors">
                               {member.name}
                             </h4>
-                            <p className="text-xs font-medium leading-snug text-orange-400 break-words">
+                            <p className="mt-1 max-h-28 overflow-y-auto text-sm font-medium leading-snug text-orange-300 break-words">
                               {member.work}
                             </p>
                           </div>

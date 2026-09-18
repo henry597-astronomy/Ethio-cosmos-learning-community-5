@@ -92,6 +92,7 @@ function ImageUpload({ currentImage, onImageUploaded, label }: ImageUploadProps)
       alert('Failed to upload image. Make sure the "uploads" storage bucket exists in Supabase and RLS policies allow uploads.');
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -1763,10 +1764,11 @@ export default function AdminPage() {
                               </div>
                               <div className="space-y-1">
                                 <label className="block text-xs text-gray-400">Work/Role</label>
-                                <Input 
+                                <Textarea
                                   value={member.work} 
                                   onChange={(e) => updateTeamMemberLocal(category, member.id, 'work', e.target.value)} 
-                                  className="bg-slate-800 border-white/10 text-white" 
+                                  rows={3}
+                                  className="min-h-[5rem] resize-y bg-slate-800 border-white/10 text-white"
                                 />
                               </div>
                             </div>

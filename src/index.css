@@ -927,7 +927,7 @@ html {
 .team-member-card {
   position: relative;
   flex: 0 0 var(--team-card-size);
-  aspect-ratio: 1 / 1;
+  height: clamp(19rem, 82vw, 25rem);
   overflow: hidden;
   border: 1px solid rgba(251, 146, 60, 0.42);
   border-radius: 1rem;
@@ -960,6 +960,10 @@ html {
 @media (max-width: 640px) {
   .team-marquee {
     --team-card-size: min(72vw, 16rem);
+  }
+
+  .team-member-card {
+    height: min(32rem, 128vw);
   }
 }
 

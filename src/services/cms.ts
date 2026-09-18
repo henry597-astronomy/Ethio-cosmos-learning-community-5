@@ -722,8 +722,14 @@ export const isBookmarked = async (userId: string, url: string): Promise<boolean
 export const uploadImage = async (file: File, bucket: string = "uploads"): Promise<string | null> => {
   if (!file) return null;
 
-  const filePath = `images/${Date.now()}-${file.name}`;
-  const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
+  const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() : 'jpg';
+  const safeExtension = extension && /^[a-z0-9]+$/.test(extension) ? extension : 'jpg';
+  const filePath = `images/${Date.now()}-${crypto.randomUUID()}.${safeExtension}`;
+  const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file, {
+    contentType: file.type || `image/${safeExtension}`,
+    cacheControl: '31536000',
+    upsert: false,
+  });
   if (uploadError) {
     console.error("Error uploading image:", uploadError);
     throw uploadError;

@@ -7,9 +7,9 @@ android {
         applicationId "com.ethiocosmos.learning"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Version 24 fixes mobile OAuth redirect by using Capacitor.isNativePlatform().
-        versionCode 61
-        versionName "1.10.32"
+        // Version 33 includes the shared Supabase fallback validation fix for admin writes/uploads.
+        versionCode 62
+        versionName "1.10.33"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

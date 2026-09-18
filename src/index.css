@@ -927,7 +927,7 @@ html {
 .team-member-card {
   position: relative;
   flex: 0 0 var(--team-card-size);
-  height: clamp(19rem, 82vw, 25rem);
+  height: clamp(24rem, 96vw, 31rem);
   overflow: hidden;
   border: 1px solid rgba(251, 146, 60, 0.42);
   border-radius: 1rem;
@@ -937,6 +937,16 @@ html {
     0 0 24px rgba(249, 115, 22, 0.2),
     inset 0 0 22px rgba(249, 115, 22, 0.08);
   transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+.team-member-image {
+  height: 62%;
+  min-height: 12rem;
+  object-position: center;
+}
+.team-member-details {
+  height: 38%;
+  overflow-y: auto;
+  background: #0b1220;
 }
 
 .team-member-card:hover {
@@ -963,7 +973,7 @@ html {
   }
 
   .team-member-card {
-    height: min(32rem, 128vw);
+    height: min(36rem, 145vw);
   }
 }
 

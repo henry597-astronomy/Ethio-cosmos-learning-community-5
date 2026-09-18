@@ -7,9 +7,9 @@ android {
         applicationId "com.ethiocosmos.learning"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Version 34 includes reliable Android image uploads and readable multiline team roles.
-        versionCode 63
-        versionName "1.10.34"
+        // Version 35 places team names and roles below, not over, member images.
+        versionCode 64
+        versionName "1.10.35"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

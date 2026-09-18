@@ -153,15 +153,14 @@ export default function AboutPage() {
                             <img
                               src={member.image_url}
                               alt={member.name}
-                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              className="team-member-image w-full object-cover transition-transform duration-500 group-hover:scale-105"
                             />
                           ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                            <div className="team-member-image flex w-full items-center justify-center bg-slate-800">
                               <span className="text-4xl" aria-hidden="true">👤</span>
                             </div>
                           )}
-                          <div className="absolute inset-x-0 bottom-0 min-h-[38%] bg-gradient-to-t from-black/95 via-black/70 to-transparent" />
-                          <div className="absolute inset-x-0 bottom-0 p-4 pt-12 text-left">
+                          <div className="team-member-details p-4 text-left">
                             <h4 className="break-words text-base font-bold leading-tight text-white group-hover:text-orange-300 transition-colors">
                               {member.name}
                             </h4>

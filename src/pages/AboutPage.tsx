@@ -160,7 +160,7 @@ export default function AboutPage() {
                               <span className="text-4xl" aria-hidden="true">👤</span>
                             </div>
                           )}
-                          <div className="team-member-details p-4 text-left">
+                          <div className="team-member-details px-2 py-2 text-left">
                             <h4 className="break-words text-base font-bold leading-tight text-white group-hover:text-orange-300 transition-colors">
                               {member.name}
                             </h4>

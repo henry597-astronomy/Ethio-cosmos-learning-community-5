@@ -7,9 +7,9 @@ android {
         applicationId "com.ethiocosmos.learning"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Version 36 packages the synchronized image-above-text team-card layout.
-        versionCode 65
-        versionName "1.10.36"
+        // Version 37 uses a smaller image and a larger low-padding text panel.
+        versionCode 66
+        versionName "1.10.37"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

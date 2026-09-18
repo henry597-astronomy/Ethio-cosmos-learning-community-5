@@ -922,13 +922,6 @@ html {
   width: max-content;
   gap: var(--team-card-gap);
   padding: 0.5rem 0.25rem 1rem;
-  animation: team-loop-scroll 38s linear infinite;
-  will-change: transform;
-}
-
-.team-marquee:hover .team-marquee-track,
-.team-marquee:focus-within .team-marquee-track {
-  animation-play-state: paused;
 }
 
 .team-member-card {

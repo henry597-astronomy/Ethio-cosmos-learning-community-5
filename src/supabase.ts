@@ -8,19 +8,27 @@ const PROD_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const envUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// A configuration is valid only if it's not the placeholder
-export const isSupabaseConfigured = Boolean(
-  envUrl && 
-  envKey && 
+// Use environment variables if valid, otherwise use the production public client
+// configuration bundled for the Android build. The admin UI must validate the
+// effective client, not only the optional local .env variables.
+const hasValidEnvConfig = Boolean(
+  envUrl &&
+  envKey &&
   !envUrl.includes('placeholder') &&
   envUrl.includes('.')
 );
 
-export const isValidConfig = isSupabaseConfigured;
+const finalUrl = hasValidEnvConfig ? envUrl : PROD_URL;
+const finalKey = hasValidEnvConfig ? envKey : PROD_KEY;
 
-// Use environment variables if valid, otherwise fallback to hardcoded production keys
-const finalUrl = isSupabaseConfigured ? envUrl : PROD_URL;
-const finalKey = isSupabaseConfigured ? envKey : PROD_KEY;
+export const isSupabaseConfigured = Boolean(
+  finalUrl &&
+  finalKey &&
+  !finalUrl.includes('placeholder') &&
+  finalUrl.includes('.')
+);
+
+export const isValidConfig = isSupabaseConfigured;
 
 // Custom storage for Capacitor to ensure session persistence across browser jumps
 const capacitorStorage = {

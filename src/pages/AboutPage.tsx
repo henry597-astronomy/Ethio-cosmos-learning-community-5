@@ -165,43 +165,15 @@ export default function AboutPage() {
                             <h4 className="truncate text-sm font-bold text-white group-hover:text-orange-300 transition-colors">
                               {member.name}
                             </h4>
-                            <p className="truncate text-xs font-medium text-orange-400">
+                            <p className="text-xs font-medium leading-snug text-orange-400 break-words">
                               {member.work}
                             </p>
                           </div>
                         </article>
                       ))}
-                      {members.length > 0 && members.map((member: TeamMember) => (
-                        <article
-                          key={`${member.id}-loop`}
-                          className="team-member-card group"
-                          aria-hidden="true"
-                        >
-                          {member.image_url ? (
-                            <img
-                              src={member.image_url}
-                              alt=""
-                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
-                              <span className="text-4xl" aria-hidden="true">👤</span>
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-transparent" />
-                          <div className="absolute inset-x-0 bottom-0 p-3 text-left">
-                            <h4 className="truncate text-sm font-bold text-white">{member.name}</h4>
-                            <p className="truncate text-xs font-medium text-orange-400">{member.work}</p>
-                          </div>
-                        </article>
-                      ))}
                     </div>
                   </div>
-                ) : (
-                  <div className="py-8 text-center bg-white/5 rounded-xl border border-dashed border-white/10">
-                    <p className="text-gray-500 italic text-sm">{t('noMembersAdded')}</p>
-                  </div>
-                )}
+                ) : null}
               </div>
             );
           })}

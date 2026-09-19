@@ -10,6 +10,7 @@ import NotificationCenter from '@/components/NotificationCenter';
 import { useAppLanguage } from '@/context/AppLanguageContext';
 import { getCacheSize, setPrefetchProgressCallback, type PrefetchProgress } from '@/lib/background-prefetch';
 import { getOfflinePackManifest, type OfflinePackManifest } from '@/lib/offline-cache';
+import { Capacitor } from '@capacitor/core';
 import {
   Sheet,
   SheetContent,
@@ -31,6 +32,9 @@ const privateNavLinks = [
   { path: '/bookmarks', key: 'bookmarks' as const },
   { path: '/progress', key: 'myProgress' as const },
 ];
+
+const CURRENT_APP_VERSION_CODE = 68;
+const APK_DOWNLOAD_URL = 'https://ethio-cosmos-learning-community-5.vercel.app/api/download/apk';
 
 export default function Navbar() {
   const location = useLocation();
@@ -57,6 +61,7 @@ export default function Navbar() {
     status: 'idle',
   });
   const [offlinePack, setOfflinePack] = useState<OfflinePackManifest | null>(null);
+  const [latestAppVersion, setLatestAppVersion] = useState<number | null>(null);
 
   useEffect(() => {
     // Initial cache size
@@ -89,6 +94,31 @@ export default function Navbar() {
       setPrefetchProgressCallback(() => undefined);
     };
   }, [language, user?.id]);
+
+  useEffect(() => {
+    if (!profilePanelOpen || !Capacitor.isNativePlatform()) return;
+
+    let active = true;
+    const checkForAppUpdate = async () => {
+      try {
+        const response = await fetch(APK_DOWNLOAD_URL, {
+          method: 'HEAD',
+          cache: 'no-store',
+        });
+        const versionCode = Number(response.headers.get('x-ethiocosmos-version-code'));
+        if (active && Number.isFinite(versionCode) && versionCode > CURRENT_APP_VERSION_CODE) {
+          setLatestAppVersion(versionCode);
+        }
+      } catch {
+        // Update availability is optional; never disrupt the profile panel offline.
+      }
+    };
+
+    void checkForAppUpdate();
+    return () => {
+      active = false;
+    };
+  }, [profilePanelOpen]);
 
   const handleLogout = async () => {
     await logout();
@@ -188,6 +218,27 @@ export default function Navbar() {
                   </SheetHeader>
 
                   <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
+
+                    {latestAppVersion && (
+                      <div className="mx-6 my-3 rounded-xl border border-orange-400/30 bg-orange-500/10 p-4">
+                        <div className="flex items-start gap-3">
+                          <Download size={20} className="mt-0.5 shrink-0 text-orange-400" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-white">Update available</p>
+                            <p className="mt-1 text-xs leading-relaxed text-gray-300">
+                              A newer EthioCosmos APK is ready. Update to get the latest improvements.
+                            </p>
+                            <Button
+                              type="button"
+                              onClick={() => { window.location.href = APK_DOWNLOAD_URL; }}
+                              className="mt-3 h-9 bg-orange-500 px-3 text-xs text-white hover:bg-orange-600"
+                            >
+                              Download latest APK
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Navigation Section */}
                     <div className="py-2">

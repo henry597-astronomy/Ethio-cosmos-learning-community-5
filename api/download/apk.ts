@@ -2,7 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Keep the website download pinned to the latest verified APK release.
 const APK_RELEASE_URL =
-  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.10.32/ethio-cosmos-v1.10.32.apk';
+  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.10.40/ethio-cosmos-v1.10.40.apk';
+const APK_VERSION_CODE = '69';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -11,6 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    res.setHeader('X-EthioCosmos-Version-Code', APK_VERSION_CODE);
     const upstreamRes = await fetch(APK_RELEASE_URL, {
       redirect: 'follow',
       headers: {
@@ -21,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!upstreamRes.ok || !upstreamRes.body) {
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('X-EthioCosmos-Version-Code', APK_VERSION_CODE);
       res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.10.32.apk"');
       res.statusCode = 302;
       res.setHeader('Location', APK_RELEASE_URL);
@@ -29,6 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    res.setHeader('X-EthioCosmos-Version-Code', APK_VERSION_CODE);
     res.setHeader('Content-Disposition', 'attachment; filename="ethiocosmos-v1.10.32.apk"');
     
     const contentLength = upstreamRes.headers.get('content-length');

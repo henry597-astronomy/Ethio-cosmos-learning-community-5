@@ -160,13 +160,15 @@ export default function AboutPage() {
                               <span className="text-4xl" aria-hidden="true">👤</span>
                             </div>
                           )}
-                          <div className="team-member-details px-2 py-2 text-left">
-                            <h4 className="break-words text-base font-bold leading-tight text-white group-hover:text-orange-300 transition-colors">
-                              {member.name}
-                            </h4>
-                            <p className="mt-1 text-sm font-medium leading-snug text-orange-300 break-words">
-                              {member.work}
-                            </p>
+                          <div className="team-member-details">
+                            <div className="team-member-details-scroll px-2 py-2 text-left">
+                              <h4 className="break-words text-base font-bold leading-tight text-white group-hover:text-orange-300 transition-colors">
+                                {member.name}
+                              </h4>
+                              <p className="mt-1 text-sm font-medium leading-snug text-orange-300 break-words">
+                                {member.work}
+                              </p>
+                            </div>
                           </div>
                         </article>
                       ))}

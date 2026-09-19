@@ -148,6 +148,7 @@ export default function AdminPage() {
   const [spaceNewsLoading, setSpaceNewsLoading] = useState(false);
   const [spaceNewsError, setSpaceNewsError] = useState<string | null>(null);
   const [analyticsEvents, setAnalyticsEvents] = useState<{
+    id: string;
     event_name: 'apk_download_click' | 'apk_first_open' | 'apk_open';
     anonymous_id: string;
     platform: 'web' | 'android';
@@ -164,13 +165,31 @@ export default function AdminPage() {
     try {
       const { data, error } = await supabase
         .from('app_analytics_events')
-        .select('event_name, anonymous_id, platform, app_version, release_tag, created_at')
+        .select('id, event_name, anonymous_id, platform, app_version, release_tag, created_at')
         .order('created_at', { ascending: false })
         .limit(5000);
       if (error) throw error;
       setAnalyticsEvents((data || []) as typeof analyticsEvents);
     } catch (error) {
       setAnalyticsError(error instanceof Error ? error.message : 'Failed to load analytics');
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const clearAnalytics = async () => {
+    if (!window.confirm('Permanently delete all APK analytics events? This cannot be undone.')) return;
+    setAnalyticsLoading(true);
+    setAnalyticsError(null);
+    try {
+      const { error } = await supabase
+        .from('app_analytics_events')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) throw error;
+      setAnalyticsEvents([]);
+    } catch (error) {
+      setAnalyticsError(error instanceof Error ? error.message : 'Failed to delete analytics');
     } finally {
       setAnalyticsLoading(false);
     }
@@ -1069,10 +1088,16 @@ export default function AdminPage() {
                 <h2 className="text-2xl font-bold text-white">APK Analytics</h2>
                 <p className="mt-1 text-sm text-gray-400">Anonymous download clicks, first opens, and repeat app opens. Visible to administrators only.</p>
               </div>
-              <Button onClick={fetchAnalytics} disabled={analyticsLoading} className="bg-orange-500 text-white hover:bg-orange-600">
-                <RefreshCw size={16} className={`mr-2 ${analyticsLoading ? 'animate-spin' : ''}`} />
-                {analyticsLoading ? 'Refreshing...' : 'Refresh'}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={fetchAnalytics} disabled={analyticsLoading} className="bg-orange-500 text-white hover:bg-orange-600">
+                  <RefreshCw size={16} className={`mr-2 ${analyticsLoading ? 'animate-spin' : ''}`} />
+                  {analyticsLoading ? 'Refreshing...' : 'Refresh'}
+                </Button>
+                <Button onClick={() => void clearAnalytics()} disabled={analyticsLoading || analyticsEvents.length === 0} variant="destructive">
+                  <Trash2 size={16} className="mr-2" />
+                  Delete all events
+                </Button>
+              </div>
             </div>
 
             {analyticsError && <p className="rounded-lg border border-red-500/30 bg-red-950/30 p-4 text-sm text-red-300">{analyticsError}</p>}

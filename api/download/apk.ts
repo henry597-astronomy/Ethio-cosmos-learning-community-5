@@ -2,8 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Keep the website download pinned to the latest verified APK release.
 const APK_RELEASE_URL =
-  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.10.40/ethio-cosmos-v1.10.40.apk';
-const APK_VERSION_CODE = '69';
+  'https://github.com/henry597-astronomy/Ethio-cosmos-learning-community-5/releases/download/v1.10.41/ethio-cosmos-v1.10.41.apk';
+const APK_VERSION_CODE = '70';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {

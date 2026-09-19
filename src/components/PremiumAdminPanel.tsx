@@ -484,6 +484,22 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
     await loadPremiumData();
   };
 
+  const clearAuditLog = async () => {
+    if (!window.confirm('Permanently delete all Premium audit activity? This cannot be undone.')) return;
+    setSaving('audit-clear');
+    const { error: deleteError } = await supabase
+      .from('premium_audit_log')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+    setSaving(null);
+    if (deleteError) {
+      toast.error(`Could not delete Premium audit activity: ${deleteError.message}`);
+      return;
+    }
+    setAuditLog([]);
+    toast.success('Premium audit activity permanently deleted.');
+  };
+
   if (loading) {
     return <div className="rounded-xl border border-white/10 bg-slate-900/50 p-6 text-gray-300">Loading Premium controls…</div>;
   }
@@ -855,8 +871,16 @@ export default function PremiumAdminPanel({ adminId }: { adminId: string }) {
       </div>
 
       <div className="w-full min-w-0 rounded-xl border border-white/10 bg-slate-900/50 p-2.5 sm:p-4">
-        <h3 className="text-lg font-bold text-white">Recent Premium audit activity</h3>
-        <p className="mt-1 text-sm text-gray-400">This is an append-only record of setting, feature, plan, entitlement, and payment-ledger mutations.</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-white">Recent Premium audit activity</h3>
+            <p className="mt-1 text-sm text-gray-400">This is an append-only record of setting, feature, plan, entitlement, and payment-ledger mutations.</p>
+          </div>
+          <Button onClick={() => void clearAuditLog()} disabled={saving === 'audit-clear' || auditLog.length === 0} variant="destructive" size="sm">
+            <X size={15} className="mr-2" />
+            {saving === 'audit-clear' ? 'Deleting…' : 'Delete audit activity'}
+          </Button>
+        </div>
         <div className="mt-4 space-y-2">
           {auditLog.map((entry) => (
             <div key={entry.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-800/60 p-3 text-sm">

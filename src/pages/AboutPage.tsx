@@ -164,7 +164,7 @@ export default function AboutPage() {
                             <h4 className="break-words text-base font-bold leading-tight text-white group-hover:text-orange-300 transition-colors">
                               {member.name}
                             </h4>
-                            <p className="mt-1 max-h-28 overflow-y-auto text-sm font-medium leading-snug text-orange-300 break-words">
+                            <p className="mt-1 text-sm font-medium leading-snug text-orange-300 break-words">
                               {member.work}
                             </p>
                           </div>

@@ -108,6 +108,7 @@ function ImageUpload({ currentImage, onImageUploaded, label }: ImageUploadProps)
           <Button
             variant="outline"
             size="sm"
+            type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="border-white/20 text-white hover:bg-white/10"

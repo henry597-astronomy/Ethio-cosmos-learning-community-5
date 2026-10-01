@@ -61,19 +61,17 @@ export default function BottomTaskBar() {
           willChange: 'auto',
         }}
       >
-        {/* Center Host Live / Join Live Button */}
-        {user && (
-          <div className="grid w-full grid-cols-5 items-center gap-1">
-            {/* Home is kept in the bottom taskbar to leave the top navigation spacious. */}
-            <Link
-              to="/"
-              aria-label={t('home')}
-              className={`mx-auto flex items-center justify-center rounded-full px-3 py-2 font-bold transition-all duration-300 active:scale-[0.98] ${location.pathname === '/' ? 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/50' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
-            >
-              <Home size={18} />
-              <span className="hidden sm:inline">{t('home')}</span>
-            </Link>
-
+        {/* Guests get only a centered Home button; signed-in users get the original taskbar. */}
+        {!user ? (
+          <Link
+            to="/"
+            aria-label={t('home')}
+            className={`flex items-center justify-center rounded-full px-4 py-2 font-bold transition-all duration-300 active:scale-[0.98] ${location.pathname === '/' ? 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/50' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+          >
+            <Home size={20} />
+          </Link>
+        ) : (
+          <div className="grid w-full grid-cols-4 items-center gap-1">
             {/* Internal Solar System screen */}
             <Link
               to="/solar-system"

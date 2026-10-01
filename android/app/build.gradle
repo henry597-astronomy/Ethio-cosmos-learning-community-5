@@ -7,9 +7,9 @@ android {
         applicationId "com.ethiocosmos.learning"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Version 43 also shows the information icon beside About in the profile navigation list.
-        versionCode 72
-        versionName "1.10.43"
+        // Version 44 separates guest and signed-in navigation layouts.
+        versionCode 73
+        versionName "1.10.44"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

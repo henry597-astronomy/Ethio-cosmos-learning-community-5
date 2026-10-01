@@ -33,7 +33,7 @@ const privateNavLinks = [
   { path: '/progress', key: 'myProgress' as const },
 ];
 
-const CURRENT_APP_VERSION_CODE = 68;
+const CURRENT_APP_VERSION_CODE = 73;
 const APK_DOWNLOAD_URL = 'https://ethio-cosmos-learning-community-5.vercel.app/api/download/apk';
 
 export default function Navbar() {
@@ -131,8 +131,10 @@ export default function Navbar() {
     return location.pathname.startsWith(path);
   };
 
-  // Taskbar links - exclude private links and admin link as requested
-  const allNavLinks = publicNavLinks.filter((link) => link.key !== 'home');
+  // Guests see About only as an icon; signed-in users access About from their profile.
+  const allNavLinks = publicNavLinks.filter(
+    (link) => link.key !== 'home' && (!user || link.key !== 'about'),
+  );
 
   const progressPercent = prefetchProgress.total > 0 
     ? Math.round((prefetchProgress.completed / prefetchProgress.total) * 100) 
@@ -242,6 +244,16 @@ export default function Navbar() {
 
                     {/* Navigation Section */}
                     <div className="py-2">
+                      <Link
+                        to="/about"
+                        aria-label={translate('about')}
+                        className="mx-6 my-2 flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+                        onClick={() => setProfilePanelOpen(false)}
+                      >
+                        <Info size={18} className="text-orange-400" />
+                        <span>{translate('about')}</span>
+                      </Link>
+
                       {/* Navigation Collapsible */}
                       <div className="px-6 py-3 border-b border-white/5">
                         <button
@@ -259,14 +271,13 @@ export default function Navbar() {
 
                         {navDropdownOpen && (
                           <div className="mt-2 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                            {publicNavLinks.map((link) => (
+                            {publicNavLinks.filter((link) => link.key !== 'about').map((link) => (
                               <Link
                                 key={link.path}
                                 to={link.path}
                                 className="flex items-center gap-3 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
                                 onClick={() => setProfilePanelOpen(false)}
                               >
-                                {link.key === 'about' && <Info size={15} aria-hidden="true" />}
                                 <span>{translate(link.key)}</span>
                               </Link>
                             ))}
@@ -514,8 +525,10 @@ export default function Navbar() {
                     : 'text-gray-400 bg-white/5 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/20'
                 }`}
                 >
-                  {link.key === 'about' && <Info size={15} aria-hidden="true" />}
-                  <span className={language === 'am' ? 'block min-w-0 truncate' : undefined}>{translate(link.key)}</span>
+                  {link.key === 'about' && <Info size={18} aria-hidden="true" />}
+                  {link.key !== 'about' && (
+                    <span className={language === 'am' ? 'block min-w-0 truncate' : undefined}>{translate(link.key)}</span>
+                  )}
                 </Link>
             ))}
           </div>

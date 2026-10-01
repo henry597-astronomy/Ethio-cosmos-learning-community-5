@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, BookOpen, BarChart3, Settings, Download, CheckCircle, Users, Sun, Moon, Menu, Pencil, Languages } from 'lucide-react';
+import { LogOut, BookOpen, BarChart3, Settings, Download, CheckCircle, Users, Sun, Moon, Menu, Pencil, Languages, Info } from 'lucide-react';
 import EditProfileDialog from '@/components/EditProfileDialog';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useAppLanguage } from '@/context/AppLanguageContext';
@@ -132,7 +132,7 @@ export default function Navbar() {
   };
 
   // Taskbar links - exclude private links and admin link as requested
-  const allNavLinks = [...publicNavLinks];
+  const allNavLinks = publicNavLinks.filter((link) => link.key !== 'home');
 
   const progressPercent = prefetchProgress.total > 0 
     ? Math.round((prefetchProgress.completed / prefetchProgress.total) * 100) 
@@ -502,7 +502,7 @@ export default function Navbar() {
         }`}
       >
         <div className={`${language === 'am' ? 'w-full px-2' : 'max-w-7xl mx-auto px-4'} flex items-center h-10 justify-center`}>
-          <div className={language === 'am' ? 'grid w-full grid-cols-6 gap-0' : 'flex items-center gap-1.5 sm:gap-2'}>
+          <div className={language === 'am' ? 'grid w-full grid-cols-5 gap-0' : 'flex items-center gap-1.5 sm:gap-2'}>
             {allNavLinks.map((link, idx) => (
               <Link
                 key={`nav-${idx}`}
@@ -513,6 +513,7 @@ export default function Navbar() {
                     : 'text-gray-400 bg-white/5 border-white/5 hover:text-white hover:bg-white/10 hover:border-white/20'
                 }`}
                 >
+                  {link.key === 'about' && <Info size={15} aria-hidden="true" />}
                   <span className={language === 'am' ? 'block min-w-0 truncate' : undefined}>{translate(link.key)}</span>
                 </Link>
             ))}

@@ -6,7 +6,7 @@ import { useAppLanguage } from '@/context/AppLanguageContext';
 import { usePremium } from '@/context/usePremium';
 import { PremiumRequiredDialog } from '@/components/PremiumRequiredMessage';
 import { Button } from '@/components/ui/button';
-import { Orbit, Radio, Zap } from 'lucide-react';
+import { Home, Orbit, Radio, Zap } from 'lucide-react';
 import LiveHostModal from './LiveHostModal';
 import TikTokLiveStream from './TikTokLiveStream';
 import ShortsFeed from './ShortsFeed';
@@ -63,12 +63,22 @@ export default function BottomTaskBar() {
       >
         {/* Center Host Live / Join Live Button */}
         {user && (
-          <div className="flex w-full items-center justify-evenly">
+          <div className="grid w-full grid-cols-5 items-center gap-1">
+            {/* Home is kept in the bottom taskbar to leave the top navigation spacious. */}
+            <Link
+              to="/"
+              aria-label={t('home')}
+              className={`mx-auto flex items-center justify-center rounded-full px-3 py-2 font-bold transition-all duration-300 active:scale-[0.98] ${location.pathname === '/' ? 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/50' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+            >
+              <Home size={18} />
+              <span className="hidden sm:inline">{t('home')}</span>
+            </Link>
+
             {/* Internal Solar System screen */}
             <Link
               to="/solar-system"
               aria-label={t('solarSystem')}
-              className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-all duration-300 active:scale-[0.98] ${location.pathname.startsWith('/solar-system') ? 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/50' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+              className={`mx-auto flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-all duration-300 active:scale-[0.98] ${location.pathname.startsWith('/solar-system') ? 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/50' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
             >
               <Orbit size={18} />
               <span className="hidden sm:inline">{t('solarSystem')}</span>

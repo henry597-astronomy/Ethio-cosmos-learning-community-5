@@ -266,6 +266,7 @@ export default function Navbar() {
                                 className="flex items-center gap-3 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
                                 onClick={() => setProfilePanelOpen(false)}
                               >
+                                {link.key === 'about' && <Info size={15} aria-hidden="true" />}
                                 <span>{translate(link.key)}</span>
                               </Link>
                             ))}

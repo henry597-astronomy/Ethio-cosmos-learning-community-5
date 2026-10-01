@@ -7,9 +7,9 @@ android {
         applicationId "com.ethiocosmos.learning"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Version 44 separates guest and signed-in navigation layouts.
-        versionCode 73
-        versionName "1.10.44"
+        // Version 45 restores Home as the first signed-in taskbar slot.
+        versionCode 74
+        versionName "1.10.45"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

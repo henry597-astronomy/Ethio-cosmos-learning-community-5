@@ -71,7 +71,15 @@ export default function BottomTaskBar() {
             <Home size={20} />
           </Link>
         ) : (
-          <div className="grid w-full grid-cols-4 items-center gap-1">
+          <div className="grid w-full grid-cols-5 items-center gap-1">
+            <Link
+              to="/"
+              aria-label={t('home')}
+              className={`mx-auto flex items-center justify-center rounded-full px-3 py-2 font-bold transition-all duration-300 active:scale-[0.98] ${location.pathname === '/' ? 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/50' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+            >
+              <Home size={18} />
+            </Link>
+
             {/* Internal Solar System screen */}
             <Link
               to="/solar-system"

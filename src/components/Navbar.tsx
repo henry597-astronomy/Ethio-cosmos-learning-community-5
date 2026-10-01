@@ -33,7 +33,7 @@ const privateNavLinks = [
   { path: '/progress', key: 'myProgress' as const },
 ];
 
-const CURRENT_APP_VERSION_CODE = 73;
+const CURRENT_APP_VERSION_CODE = 74;
 const APK_DOWNLOAD_URL = 'https://ethio-cosmos-learning-community-5.vercel.app/api/download/apk';
 
 export default function Navbar() {
